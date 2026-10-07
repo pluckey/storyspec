@@ -1,0 +1,37 @@
+{
+  "name": "create-storyspec",
+  "version": "0.1.0",
+  "description": "Scaffold a story-first, spec-driven app: npm create storyspec@latest my-app",
+  "license": "MIT",
+  "author": "Paul Luckey",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pluckey/storyspec.git",
+    "directory": "packages/create-storyspec"
+  },
+  "homepage": "https://github.com/pluckey/storyspec#readme",
+  "keywords": [
+    "storyspec",
+    "create",
+    "template",
+    "spec-driven-development",
+    "clean-architecture"
+  ],
+  "type": "module",
+  "bin": {
+    "create-storyspec": "index.js"
+  },
+  "files": [
+    "index.js",
+    "template",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node bundle-template.mjs",
+    "prepack": "node bundle-template.mjs"
+  }
+}

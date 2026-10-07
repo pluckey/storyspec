@@ -45,12 +45,12 @@ Underneath is clean architecture with ports and adapters (`src/domain`, `src/por
 
 ## Docs
 
-- [Concepts](docs/concepts.md): stories, the lifecycle, ports and adapters, why one folder per story
-- [Rules](docs/rules.md): every rule the trace enforces, why, and how to fix a violation
-- [Configuration](docs/config.md): `storyspec.config.json`
-- [Adopting in an existing repo](docs/adopting.md)
-- [Roadmap](docs/roadmap.md)
-- The template's own [README](template/README.md) and [AGENTS.md](template/AGENTS.md)
+- [Concepts](https://github.com/pluckey/storyspec/blob/main/docs/concepts.md): stories, the lifecycle, ports and adapters, why one folder per story
+- [Rules](https://github.com/pluckey/storyspec/blob/main/docs/rules.md): every rule the trace enforces, why, and how to fix a violation
+- [Configuration](https://github.com/pluckey/storyspec/blob/main/docs/config.md): `storyspec.config.json`
+- [Adopting in an existing repo](https://github.com/pluckey/storyspec/blob/main/docs/adopting.md)
+- [Roadmap](https://github.com/pluckey/storyspec/blob/main/docs/roadmap.md)
+- The template's own [README](https://github.com/pluckey/storyspec/blob/main/template/README.md) and [AGENTS.md](https://github.com/pluckey/storyspec/blob/main/template/AGENTS.md)
 
 ## Repository layout
 
@@ -72,4 +72,4 @@ What's different here is that the story is a permanent folder that *owns* its co
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Licensed [MIT](LICENSE).
+See [CONTRIBUTING.md](https://github.com/pluckey/storyspec/blob/main/CONTRIBUTING.md). Licensed [MIT](https://github.com/pluckey/storyspec/blob/main/LICENSE).

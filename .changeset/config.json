@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3/schema.json",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [["storyspec", "create-storyspec"]],
+  "access": "public",
+  "baseBranch": "main",
+  "ignore": ["storyspec-app"]
+}

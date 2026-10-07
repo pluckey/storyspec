@@ -1,0 +1,4 @@
+{ "testResults": [ { "assertionResults": [
+  { "title": "S-001.1 Does it", "status": "passed" },
+  { "title": "S-001.2 Does it twice", "status": "passed" }
+] } ] }

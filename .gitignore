@@ -1,2 +1,6 @@
 node_modules/
-.trace/
+dist/
+.storyspec/
+*.tgz
+packages/create-storyspec/template/
+!packages/storyspec/test/fixtures/**/.storyspec/

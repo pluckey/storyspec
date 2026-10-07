@@ -1,0 +1,65 @@
+{
+  "name": "storyspec",
+  "version": "0.1.0",
+  "description": "Story-first, spec-driven development: every story owns its spec, code and tests, and one check proves it.",
+  "license": "MIT",
+  "author": "Paul Luckey",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pluckey/storyspec.git",
+    "directory": "packages/storyspec"
+  },
+  "homepage": "https://github.com/pluckey/storyspec#readme",
+  "keywords": [
+    "spec-driven-development",
+    "traceability",
+    "clean-architecture",
+    "ports-and-adapters",
+    "bdd",
+    "ai-agents",
+    "vitest"
+  ],
+  "type": "module",
+  "bin": {
+    "storyspec": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vitest": {
+      "types": "./dist/vitest.d.ts",
+      "import": "./dist/vitest.js"
+    },
+    "./config.schema.json": "./schema/storyspec.config.schema.json"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "schema",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts src/index.ts src/vitest.ts --format esm --dts --clean --target node20",
+    "test": "vitest run && tsc --noEmit -p test/types"
+  },
+  "peerDependencies": {
+    "vitest": ">=2"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "storyspec config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "idPrefix": {
+      "description": "Story ID prefix: S gives S-001 and scenarios S-001.1.",
+      "default": "S",
+      "type": "string"
+    },
+    "storiesDir": {
+      "description": "Folder holding one sub-folder per story, named <ID>-<slug>.",
+      "default": "stories",
+      "type": "string"
+    },
+    "storyMayImport": {
+      "description": "Path prefixes story code may import, besides its own folder.",
+      "default": [
+        "src/domain",
+        "src/ports"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "storyTestMayAlsoImport": {
+      "description": "Extra path prefixes story tests may import.",
+      "default": [
+        "test"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "wiring": {
+      "description": "Files allowed to import stories (composition roots).",
+      "default": [
+        "src/entry/composition.ts"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "layers": {
+      "description": "For each folder, the path prefixes its files may import. The longest matching folder applies.",
+      "default": {
+        "src/domain": [
+          "src/domain"
+        ],
+        "src/ports": [
+          "src/domain",
+          "src/ports"
+        ],
+        "src/adapters": [
+          "src/domain",
+          "src/ports",
+          "src/adapters"
+        ],
+        "src/presenters": [
+          "src/domain",
+          "src/presenters"
+        ],
+        "src/entry": [
+          "src",
+          "stories"
+        ],
+        "test": [
+          "src/domain",
+          "src/ports",
+          "src/adapters",
+          "test"
+        ]
+      },
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "portsDir": {
+      "description": "Where port interfaces live; each exported interface should have an adapter.",
+      "default": "src/ports",
+      "type": "string"
+    },
+    "adaptersDir": {
+      "description": "Where adapters live.",
+      "default": "src/adapters",
+      "type": "string"
+    },
+    "gapsOnlyWarnFor": {
+      "description": "Statuses whose missing code or tests are warnings instead of errors.",
+      "default": [
+        "draft",
+        "ready"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mustPassFor": {
+      "description": "Statuses that require every scenario test to pass.",
+      "default": [
+        "done"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "testCommand": {
+      "description": "Command that runs the tests and writes a vitest-style JSON report to testReport.",
+      "default": "vitest run --passWithNoTests --reporter=json --outputFile=.storyspec/vitest.json",
+      "type": "string"
+    },
+    "testReport": {
+      "description": "Where testCommand writes its JSON report.",
+      "default": ".storyspec/vitest.json",
+      "type": "string"
+    },
+    "storyTemplateDir": {
+      "description": "Folder of story templates (story.md, spec.md). Built-in templates are used when it does not exist.",
+      "default": "templates/story",
+      "type": "string"
+    },
+    "ignore": {
+      "description": "Path prefixes never scanned.",
+      "default": [
+        "node_modules",
+        "dist",
+        ".storyspec",
+        ".git"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "$schema": {
+      "type": "string"
+    }
+  }
+}

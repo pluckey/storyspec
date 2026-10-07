@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/storyspec/schema/storyspec.config.schema.json",
+  "idPrefix": "S",
+  "storiesDir": "stories",
+  "storyMayImport": [
+    "src/domain",
+    "src/ports"
+  ],
+  "storyTestMayAlsoImport": [
+    "test"
+  ],
+  "wiring": [
+    "src/entry/composition.ts"
+  ],
+  "layers": {
+    "src/domain": [
+      "src/domain"
+    ],
+    "src/ports": [
+      "src/domain",
+      "src/ports"
+    ],
+    "src/adapters": [
+      "src/domain",
+      "src/ports",
+      "src/adapters"
+    ],
+    "src/presenters": [
+      "src/domain",
+      "src/presenters"
+    ],
+    "src/entry": [
+      "src",
+      "stories"
+    ],
+    "test": [
+      "src/domain",
+      "src/ports",
+      "src/adapters",
+      "test"
+    ]
+  },
+  "gapsOnlyWarnFor": [
+    "draft",
+    "ready"
+  ],
+  "mustPassFor": [
+    "done"
+  ]
+}
