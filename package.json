@@ -1,0 +1,21 @@
+{
+  "name": "storyspec",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Story-first, spec-driven development on clean architecture with ports and adapters.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/entry/http.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "trace": "vitest run --reporter=json --outputFile=.trace/vitest.json >/dev/null 2>&1; tsx tools/trace.ts",
+    "story": "tsx tools/new-story.ts",
+    "check": "npm run typecheck && npm run trace"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}
