@@ -15,6 +15,8 @@ export type Story = {
   front: Record<string, string>
   spec: string
   requirementTagged: boolean
+  /** Number of SHALL statements in the requirement's body (its text up to the next heading). */
+  requirementShalls: number
   scenarios: Scenario[]
   code: SourceFile[]
   tests: SourceFile[]
@@ -76,7 +78,7 @@ export const scan = (root: string, config: Config): Repo => {
       const testedIds = [...new Set(tests.flatMap(t => [...t.text.matchAll(re.testCall), ...t.text.matchAll(re.caseKey)].map(m => m[1]!)))]
       return {
         id, dir: rel(dir), hasStoryMd: existsSync(storyMd), hasSpecMd: existsSync(specMd), front, spec,
-        requirementTagged: spec.includes(`{#${id}}`), scenarios, code, tests, testedIds,
+        requirementTagged: spec.includes(`{#${id}}`), requirementShalls: shallCount(spec, id), scenarios, code, tests, testedIds,
       }
     })
 
@@ -108,3 +110,11 @@ const frontmatter = (md: string) =>
 
 /** Source text without comments, for name matching that comments shouldn't satisfy. */
 export const stripComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1')
+
+const shallCount = (spec: string, id: string) => {
+  const at = spec.indexOf(`{#${id}}`)
+  if (at < 0) return 0
+  const body = spec.slice(spec.indexOf('\n', at) + 1)
+  const next = body.search(/^#{1,6}\s/m)
+  return ((next < 0 ? body : body.slice(0, next)).match(/\bSHALL\b/g) ?? []).length
+}

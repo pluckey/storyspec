@@ -5,7 +5,8 @@
 | Rule | Severity | Fires when | Fix |
 |---|---|---|---|
 | `story-files` | error | A story folder lacks `story.md` or `spec.md`, or `story.md`'s `id` doesn't match the folder | Add the file, or correct the `id` |
-| `requirement-tag` | gap | `spec.md` has no requirement tagged `{#<ID>}` | Tag the requirement heading: `### Requirement: … {#S-001}` |
+| `requirement-tag` | gap / error | `spec.md` has no requirement tagged `{#<ID>}` (gap), or tags it more than once (error) | Tag one requirement heading: `### Requirement: … {#S-001}` |
+| `requirement-shape` | gap / error | The requirement has no SHALL statement (gap) or more than one (error) | One sentence for the behaviour; move each extra condition or edge case into a scenario, or split a separate behaviour into another story |
 | `scenarios` | gap | `spec.md` has no scenarios | Add `#### Scenario: … {#S-001.1}` blocks |
 | `scenario-ownership` | error | A scenario carries another story's ID, or an ID appears twice | Use `<this story's ID>.<n>`, each once |
 | `implementation` | gap / error | No file says `@implements <ID>` (gap), more than one does (error), or a file implements another story's ID (error) | One use case per story, tagged on its first line |

@@ -29,7 +29,12 @@ export const evaluate = (repo: Repo): Finding[] => {
       add('slug', 'warning', `${s.id}: folder doesn't match the title "${s.front.title}"; rename it to ${expectedFolder}`, s.dir)
 
     if (!s.requirementTagged) gap('requirement-tag', `${s.id}: spec.md has no requirement tagged {#${s.id}}`, `${s.dir}/spec.md`)
-    else if (s.spec.split(`{#${s.id}}`).length > 2) add('requirement-tag', 'error', `${s.id}: {#${s.id}} is tagged more than once; a story has one requirement (put several WHEN … SHALL lines under it)`, `${s.dir}/spec.md`)
+    else if (s.spec.split(`{#${s.id}}`).length > 2)
+      add('requirement-tag', 'error', `${s.id}: {#${s.id}} is tagged more than once. A story has one requirement: one sentence for the behaviour, with every condition and edge case as a scenario. If these are separate behaviours, split them into another story (storyspec story).`, `${s.dir}/spec.md`)
+    else if (s.requirementShalls === 0)
+      gap('requirement-shape', `${s.id}: the requirement has no SHALL statement. Write one sentence: WHEN <trigger> THE SYSTEM SHALL <response>.`, `${s.dir}/spec.md`)
+    else if (s.requirementShalls > 1)
+      add('requirement-shape', 'error', `${s.id}: the requirement has ${s.requirementShalls} SHALL statements. Keep one sentence for the behaviour and make each extra condition or edge case a scenario, so it gets a test.`, `${s.dir}/spec.md`)
     if (s.scenarios.length === 0) gap('scenarios', `${s.id}: spec.md has no scenarios`, `${s.dir}/spec.md`)
     for (const sc of s.scenarios)
       if (!sc.id.startsWith(`${s.id}.`)) add('scenario-ownership', 'error', `${s.id}: spec.md tags ${sc.id}, which belongs to another story`, `${s.dir}/spec.md`)

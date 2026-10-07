@@ -30,4 +30,10 @@ story(gen, {
     await run({ memberId: 'ana', title: '  Groceries  ', body: '' })
     expect(notes.saved[0]?.title).toBe('Groceries')
   },
+
+  'S-001.4': async () => {
+    const { notes, run } = setup()
+    expect(await run({ memberId: 'ana', title: 'x'.repeat(121), body: '' })).toEqual({ ok: false, error: 'Title must be 120 characters or fewer' })
+    expect(notes.saved).toHaveLength(0)
+  },
 })

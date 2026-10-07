@@ -6,6 +6,7 @@ export const gen = {
     'S-001.1': 'Valid note is saved',
     'S-001.2': 'Empty title is rejected',
     'S-001.3': 'Title is trimmed',
+    'S-001.4': 'Over-long title is rejected',
   },
 } as const
 

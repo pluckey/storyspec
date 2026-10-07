@@ -156,6 +156,20 @@ describe('trace', () => {
     expect(rulesOf(root, 'warning')).toEqual(['port-adapter'])
   })
 
+  test('requirement-shape: exactly one SHALL statement', () => {
+    const root = fixture()
+    edit(root, `${S}/spec.md`, s => s.replace('WHEN asked THE SYSTEM SHALL do the thing.', 'WHEN asked THE SYSTEM SHALL do the thing.\nWHEN asked twice THE SYSTEM SHALL do it twice.'))
+    expect(rulesOf(root)).toEqual(['requirement-shape'])
+    edit(root, `${S}/spec.md`, s => s.replace(/WHEN asked.*\n.*twice\./, 'The thing gets done.'))
+    expect(rulesOf(root)).toEqual(['requirement-shape'])
+  })
+
+  test('requirement-shape: SHALL inside scenarios does not count', () => {
+    const root = fixture()
+    append(root, `${S}/spec.md`, '- THEN THE SYSTEM SHALL say so\n')
+    expect(rulesOf(root)).toEqual([])
+  })
+
   test('requirement-tag: one requirement per story', () => {
     const root = fixture()
     append(root, `${S}/spec.md`, '\n### Requirement: Another {#S-001}\n')

@@ -7,13 +7,24 @@ Most codebases organize by technical layer (controllers, services, repositories)
 | File | Role |
 |---|---|
 | `story.md` | Who wants what and why, plus `id`, `title`, `epic`, `status`, `version` and a revision log |
-| `spec.md` | One EARS requirement (`WHEN … THE SYSTEM SHALL …`) tagged `{#S-001}`, and GIVEN/WHEN/THEN scenarios tagged `{#S-001.1}` … |
+| `spec.md` | One requirement, a single EARS sentence (`WHEN … THE SYSTEM SHALL …`) tagged `{#S-001}`, and GIVEN/WHEN/THEN scenarios tagged `{#S-001.1}` … for every case |
 | `<use-case>.ts` | The behaviour, tagged `// @implements S-001`. Every decision the story makes lives here. |
 | `<use-case>.types.ts` | Request and response types |
 | `scenarios.gen.ts` | Generated from spec.md; never edited by hand |
 | `<use-case>.test.ts` | `story(gen, { … })`: exactly one case per scenario, enforced by the type system |
 
 A story's whole history is `git log stories/S-001-*`, a review of S-001 touches one folder, and "implement S-007" gives an agent an obvious destination and a finish line.
+
+## Requirement and scenarios
+
+```
+Story ─1──1─ Requirement (one sentence: the behaviour)
+                 └─1──*─ Scenario (every case: normal, edge, error) ─1──1─ Test
+```
+
+The requirement says *what* the story does, in one sentence. The scenarios say *exactly how* it behaves in each case. Conditions never go in the requirement as extra SHALL lines: a second SHALL would be a statement of behaviour with no test of its own. As a scenario, it gets exactly one, enforced by the type system.
+
+If two SHALL statements really are different behaviours, they're two stories.
 
 ## Lifecycle
 

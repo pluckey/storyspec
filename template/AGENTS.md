@@ -18,7 +18,8 @@ stories/S-001-member-saves-a-note/
 - **The folder is `<ID>-<slug of the title>`.** If you change a title, rename the folder to match (keep the ID) and run `npm run gen`; the trace warns when they drift.
 - **Changed behaviour revises its story:** edit spec.md, bump `version`, add a line under Revisions, update the tests. Don't open a second story for the same behaviour.
 - **Status:** draft → ready → in-progress → done. A done story needs every scenario test passing. A retired story becomes `superseded`: it stays in the trace for history and is exempt from the rules.
-- **Requirements** use EARS: `WHEN <trigger> THE SYSTEM SHALL <response>.` Every requirement has at least one scenario.
+- **One requirement per story, one sentence:** `WHEN <trigger> THE SYSTEM SHALL <response>.` It says what the story does.
+- **Every condition, edge case and error is a scenario,** not another SHALL line. That way each one gets exactly one test, and nothing in the spec is untested. (The trace fails if the requirement has more than one SHALL.)
 - **Order of work:** scenarios (get them approved) → `npm run gen` → failing tests → use case → wiring → `npm run check`.
 
 ## Story tests
