@@ -1,7 +1,7 @@
 // Judgements over a scanned repo. Each finding names its rule so docs/rules.md can explain it.
 import { genStatus } from '../gen.js'
 import { slugify } from '../new-story.js'
-import { ids, type Repo, type SourceFile } from './scan.js'
+import { ids, stripComments, type Repo, type SourceFile } from './scan.js'
 
 export type Severity = 'error' | 'warning'
 export type Finding = { rule: string; severity: Severity; file?: string; message: string }
@@ -29,6 +29,7 @@ export const evaluate = (repo: Repo): Finding[] => {
       add('slug', 'warning', `${s.id}: folder doesn't match the title "${s.front.title}"; rename it to ${expectedFolder}`, s.dir)
 
     if (!s.requirementTagged) gap('requirement-tag', `${s.id}: spec.md has no requirement tagged {#${s.id}}`, `${s.dir}/spec.md`)
+    else if (s.spec.split(`{#${s.id}}`).length > 2) add('requirement-tag', 'error', `${s.id}: {#${s.id}} is tagged more than once; a story has one requirement (put several WHEN … SHALL lines under it)`, `${s.dir}/spec.md`)
     if (s.scenarios.length === 0) gap('scenarios', `${s.id}: spec.md has no scenarios`, `${s.dir}/spec.md`)
     for (const sc of s.scenarios)
       if (!sc.id.startsWith(`${s.id}.`)) add('scenario-ownership', 'error', `${s.id}: spec.md tags ${sc.id}, which belongs to another story`, `${s.dir}/spec.md`)
@@ -50,7 +51,8 @@ export const evaluate = (repo: Repo): Finding[] => {
     if (config.mustPassFor.includes(status)) for (const sc of s.scenarios) {
       if (!s.testedIds.includes(sc.id)) continue
       const o = outcomes.get(sc.id)
-      if (o !== 'pass') add('must-pass', 'error', `${sc.id}: story is ${status} but its test ${o === 'fail' ? 'fails' : repo.hasReport ? 'did not run' : 'has no result (run without --no-run)'}`, s.dir)
+      const why = repo.failures.get(sc.id)
+      if (o !== 'pass') add('must-pass', 'error', `${sc.id}: story is ${status} but its test ${o === 'fail' ? 'fails' : repo.hasReport ? 'did not run' : 'has no result (run without --no-run)'}${why ? `\n${why.split('\n').map(l => '      ' + l).join('\n')}` : ''}`, s.dir)
     }
 
     for (const f of [...s.code, ...s.tests]) {
@@ -67,7 +69,8 @@ export const evaluate = (repo: Repo): Finding[] => {
 
   for (const f of kernel) {
     const isWiring = config.wiring.includes(f.path)
-    const text = isWiring ? f.text.replace(/^\s*import\s.*$/gm, '') : f.text
+    // Wiring files may import stories; their import statements (single- or multi-line) are skipped.
+    const text = isWiring ? f.text.replace(/^\s*import\s[\s\S]*?from\s*['"][^'"]+['"];?/gm, '').replace(/^\s*import\s*['"][^'"]+['"];?/gm, '') : f.text
     for (const m of text.matchAll(re.any)) add('ids-outside-stories', 'error', `mentions ${m[0]}; story logic belongs in ${config.storiesDir}/`, f.path)
     const layer = Object.keys(config.layers).filter(l => under(f.path, [l])).sort((a, b) => b.length - a.length)[0]
     for (const imp of f.imports) {
@@ -94,7 +97,7 @@ export const portCoverage = (repo: Repo): PortCoverage[] => {
   const executed = kernel.filter(f => repo.executedTests.includes(f.path))
   // A test exercises a port if it, or a module it imports directly, names the port.
   const reach = (t: SourceFile) => [t, ...t.imports.map(i => byPath.get(i)).filter((x): x is SourceFile => !!x)]
-  const mentions = (f: SourceFile, name: string) => new RegExp(`\\b${name}\\b`).test(f.text)
+  const mentions = (f: SourceFile, name: string) => new RegExp(`\\b${name}\\b`).test(stripComments(f.text))
   return kernel.filter(f => under(f.path, [config.portsDir])).flatMap(port =>
     [...port.text.matchAll(/export interface (\w+)/g)].map(m => {
       const name = m[1]!

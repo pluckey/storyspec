@@ -22,7 +22,7 @@ export type Story = {
   testedIds: string[]
 }
 
-export type Repo = { root: string; config: Config; stories: Story[]; kernel: SourceFile[]; outcomes: Map<string, 'pass' | 'fail'>; hasReport: boolean; executedTests: string[] }
+export type Repo = { root: string; config: Config; stories: Story[]; kernel: SourceFile[]; outcomes: Map<string, 'pass' | 'fail'>; failures: Map<string, string>; hasReport: boolean; executedTests: string[] }
 
 export const ids = (prefix: string) => ({
   storyFolder: new RegExp(`^(${prefix}-\\d+)-`),
@@ -84,21 +84,27 @@ export const scan = (root: string, config: Config): Repo => {
 
   const outcomes = new Map<string, 'pass' | 'fail'>()
   const executedTests: string[] = []
+  const failures = new Map<string, string>()
   const report = join(root, config.testReport)
   const hasReport = existsSync(report)
   if (hasReport) {
-    const json = JSON.parse(read(report)) as { testResults?: { name?: string; assertionResults?: { title: string; fullName?: string; status: string }[] }[] }
+    const json = JSON.parse(read(report)) as { testResults?: { name?: string; assertionResults?: { title: string; fullName?: string; status: string; failureMessages?: string[] }[] }[] }
     for (const f of json.testResults ?? []) if (f.name && (f.assertionResults ?? []).length) executedTests.push(rel(resolve(root, f.name)))
     for (const f of json.testResults ?? []) for (const a of f.assertionResults ?? []) {
       const id = a.title.match(re.resultTitle)?.[1]
       if (!id) continue
       // A scenario run more than once (e.g. retried) fails if any run failed.
       if (outcomes.get(id) !== 'fail') outcomes.set(id, a.status === 'passed' ? 'pass' : 'fail')
+      const msg = a.failureMessages?.[0]
+      if (msg) failures.set(id, msg.replace(/\u001b\[[0-9;]*m/g, '').split('\n').slice(0, 6).join('\n'))
     }
   }
 
-  return { root, config, stories, kernel, outcomes, hasReport, executedTests }
+  return { root, config, stories, kernel, outcomes, failures, hasReport, executedTests }
 }
 
 const frontmatter = (md: string) =>
   Object.fromEntries([...(md.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '').matchAll(/^(\w+):[ \t]*(.*)$/gm)].map(m => [m[1]!, m[2]!.trim()]))
+
+/** Source text without comments, for name matching that comments shouldn't satisfy. */
+export const stripComments = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1')

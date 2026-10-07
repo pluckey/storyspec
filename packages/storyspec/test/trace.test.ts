@@ -143,6 +143,32 @@ describe('trace', () => {
     expect(r.rows.map(x => x.status)).toEqual(['superseded'])
   })
 
+  test('wiring: a multi-line import of a story in the composition root is allowed', () => {
+    const root = fixture()
+    edit(root, 'src/entry/composition.ts', s => s.replace("import { doThing } from '../../stories/S-001-do-thing/do-thing'", "import {\n  doThing,\n} from '../../stories/S-001-do-thing/do-thing'"))
+    expect(rulesOf(root)).toEqual([])
+  })
+
+  test('port-adapter: naming a port only in a comment does not count as an adapter', () => {
+    const root = fixture()
+    append(root, 'src/ports/thing-store.ts', '\nexport interface Mailer {\n  send(): Promise<void>\n}\n')
+    append(root, 'src/adapters/memory/things.ts', '// TODO: a Mailer adapter\n')
+    expect(rulesOf(root, 'warning')).toEqual(['port-adapter'])
+  })
+
+  test('requirement-tag: one requirement per story', () => {
+    const root = fixture()
+    append(root, `${S}/spec.md`, '\n### Requirement: Another {#S-001}\n')
+    expect(rulesOf(root)).toEqual(['requirement-tag'])
+  })
+
+  test('must-pass: the failure message is included', () => {
+    const root = fixture()
+    edit(root, '.storyspec/vitest.json', s => s.replace('"S-001.2 Does it twice", "status": "passed"', '"S-001.2 Does it twice", "status": "failed", "failureMessages": ["AssertionError: expected 2 to be 3\\n    at do-thing.test.ts:7:5"]'))
+    const f = run(root).findings.find(x => x.rule === 'must-pass')
+    expect(f?.message).toContain('AssertionError: expected 2 to be 3')
+  })
+
   test('draft stories only warn about gaps', () => {
     const root = fixture()
     newStory(root, loadConfig(root), 'Undo thing', 'E-1 Things', new Date('2026-10-07'))

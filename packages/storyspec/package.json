@@ -38,6 +38,7 @@
     "dist",
     "templates",
     "schema",
+    "docs",
     "README.md",
     "LICENSE"
   ],
@@ -45,7 +46,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsup src/cli.ts src/index.ts src/vitest.ts --format esm --dts --clean --target node20",
+    "build": "tsup src/cli.ts src/index.ts src/vitest.ts --format esm --dts --clean --target node20 && node -e \"require('node:fs').cpSync('../../docs','docs',{recursive:true})\"",
     "test": "vitest run && tsc --noEmit -p test/types"
   },
   "peerDependencies": {

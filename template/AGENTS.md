@@ -88,5 +88,5 @@ Adapter tests live in `test/`, not beside the adapter in `src/adapters` (adapter
 ## Checks
 
 - `npm run check`: generated files are fresh, typecheck, then trace.
-- `npm run trace`: runs the tests and writes `stories/TRACE.md` with two tables: stories (epic → story → implementation → scenario → result) and ports (port → adapters → contract tests that ran). It fails on gaps, orphans, stale generated files, untested adapters or layer violations, and prints warnings (like a port with no adapter yet, or a folder that doesn't match its title) above the result. Each finding names its rule; see `docs/rules.md` in the storyspec repo. Paths and prefixes are in `storyspec.config.json`.
+- `npm run trace`: runs the tests and writes `stories/TRACE.md` with two tables: stories (epic → story → implementation → scenario → result) and ports (port → adapters → contract tests that ran). It fails on gaps, orphans, stale generated files, untested adapters or layer violations, and prints warnings (like a port with no adapter yet, or a folder that doesn't match its title) above the result. Each finding names its rule; `node_modules/storyspec/docs/rules.md` explains every rule and its fix. Paths and prefixes are in `storyspec.config.json`.
 - Drafts and ready stories only warn about missing code or tests. In-progress and done stories fail.

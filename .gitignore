@@ -4,3 +4,4 @@ dist/
 *.tgz
 packages/create-storyspec/template/
 !packages/storyspec/test/fixtures/**/.storyspec/
+packages/storyspec/docs/
