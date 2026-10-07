@@ -144,6 +144,16 @@
     },
     "$schema": {
       "type": "string"
+    },
+    "exemptStatuses": {
+      "description": "Statuses listed in the trace but exempt from every story rule.",
+      "default": [
+        "superseded"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

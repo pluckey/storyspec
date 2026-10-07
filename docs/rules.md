@@ -1,6 +1,6 @@
 # Rules
 
-`storyspec trace` reports each finding with its rule name. Errors fail the command; warnings don't. For stories whose status is in `gapsOnlyWarnFor` (draft and ready by default), missing code, tests or tags are warnings.
+`storyspec trace` reports each finding with its rule name. Errors fail the command; warnings don't. For stories whose status is in `gapsOnlyWarnFor` (draft and ready by default), missing code, tests or tags are warnings. Stories whose status is in `exemptStatuses` (superseded by default) appear in the trace but no story rule applies to them.
 
 | Rule | Severity | Fires when | Fix |
 |---|---|---|---|
@@ -17,6 +17,8 @@
 | `ids-outside-stories` | error | A story ID appears in code outside `stories/` (except imports in `wiring` files) | Move the story-specific logic into the story; keep the kernel generic |
 | `wiring` | error | A file other than a `wiring` file imports a story | Call the story through `composition.ts` |
 | `layers` | error | A file imports something its layer doesn't allow (`layers` in config) | Invert the dependency through a port, or move the code to the right layer |
+| `contract-tests` | error | A port has an adapter, but no test outside `stories/` that actually ran mentions the port (directly or through a module it imports) | Add a runner `test/contracts/<port>.test.ts` that calls the port's contract suite for each adapter and the fake |
+| `slug` | warning | A story folder isn't `<ID>-<slug of the title>` | Rename the folder (keep the ID), then `storyspec gen` |
 | `port-adapter` | warning | An interface in `portsDir` isn't mentioned by any adapter | Write the adapter, or ignore the warning while it's in progress |
 | `tests` | error | The test command didn't produce its JSON report | Check `testCommand` and `testReport` in config |
 

@@ -22,6 +22,8 @@ export type Config = {
   gapsOnlyWarnFor: string[]
   /** Statuses that require every scenario test to pass. */
   mustPassFor: string[]
+  /** Statuses listed in the trace but exempt from every story rule (retired stories). */
+  exemptStatuses: string[]
   /** Command that runs the tests and writes a vitest-style JSON report to `testReport`. */
   testCommand: string
   testReport: string
@@ -49,6 +51,7 @@ export const defaults: Config = {
   adaptersDir: 'src/adapters',
   gapsOnlyWarnFor: ['draft', 'ready'],
   mustPassFor: ['done'],
+  exemptStatuses: ['superseded'],
   testCommand: 'vitest run --passWithNoTests --reporter=json --outputFile=.storyspec/vitest.json',
   testReport: '.storyspec/vitest.json',
   storyTemplateDir: 'templates/story',

@@ -1,4 +1,9 @@
-{ "testResults": [ { "assertionResults": [
-  { "title": "S-001.1 Does it", "status": "passed" },
-  { "title": "S-001.2 Does it twice", "status": "passed" }
-] } ] }
+{ "testResults": [
+  { "name": "stories/S-001-do-thing/do-thing.test.ts", "assertionResults": [
+    { "title": "S-001.1 Does it", "status": "passed" },
+    { "title": "S-001.2 Does it twice", "status": "passed" }
+  ] },
+  { "name": "test/contracts/things.test.ts", "assertionResults": [
+    { "title": "saves a thing", "status": "passed" }
+  ] }
+] }

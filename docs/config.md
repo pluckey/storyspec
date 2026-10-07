@@ -14,6 +14,7 @@
 | `adaptersDir` | `"src/adapters"` | Where adapters live |
 | `gapsOnlyWarnFor` | `["draft", "ready"]` | Statuses whose gaps are warnings |
 | `mustPassFor` | `["done"]` | Statuses that require every scenario test to pass |
+| `exemptStatuses` | `["superseded"]` | Statuses listed in the trace but exempt from every story rule |
 | `testCommand` | `"vitest run --passWithNoTests --reporter=json --outputFile=.storyspec/vitest.json"` | Runs the tests and writes a JSON report |
 | `testReport` | `".storyspec/vitest.json"` | Where the trace reads results |
 | `storyTemplateDir` | `"templates/story"` | Your own `story.md`/`spec.md` templates; built-ins are used if absent |

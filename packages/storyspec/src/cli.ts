@@ -5,7 +5,7 @@ import { loadConfig } from './config.js'
 import { genStatus, writeGen } from './gen.js'
 import { newStory } from './new-story.js'
 import { trace } from './index.js'
-import { findingsText, table } from './trace/report.js'
+import { findingsText, portTable, table } from './trace/report.js'
 import { scan } from './trace/scan.js'
 
 const HELP = `storyspec: story-first, spec-driven development
@@ -72,6 +72,7 @@ const main = (): number => {
     if (json) console.log(JSON.stringify(result, null, 2))
     else {
       console.log(table(result.rows))
+      if (result.ports.length) console.log('\n' + portTable(result.ports))
       const text = findingsText(result.findings)
       if (text) (result.ok ? console.log : console.error)(text)
       const n = result.rows.reduce((a, r) => a + r.scenarios.length, 0)

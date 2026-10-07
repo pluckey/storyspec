@@ -22,7 +22,7 @@ export type Story = {
   testedIds: string[]
 }
 
-export type Repo = { root: string; config: Config; stories: Story[]; kernel: SourceFile[]; outcomes: Map<string, 'pass' | 'fail'>; hasReport: boolean }
+export type Repo = { root: string; config: Config; stories: Story[]; kernel: SourceFile[]; outcomes: Map<string, 'pass' | 'fail'>; hasReport: boolean; executedTests: string[] }
 
 export const ids = (prefix: string) => ({
   storyFolder: new RegExp(`^(${prefix}-\\d+)-`),
@@ -83,10 +83,12 @@ export const scan = (root: string, config: Config): Repo => {
   const kernel = walk(root).filter(isSource).map(rel).filter(r => !r.startsWith(config.storiesDir + '/')).map(r => source(join(root, r)))
 
   const outcomes = new Map<string, 'pass' | 'fail'>()
+  const executedTests: string[] = []
   const report = join(root, config.testReport)
   const hasReport = existsSync(report)
   if (hasReport) {
-    const json = JSON.parse(read(report)) as { testResults?: { assertionResults?: { title: string; fullName?: string; status: string }[] }[] }
+    const json = JSON.parse(read(report)) as { testResults?: { name?: string; assertionResults?: { title: string; fullName?: string; status: string }[] }[] }
+    for (const f of json.testResults ?? []) if (f.name && (f.assertionResults ?? []).length) executedTests.push(rel(resolve(root, f.name)))
     for (const f of json.testResults ?? []) for (const a of f.assertionResults ?? []) {
       const id = a.title.match(re.resultTitle)?.[1]
       if (!id) continue
@@ -95,7 +97,7 @@ export const scan = (root: string, config: Config): Repo => {
     }
   }
 
-  return { root, config, stories, kernel, outcomes, hasReport }
+  return { root, config, stories, kernel, outcomes, hasReport, executedTests }
 }
 
 const frontmatter = (md: string) =>

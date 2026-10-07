@@ -9,7 +9,7 @@ Most codebases organize by technical layer (controllers, services, repositories)
 | `story.md` | Who wants what and why, plus `id`, `title`, `epic`, `status`, `version` and a revision log |
 | `spec.md` | One EARS requirement (`WHEN … THE SYSTEM SHALL …`) tagged `{#S-001}`, and GIVEN/WHEN/THEN scenarios tagged `{#S-001.1}` … |
 | `<use-case>.ts` | The behaviour, tagged `// @implements S-001`. Every decision the story makes lives here. |
-| `<use-case>.contract.ts` | Request and response types |
+| `<use-case>.types.ts` | Request and response types |
 | `scenarios.gen.ts` | Generated from spec.md; never edited by hand |
 | `<use-case>.test.ts` | `story(gen, { … })`: exactly one case per scenario, enforced by the type system |
 

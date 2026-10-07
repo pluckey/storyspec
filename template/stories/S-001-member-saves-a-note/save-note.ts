@@ -3,7 +3,7 @@ import { titleProblem } from '../../src/domain/note'
 import { err, ok } from '../../src/domain/result'
 import type { Clock } from '../../src/ports/clock'
 import type { NoteStore } from '../../src/ports/note-store'
-import type { SaveNoteRequest, SaveNoteResponse } from './save-note.contract'
+import type { SaveNoteRequest, SaveNoteResponse } from './save-note.types'
 
 export const saveNote = (deps: { notes: NoteStore; clock: Clock }) =>
   async (req: SaveNoteRequest): Promise<SaveNoteResponse> => {

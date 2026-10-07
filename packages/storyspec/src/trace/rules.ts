@@ -1,11 +1,12 @@
 // Judgements over a scanned repo. Each finding names its rule so docs/rules.md can explain it.
 import { genStatus } from '../gen.js'
-import { ids, type Repo } from './scan.js'
+import { slugify } from '../new-story.js'
+import { ids, type Repo, type SourceFile } from './scan.js'
 
 export type Severity = 'error' | 'warning'
 export type Finding = { rule: string; severity: Severity; file?: string; message: string }
 
-const under = (path: string, prefixes: string[]) =>
+export const under = (path: string, prefixes: string[]) =>
   prefixes.some(p => path === p || path.startsWith(p + '/') || path.startsWith(p + '.'))
 
 export const evaluate = (repo: Repo): Finding[] => {
@@ -22,6 +23,10 @@ export const evaluate = (repo: Repo): Finding[] => {
     if (!s.hasStoryMd) { add('story-files', 'error', `${s.id}: missing story.md`, s.dir); continue }
     if (!s.hasSpecMd) { add('story-files', 'error', `${s.id}: missing spec.md`, s.dir); continue }
     if (s.front.id !== s.id) add('story-files', 'error', `${s.id}: story.md says id "${s.front.id ?? ''}"`, `${s.dir}/story.md`)
+    if (config.exemptStatuses.includes(status)) continue
+    const expectedFolder = `${s.id}-${slugify(s.front.title ?? '')}`
+    if (s.front.title && s.dir.split('/').pop() !== expectedFolder)
+      add('slug', 'warning', `${s.id}: folder doesn't match the title "${s.front.title}"; rename it to ${expectedFolder}`, s.dir)
 
     if (!s.requirementTagged) gap('requirement-tag', `${s.id}: spec.md has no requirement tagged {#${s.id}}`, `${s.dir}/spec.md`)
     if (s.scenarios.length === 0) gap('scenarios', `${s.id}: spec.md has no scenarios`, `${s.dir}/spec.md`)
@@ -56,7 +61,8 @@ export const evaluate = (repo: Repo): Finding[] => {
     }
   }
 
-  for (const g of genStatus(repo.root, stories))
+  const exempt = new Set(stories.filter(s => config.exemptStatuses.includes(s.front.status ?? '')).map(s => s.id))
+  for (const g of genStatus(repo.root, stories.filter(s => !exempt.has(s.id))))
     if (g.state !== 'fresh') add('gen-fresh', 'error', `${g.story}: ${g.file} is ${g.state}; run storyspec gen`, g.file)
 
   for (const f of kernel) {
@@ -70,10 +76,33 @@ export const evaluate = (repo: Repo): Finding[] => {
     }
   }
 
-  const adapterText = kernel.filter(f => under(f.path, [config.adaptersDir])).map(f => f.text).join('\n')
-  for (const port of kernel.filter(f => under(f.path, [config.portsDir])))
-    for (const m of port.text.matchAll(/export interface (\w+)/g))
-      if (!new RegExp(`\\b${m[1]}\\b`).test(adapterText)) add('port-adapter', 'warning', `${m[1]} has no adapter yet`, port.path)
+  for (const p of portCoverage(repo)) {
+    if (p.adapters.length === 0) add('port-adapter', 'warning', `${p.port} has no adapter yet`, p.file)
+    else if (repo.hasReport && p.contractTests.length === 0)
+      add('contract-tests', 'error', `${p.port} has an adapter (${p.adapters.join(', ')}) but no test outside ${config.storiesDir}/ that ran exercises it; add a runner in test/contracts (*.test.ts) that calls its contract suite`, p.file)
+  }
 
   return out
+}
+
+export type PortCoverage = { port: string; file: string; adapters: string[]; contractTests: string[] }
+
+/** Every exported port interface, the adapters that mention it, and the executed non-story tests that exercise it. */
+export const portCoverage = (repo: Repo): PortCoverage[] => {
+  const { config, kernel } = repo
+  const byPath = new Map(kernel.map(f => [f.path.replace(/\.(c|m)?tsx?$/, ''), f]))
+  const executed = kernel.filter(f => repo.executedTests.includes(f.path))
+  // A test exercises a port if it, or a module it imports directly, names the port.
+  const reach = (t: SourceFile) => [t, ...t.imports.map(i => byPath.get(i)).filter((x): x is SourceFile => !!x)]
+  const mentions = (f: SourceFile, name: string) => new RegExp(`\\b${name}\\b`).test(f.text)
+  return kernel.filter(f => under(f.path, [config.portsDir])).flatMap(port =>
+    [...port.text.matchAll(/export interface (\w+)/g)].map(m => {
+      const name = m[1]!
+      return {
+        port: name,
+        file: port.path,
+        adapters: kernel.filter(f => under(f.path, [config.adaptersDir]) && !/\.(test|spec)\./.test(f.path) && mentions(f, name)).map(f => f.path),
+        contractTests: executed.filter(t => reach(t).some(f => mentions(f, name))).map(t => t.path),
+      }
+    }))
 }

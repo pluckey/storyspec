@@ -113,6 +113,36 @@ describe('trace', () => {
     expect(rulesOf(root, 'warning')).toEqual(['port-adapter'])
   })
 
+  test('contract-tests: a port with an adapter needs an executed test outside stories', () => {
+    const root = fixture()
+    edit(root, '.storyspec/vitest.json', s => s.replace('"test/contracts/things.test.ts"', '"test/contracts/never-ran.test.ts"'))
+    expect(rulesOf(root)).toEqual(['contract-tests'])
+    expect(run(root).ports).toEqual([{ port: 'ThingStore', file: 'src/ports/thing-store.ts', adapters: ['src/adapters/memory/things.ts'], contractTests: [] }])
+  })
+
+  test('the ports table lists executed contract runners', () => {
+    expect(run(fixture()).ports[0]?.contractTests).toEqual(['test/contracts/things.test.ts'])
+  })
+
+  test('slug: folder name drifting from the title is a warning', () => {
+    const root = fixture()
+    edit(root, `${S}/story.md`, s => s.replace('title: Do thing', 'title: Do another thing'))
+    expect(rulesOf(root)).toEqual(['gen-fresh'])
+    regen(root)
+    expect(rulesOf(root)).toEqual([])
+    expect(rulesOf(root, 'warning')).toEqual(['slug'])
+  })
+
+  test('superseded stories are listed but exempt from story rules', () => {
+    const root = fixture()
+    edit(root, `${S}/story.md`, s => s.replace('status: done', 'status: superseded'))
+    edit(root, `${S}/do-thing.ts`, s => s.replace('// @implements S-001\n', ''))
+    append(root, `${S}/spec.md`, '\n#### Scenario: Retired case {#S-001.3}\n')
+    const r = run(root)
+    expect(r.ok).toBe(true)
+    expect(r.rows.map(x => x.status)).toEqual(['superseded'])
+  })
+
   test('draft stories only warn about gaps', () => {
     const root = fixture()
     newStory(root, loadConfig(root), 'Undo thing', 'E-1 Things', new Date('2026-10-07'))

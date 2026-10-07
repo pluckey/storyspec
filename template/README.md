@@ -67,7 +67,7 @@ With Claude Code, run `/story "Member deletes a note"` instead. It drafts the sc
 
 | Folder | Holds | May import |
 |---|---|---|
-| `stories/<ID>-<slug>/` | One story: story.md, spec.md, use case, contract types, tests | own folder, `src/domain`, `src/ports` (tests also `test/`) |
+| `stories/<ID>-<slug>/` | One story: story.md, spec.md, use case, request/response types, tests | own folder, `src/domain`, `src/ports` (tests also `test/`) |
 | `src/domain` | Entities, value types, pure rules shared by stories | domain |
 | `src/ports` | Interfaces stories depend on | domain |
 | `src/adapters/<tech>` | Port implementations | domain, ports |
