@@ -7,6 +7,7 @@ import { newStory } from './new-story.js'
 import { trace } from './index.js'
 import { findingsText, portTable, table } from './trace/report.js'
 import { scan } from './trace/scan.js'
+import { installedVersion, plan, sync } from './sync.js'
 
 const HELP = `storyspec: story-first, spec-driven development
 
@@ -15,6 +16,12 @@ Usage:
   storyspec gen [--check]               Write scenarios.gen.ts for each story (--check: fail if stale)
   storyspec story "<title>" [--epic "<epic>"]   Create the next story folder from templates
   storyspec check                       gen --check, then trace
+  storyspec sync [--check] [--force] [--claude]
+                                        Bring AGENTS.md (and CLAUDE.md, the /story command and its hooks,
+                                        when the project uses Claude Code) up to the installed storyspec version.
+                                        --check: change nothing, fail if anything is out of date.
+                                        --force: also replace storyspec blocks that were edited by hand.
+                                        --claude: write the Claude Code files even if the project has none yet.
 
 Options:
   --root <dir>   Repo root (default: nearest folder with package.json)
@@ -79,6 +86,20 @@ const main = (): number => {
       if (result.ok) console.log(`\nOK: ${result.rows.length} stories, ${n} scenarios traced.`)
     }
     return result.ok ? 0 : 1
+  }
+
+  if (command === 'sync') {
+    const check = flag('--check'), force = flag('--force'), claude = flag('--claude')
+    const changes = check ? plan(root, { claude, force }) : sync(root, { claude, force })
+    const v = installedVersion()
+    for (const c of changes) {
+      const line = `${c.file}: ${c.action === 'edited' ? 'not changed' : check && c.action !== 'unchanged' ? `out of date (would be ${c.action})` : c.action}${c.message ? ` (${c.message})` : ''}`
+      ;(c.action === 'edited' ? console.error : console.log)(line)
+    }
+    const stale = changes.filter(c => c.action !== 'unchanged')
+    if (check) { if (stale.length) console.error(`Run: storyspec sync (storyspec ${v})`); return stale.length ? 1 : 0 }
+    if (!stale.length) console.log(`Agent guidance is up to date with storyspec ${v}.`)
+    return changes.some(c => c.action === 'edited') ? 1 : 0
   }
 
   console.error(`Unknown command "${command}".\n\n${HELP}`)

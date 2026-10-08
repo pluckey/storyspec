@@ -11,5 +11,3 @@ Work on the story described by: $ARGUMENTS
 4. Implement the use case in the story folder, first line `// @implements <ID>`. Add a port, fake, contract suite and adapter only if the story needs a new dependency (see "Adding things" in AGENTS.md). Never import another story.
 5. Wire it in src/entry/composition.ts and an entry point if callers need it.
 6. Run `npm run check` and fix everything it reports. Set status to `done` only when the trace is green, then show me the story's rows from stories/TRACE.md.
-
-<!-- storyspec:managed 0.2.0 sha=bad59880ffb90653 -->

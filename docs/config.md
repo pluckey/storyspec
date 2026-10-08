@@ -19,6 +19,7 @@
 | `testReport` | `".storyspec/vitest.json"` | Where the trace reads results |
 | `storyTemplateDir` | `"templates/story"` | Your own `story.md`/`spec.md` templates; built-ins are used if absent |
 | `ignore` | `["node_modules", "dist", ".storyspec", ".git"]` | Never scanned |
+| `rules` | `{}` | Severity per rule, overriding the default: `{ "slug": "error", "port-adapter": "off" }`. Values are `"error"`, `"warning"` or `"off"` |
 
 Default `layers`:
 

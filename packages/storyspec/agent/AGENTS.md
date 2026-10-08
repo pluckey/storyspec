@@ -1,7 +1,3 @@
-# Working in this repo
-
-<!-- storyspec:begin 0.2.0 sha=4d99f24a60af9973 -->
-<!-- Managed by storyspec. `npx storyspec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
 ## A story
@@ -120,8 +116,3 @@ npm run check
 ```
 
 `sync` never touches text outside its blocks. If you edited inside a block it stops and says where; move your notes below the block, then run it again.
-<!-- storyspec:end -->
-
-## This project
-
-Notes for agents about this repo go here, outside the storyspec block, so updates keep them.

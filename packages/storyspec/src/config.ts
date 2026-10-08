@@ -31,7 +31,11 @@ export type Config = {
   storyTemplateDir: string
   /** Path prefixes never scanned. */
   ignore: string[]
+  /** Severity per rule name, overriding the default: "error", "warning" or "off". */
+  rules: Record<string, RuleSetting>
 }
+
+export type RuleSetting = 'error' | 'warning' | 'off'
 
 export const defaults: Config = {
   idPrefix: 'S',
@@ -56,6 +60,7 @@ export const defaults: Config = {
   testReport: '.storyspec/vitest.json',
   storyTemplateDir: 'templates/story',
   ignore: ['node_modules', 'dist', '.storyspec', '.git'],
+  rules: {},
 }
 
 const stringList = (v: unknown) => Array.isArray(v) && v.every(x => typeof x === 'string')
@@ -73,6 +78,11 @@ export const loadConfig = (root: string): Config => {
   for (const [key, value] of Object.entries(raw)) {
     if (key.startsWith('$')) continue
     if (!(key in defaults)) { problems.push(`unknown key "${key}"`); continue }
+    if (key === 'rules') {
+      const bad = value === null || typeof value !== 'object' || Object.values(value).some(v => !['error', 'warning', 'off'].includes(v as string))
+      if (bad) problems.push('"rules" should map rule names to "error", "warning" or "off"')
+      continue
+    }
     const expected = defaults[key as keyof Config]
     const okType = Array.isArray(expected) ? stringList(value)
       : typeof expected === 'object' ? value !== null && typeof value === 'object' && Object.values(value).every(stringList)

@@ -20,6 +20,8 @@ try {
   sh(`${env} node ${creator} ${tmp}/app`, tmp)
   const app = join(tmp, 'app')
   console.log(sh('npm run -s check', app))
+  // A new app's agent guidance is the installed version's.
+  sh('npx storyspec sync --check', app)
   sh('npm run -s story -- "Member deletes a note" --epic "E-1 Notes"', app)
   const afterStory = sh('npm run -s check', app)
   if (!afterStory.includes('S-003 Member deletes a note | draft')) throw new Error('new draft story missing from trace')

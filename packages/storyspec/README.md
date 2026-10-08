@@ -42,6 +42,7 @@ Underneath is clean architecture with ports and adapters (`src/domain`, `src/por
 | `storyspec story "<title>" [--epic "<epic>"]` | Next story folder from templates |
 | `storyspec gen [--check]` | Write `scenarios.gen.ts` per story (`--check` fails if stale) |
 | `storyspec trace [--no-run] [--json]` | Run tests, write TRACE.md, enforce every rule |
+| `storyspec sync [--check] [--force] [--claude]` | Bring the agent guidance (`AGENTS.md` block, and for Claude Code the `CLAUDE.md` block, `/story` command and hooks) up to the installed version. See [updating](docs/adopting.md#updating-storyspec) |
 
 ## Docs
 

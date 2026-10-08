@@ -1,7 +1,5 @@
 # Working in this repo
 
-<!-- storyspec:begin 0.2.0 sha=4d99f24a60af9973 -->
-<!-- Managed by storyspec. `npx storyspec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
 ## A story
@@ -60,7 +58,6 @@ story(gen, {
 | `src/entry` | Delivery mechanisms (HTTP server, CLI, Lambda) and `composition.ts` | anything |
 
 - `src/entry/composition.ts` is the only file that imports stories and chooses adapters.
-- **Compose per entry point.** When there are several entry points (an API, a scheduled job, a webhook handler), each builds only the adapters its stories use, so one entry point's settings or permissions never become another's requirement.
 - Presenters, adapters and entry points make no business decisions. Story IDs never appear in `src/`.
 - An HTTP entry parses the request, calls a story from `compose()`, and hands the result to a presenter that maps it to a status and body (e.g. `ok` → 200/201, expected error → 4xx). The example app in the storyspec repo (`template/src/entry/http.ts`) shows the shape.
 
@@ -88,40 +85,9 @@ Adapter tests live in `test/`, not beside the adapter in `src/adapters` (adapter
 | A new external dependency (DB, API, queue, clock, IDs) | Port in `src/ports`, fake in `test/fakes`, contract suite + runner in `test/contracts`, adapter in `src/adapters/<tech>/`, wire it in `composition.ts` |
 | A new way to call the app (CLI, webhook) | Entry file in `src/entry`, presenter in `src/presenters` if the output shape differs |
 | A rule two stories share | Pure function in `src/domain`, used by both stories |
-| A rule every story in an area obeys (e.g. admin-only) | Pure function in `src/domain`, plus one scenario per story that proves it applies there |
-| A scenario that turns out to be infeasible | Drop it from the story (a revision if the story was approved) and create a draft story for it, so the gap is visible in the trace |
 
 ## Checks
 
 - `npm run check`: generated files are fresh, typecheck, then trace.
 - `npm run trace`: runs the tests and writes `stories/TRACE.md` with two tables: stories (epic → story → implementation → scenario → result) and ports (port → adapters → contract tests that ran). It fails on gaps, orphans, stale generated files, untested adapters or layer violations, and prints warnings (like a port with no adapter yet, or a folder that doesn't match its title) above the result. Each finding names its rule; `node_modules/storyspec/docs/rules.md` explains every rule and its fix. Paths and prefixes are in `storyspec.config.json`.
 - Drafts and ready stories only warn about missing code or tests. In-progress and done stories fail.
-
-## Before designing on a platform
-
-- **Write down what the platform must do for the story to work** (in story.md: "Platform facts"), each with its evidence: a documentation link, a probe you ran, or a deployed test. A fact you only believe is a risk; a short probe usually settles it before any code is written.
-- An adapter over a probabilistic service (a classifier, an LLM, a content scanner) gets contract assertions about presence and absence, never exact equality.
-
-## Tests against a deployed system
-
-- Tests that run against real infrastructure share it: mark everything a test creates with a unique marker, read back only what carries your marker, and never delete or consume what other tests might be reading.
-- Touch only state your infrastructure-as-code doesn't manage, or the next plan will try to undo it.
-- When several cases need the same slow setup (a deployment change, a log that takes a minute to show up), do it once in a shared run the cases read from, instead of each case paying for it.
-- A marker in text that a scanner reads must not look like a secret or an identifier, or the scanner may mask it.
-
-## Updating storyspec
-
-This guidance and the `/story` command come from the installed storyspec version. To update both:
-
-```bash
-npm i -D storyspec@latest
-npx storyspec sync    # rewrites the storyspec blocks in AGENTS.md and CLAUDE.md, the /story command and its hooks
-npm run check
-```
-
-`sync` never touches text outside its blocks. If you edited inside a block it stops and says where; move your notes below the block, then run it again.
-<!-- storyspec:end -->
-
-## This project
-
-Notes for agents about this repo go here, outside the storyspec block, so updates keep them.

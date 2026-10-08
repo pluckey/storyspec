@@ -43,17 +43,21 @@ if (!flags.has('--no-install')) {
   console.log('Installing dependencies…')
   const r = spawnSync('npm', ['install'], { cwd: target, stdio: 'inherit', shell: process.platform === 'win32' })
   if (r.status !== 0) process.exit(r.status ?? 1)
+  // The bundled guidance matches this release; sync brings it up to the storyspec that was actually installed.
+  const s = spawnSync('npx', ['storyspec', 'sync'], { cwd: target, stdio: 'inherit', shell: process.platform === 'win32' })
+  if (s.status !== 0) process.exit(s.status ?? 1)
 }
 
 const rel = dirArg
 console.log(`
 Created ${rel}.
 
-  cd ${rel}${flags.has('--no-install') ? '\n  npm install' : ''}
+  cd ${rel}${flags.has('--no-install') ? '\n  npm install && npx storyspec sync' : ''}
   npm run check                       # typecheck + tests + trace
   npm run story -- "Your first story"  # or /story "…" in Claude Code
 ${flags.has('--no-example') ? '' : '  npm run dev                         # example notes API on :3000\n'}
 Read AGENTS.md for the rules, and README.md for how it fits together.
+To take a newer storyspec later: npm i -D storyspec@latest && npx storyspec sync
 `)
 
 // Leaves the structure, tooling and docs, with no stories: start with `npm run story`.

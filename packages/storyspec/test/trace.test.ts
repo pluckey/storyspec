@@ -9,14 +9,17 @@ import { loadConfig } from '../src/config.js'
 import { newStory } from '../src/new-story.js'
 import { writeGen } from '../src/gen.js'
 import { scan } from '../src/trace/scan.js'
+import { sync } from '../src/sync.js'
 
 const base = join(import.meta.dirname, 'fixtures/base')
 const roots: string[] = []
 afterEach(() => { for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true }) })
 
+// A project kept up to date: the base fixture with this version's agent guidance synced in.
 const fixture = () => {
   const root = mkdtempSync(join(tmpdir(), 'storyspec-'))
   cpSync(base, root, { recursive: true })
+  sync(root)
   roots.push(root)
   return root
 }
@@ -212,5 +215,51 @@ describe('trace', () => {
     const root = fixture()
     writeFileSync(join(root, 'storyspec.config.json'), JSON.stringify({ idPrefx: 'S', wiring: 'x' }))
     expect(() => loadConfig(root)).toThrow(/unknown key "idPrefx".*"wiring" should be a list of strings/)
+  })
+
+  test('failing-test: a failing scenario fails the trace whatever the status; a draft\'s only warns', () => {
+    const root = fixture()
+    const report = '.storyspec/vitest.json'
+    edit(root, report, r => r.replace('{ "title": "S-001.2 Does it twice", "status": "passed" }', '{ "title": "S-001.2 Does it twice", "status": "failed", "failureMessages": ["expected 2 to be 3"] }'))
+    edit(root, `${S}/story.md`, s => s.replace('status: done', 'status: in-progress'))
+    expect(rulesOf(root)).toEqual(['failing-test'])
+    expect(run(root).findings.find(f => f.rule === 'failing-test')?.message).toContain('expected 2 to be 3')
+    edit(root, `${S}/story.md`, s => s.replace('status: in-progress', 'status: draft'))
+    expect(rulesOf(root)).toEqual([])
+    expect(rulesOf(root, 'warning')).toContain('failing-test')
+  })
+
+  test('failing-test: a failing test outside stories, or a file that crashed, fails the trace', () => {
+    const root = fixture()
+    edit(root, '.storyspec/vitest.json', r => r.replace('{ "title": "saves a thing", "status": "passed" }', '{ "title": "saves a thing", "fullName": "ThingStore contract: memory saves a thing", "status": "failed", "failureMessages": ["lost it"] }'))
+    expect(run(root).findings.filter(f => f.rule === 'failing-test').map(f => [f.file, f.message.split('\n')[0]]))
+      .toEqual([['test/contracts/things.test.ts', '"ThingStore contract: memory saves a thing" fails']])
+    const crashed = fixture()
+    edit(crashed, '.storyspec/vitest.json', r => r.replace('] }\n] }', '] },\n  { "name": "test/broken.test.ts", "status": "failed", "message": "Cannot find module x", "assertionResults": [] }\n] }'))
+    expect(run(crashed).findings.filter(f => f.rule === 'failing-test').map(f => [f.file, f.message.split('\n')[0]])).toEqual([['test/broken.test.ts', 'the file fails']])
+  })
+
+  test('config rules: a project can lower, raise or turn off a rule', () => {
+    const root = fixture()
+    edit(root, `${S}/spec.md`, s => s + '\n#### Scenario: Extra {#S-001.3}\n\n- GIVEN x\n- WHEN y\n- THEN z\n')
+    regen(root)
+    writeFileSync(join(root, 'storyspec.config.json'), JSON.stringify({ rules: { 'untested-scenario': 'warning' } }))
+    expect(rulesOf(root)).toEqual([])
+    expect(rulesOf(root, 'warning')).toContain('untested-scenario')
+    writeFileSync(join(root, 'storyspec.config.json'), JSON.stringify({ rules: { 'untested-scenario': 'off' } }))
+    expect(run(root).findings.some(f => f.rule === 'untested-scenario')).toBe(false)
+    writeFileSync(join(root, 'storyspec.config.json'), JSON.stringify({ rules: { slug: 'loud' } }))
+    expect(() => loadConfig(root)).toThrow(/"rules" should map rule names/)
+  })
+
+  test('framework-sync: stale or missing agent guidance is a warning, never an error', () => {
+    const root = fixture()
+    edit(root, 'AGENTS.md', s => s.replace(/storyspec:begin \S+/, 'storyspec:begin 0.0.1'))
+    expect(rulesOf(root)).toEqual([])
+    expect(run(root).findings.filter(f => f.rule === 'framework-sync').map(f => f.message)).toEqual(['AGENTS.md has storyspec guidance from another version; run storyspec sync'])
+    edit(root, 'AGENTS.md', s => s.replace('## A story', '## A story, our way'))
+    expect(run(root).findings.filter(f => f.rule === 'framework-sync').map(f => f.message)).toEqual(['AGENTS.md has a storyspec block edited by hand; run storyspec sync'])
+    rmSync(join(root, 'AGENTS.md'))
+    expect(run(root).findings.filter(f => f.rule === 'framework-sync').map(f => f.message)).toEqual(['AGENTS.md is missing the storyspec guidance; run storyspec sync'])
   })
 })

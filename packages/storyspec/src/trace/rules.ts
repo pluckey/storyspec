@@ -1,6 +1,7 @@
 // Judgements over a scanned repo. Each finding names its rule so docs/rules.md can explain it.
 import { genStatus } from '../gen.js'
 import { slugify } from '../new-story.js'
+import { plan } from '../sync.js'
 import { ids, stripComments, type Repo, type SourceFile } from './scan.js'
 
 export type Severity = 'error' | 'warning'
@@ -53,6 +54,14 @@ export const evaluate = (repo: Repo): Finding[] => {
     for (const sc of s.scenarios)
       if (!s.testedIds.includes(sc.id)) gap('untested-scenario', `${sc.id}: no test`, `${s.dir}/spec.md`)
 
+    // A failing test is reported whatever the story's status: a draft's only warns, any other's fails the trace
+    // (a done story's is a must-pass finding below).
+    if (!config.mustPassFor.includes(status)) for (const sc of s.scenarios) {
+      if (outcomes.get(sc.id) !== 'fail') continue
+      const why = repo.failures.get(sc.id)
+      gap('failing-test', `${sc.id}: its test fails${why ? `\n${why.split('\n').map(l => '      ' + l).join('\n')}` : ''}`, s.dir)
+    }
+
     if (config.mustPassFor.includes(status)) for (const sc of s.scenarios) {
       if (!s.testedIds.includes(sc.id)) continue
       const o = outcomes.get(sc.id)
@@ -82,6 +91,15 @@ export const evaluate = (repo: Repo): Finding[] => {
       if (under(imp, [config.storiesDir]) && !isWiring) add('wiring', 'error', `imports ${imp}; only ${config.wiring.join(', ')} may import stories`, f.path)
       else if (layer && !under(imp, config.layers[layer]!)) add('layers', 'error', `imports ${imp}; ${layer} may import ${config.layers[layer]!.join(', ')}`, f.path)
     }
+  }
+
+  for (const f of repo.otherFailures)
+    add('failing-test', 'error', `${f.test ? `"${f.test}" fails` : 'the file fails'}${f.message ? `\n${f.message.split('\n').map(l => '      ' + l).join('\n')}` : ''}`, f.file)
+
+  for (const c of plan(repo.root)) {
+    if (c.action === 'unchanged') continue
+    const why = c.action === 'created' ? 'is missing the storyspec guidance' : c.action === 'edited' ? 'has a storyspec block edited by hand' : 'has storyspec guidance from another version'
+    add('framework-sync', 'warning', `${c.file} ${why}; run storyspec sync`, c.file)
   }
 
   for (const p of portCoverage(repo)) {

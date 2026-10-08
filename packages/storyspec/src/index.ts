@@ -9,6 +9,7 @@ import { scan } from './trace/scan.js'
 
 export { defaults, loadConfig, type Config } from './config.js'
 export { genStatus, renderGen, writeGen } from './gen.js'
+export { installedVersion, plan as syncPlan, sync, type SyncChange } from './sync.js'
 export { newStory } from './new-story.js'
 export type { Finding, PortCoverage } from './trace/rules.js'
 export type { TraceRow } from './trace/report.js'
@@ -31,7 +32,11 @@ export const trace = (root: string, opts: { runTests?: boolean; write?: boolean 
   const config = loadConfig(root)
   if (opts.runTests) runTests(root, config)
   const repo = scan(root, config)
-  const findings = evaluate(repo)
+  // Severities a project chose for particular rules ("off" drops the rule).
+  const findings = evaluate(repo).flatMap(f => {
+    const setting = config.rules[f.rule]
+    return setting === 'off' ? [] : setting ? [{ ...f, severity: setting }] : [f]
+  })
   if (opts.runTests && !repo.hasReport)
     findings.push({ rule: 'tests', severity: 'error', message: `"${config.testCommand}" did not write ${config.testReport}` })
   const rs = rows(repo)

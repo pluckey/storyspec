@@ -10,6 +10,7 @@
     "gen": "storyspec gen",
     "story": "storyspec story",
     "trace": "storyspec trace",
+    "sync": "storyspec sync",
     "check": "storyspec gen --check && tsc --noEmit && storyspec trace"
   },
   "devDependencies": {

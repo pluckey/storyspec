@@ -154,6 +154,17 @@
       "items": {
         "type": "string"
       }
+    },
+    "rules": {
+      "type": "object",
+      "description": "Severity per rule name, overriding the default. \"off\" drops the rule.",
+      "additionalProperties": {
+        "enum": [
+          "error",
+          "warning",
+          "off"
+        ]
+      }
     }
   }
 }
