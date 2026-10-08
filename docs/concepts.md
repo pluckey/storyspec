@@ -28,13 +28,21 @@ If two SHALL statements really are different behaviours, they're two stories.
 
 ## Lifecycle
 
-| Status | Meaning | The trace treats gaps as |
-|---|---|---|
-| draft | Being written | warnings |
-| ready | Scenarios approved | warnings |
-| in-progress | Being built | errors |
-| done | Every scenario test passes | errors, and tests must pass |
-| superseded | Replaced; kept for history | errors |
+| Status | Written by | Meaning | The trace treats gaps as |
+|---|---|---|---|
+| draft | you | Being written | warnings |
+| ready | you | Scenarios approved | warnings |
+| in-progress | you | Being built | errors |
+| done | **the trace** | Every scenario proven in every tier it needs, at its current text | errors |
+| superseded | you | Replaced; kept for history | exempt |
+
+Nobody writes `done`. A hand-written status was a second source of truth that could disagree with the tests; now the trace works it out from the proof and shows `done (v3)` in TRACE.md.
+
+## Proof
+
+A scenario is proven in **tiers**: `local` (tests that run on every check, the default), any tier a project configures with a command (for example `deployed`, tests against real infrastructure), and `manual` (a person checks it with `storyspec prove`). A scenario names the tiers it needs on its tag (`{#S-006.1 proof=local,deployed}`), or a story does in story.md (`proof: …`); `defaultProof` in config covers the rest. Its `story()` case then has one function per tier that runs tests, checked at compile time.
+
+Local results come from the run in front of you. Every other tier's results are recorded in `stories/PROOF.json`, committed with the code: outcome, date, story version, commit, and a **hash of the scenario's text**. A proof of other wording is stale, so a scenario whose meaning was rewritten under the same ID can't stay proven by a test of the old meaning. Adapters are tracked the same way: the ports table shows which tiers exercised each adapter, so an adapter over a real service is only proven by a tier that reached it.
 
 **New behaviour gets a new story. Changed behaviour revises the existing story:** edit spec.md, bump `version`, add a revision line, update the tests. That keeps exactly one owner per behaviour.
 

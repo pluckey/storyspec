@@ -2,7 +2,7 @@
 id: S-002
 title: Member lists their notes
 epic: E-1 Notes
-status: done
+status: in-progress
 version: 1
 ---
 

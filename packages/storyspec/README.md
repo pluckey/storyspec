@@ -22,10 +22,11 @@ stories/S-001-member-saves-a-note/
   save-note.test.ts   story(gen, { 'S-001.1': …, 'S-001.2': … })
 ```
 
-Underneath is clean architecture with ports and adapters (`src/domain`, `src/ports`, `src/adapters`, `src/presenters`, `src/entry`), and the `storyspec` CLI holds it together:
+Underneath is clean architecture with ports and adapters (`src/domain`, `src/ports`, `src/adapters`, `src/presenters`, `src/entry`), and the `storyspec` CLI holds it together (the import graph comes from [dependency-cruiser](https://github.com/sverweij/dependency-cruiser)):
 
 - **Tests are typed against the spec.** Add a scenario to `spec.md`, run `storyspec gen`, and the test file won't compile until that scenario has a case.
-- **`storyspec trace`** runs the tests and writes `stories/TRACE.md`, a matrix of epic → story → implementation → scenario → result. It fails on gaps, orphans, stale generated files, a "done" story with a failing test, and imports that break the architecture.
+- **`storyspec trace`** runs the tests and writes `stories/TRACE.md`, a matrix of epic → story → implementation → scenario → proof. It fails on gaps, orphans, stale generated files, failing tests, and imports that break the architecture.
+- **Done is proven, not declared.** Each scenario names the tiers that must prove it: local tests, a deployed run, or a person's check. Proof from beyond the local run is recorded in `stories/PROOF.json` with a hash of the scenario's text, and a story shows as done only when every scenario is proven at its current wording.
 - **Agents know the rules.** `AGENTS.md` covers any coding agent, and Claude Code gets a `/story` command plus hooks that typecheck after edits and trace before finishing.
 
 | Epic | Story | Status | v | Implementation | Scenario | Test |
@@ -41,7 +42,9 @@ Underneath is clean architecture with ports and adapters (`src/domain`, `src/por
 | `npm create storyspec@latest <dir>` | New app with the example notes API (`-- --no-example` for a bare structure with one draft story) |
 | `storyspec story "<title>" [--epic "<epic>"]` | Next story folder from templates |
 | `storyspec gen [--check]` | Write `scenarios.gen.ts` per story (`--check` fails if stale) |
-| `storyspec trace [--no-run] [--json]` | Run tests, write TRACE.md, enforce every rule |
+| `storyspec trace [--tier <name>] [--require-proven] [--no-run] [--json]` | Run a tier's tests (local by default), write TRACE.md, enforce every rule; another tier's results are recorded in `stories/PROOF.json` |
+| `storyspec prove <ID> [--tier manual] [--fail] [--note "…"]` | Record a person's proof of a scenario or a story's scenarios |
+| `storyspec migrate` | Update stories for the installed version (0.3: done is derived from proof) |
 | `storyspec sync [--check] [--force] [--claude]` | Bring the agent guidance (`AGENTS.md` block, and for Claude Code the `CLAUDE.md` block, `/story` command and hooks) up to the installed version. See [updating](docs/adopting.md#updating-storyspec) |
 
 ## Docs

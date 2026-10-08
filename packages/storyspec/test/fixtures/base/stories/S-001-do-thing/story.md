@@ -2,7 +2,7 @@
 id: S-001
 title: Do thing
 epic: E-1 Things
-status: done
+status: in-progress
 version: 1
 ---
 

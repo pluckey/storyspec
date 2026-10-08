@@ -5,6 +5,7 @@ export const gen = {
   scenarios: {
     'S-002.1': 'Only my notes',
     'S-002.2': 'Newest first',
+    'S-002.3': { title: 'The list reads well on a phone', proof: ['manual'] },
   },
 } as const
 

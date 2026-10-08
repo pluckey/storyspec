@@ -1,3 +1,4 @@
+import { scenarioStates, type ProofFile, type TierState } from '../proof.js'
 import type { Finding, PortCoverage } from './rules.js'
 import type { Repo } from './scan.js'
 
@@ -8,17 +9,17 @@ export type TraceRow = {
   status: string
   version: string
   implementation: string
-  scenarios: { id: string; title: string; tested: boolean; outcome: 'pass' | 'fail' | 'not-run' }[]
+  scenarios: { id: string; title: string; tested: boolean; outcome: 'pass' | 'fail' | 'not-run'; tiers: TierState[] }[]
 }
 
-export const rows = (repo: Repo): TraceRow[] =>
+export const rows = (repo: Repo, proof: ProofFile = { scenarios: {}, adapters: {} }, derived?: Map<string, string>): TraceRow[] =>
   repo.stories.map(s => {
     const impl = s.code.find(f => f.text.includes(`@implements ${s.id}`))
     return {
       epic: s.front.epic ?? '',
       story: s.id,
       title: s.front.title ?? '',
-      status: s.front.status ?? '',
+      status: derived?.get(s.id) ?? s.front.status ?? '',
       version: s.front.version ?? '',
       implementation: impl?.path ?? '',
       scenarios: s.scenarios.map(sc => ({
@@ -26,18 +27,28 @@ export const rows = (repo: Repo): TraceRow[] =>
         title: sc.title,
         tested: s.testedIds.includes(sc.id),
         outcome: repo.outcomes.get(sc.id) ?? 'not-run',
+        tiers: scenarioStates(repo, proof, sc),
       })),
     }
   })
 
-const mark = (s: TraceRow['scenarios'][number]) =>
-  !s.tested ? '✗ no test' : s.outcome === 'pass' ? '✓ pass' : s.outcome === 'fail' ? '✗ fail' : '· not run'
+const tierMark = (t: TierState) => {
+  const when = t.entry ? ` ${t.entry.at.slice(0, 10)}${t.entry.by ? ` (${t.entry.by})` : ''}` : ''
+  return t.state === 'proven' ? `✓ ${t.tier}${when}` : t.state === 'failed' ? `✗ ${t.tier}${when}` : t.state === 'stale' ? `⚠ ${t.tier} stale` : `⧗ ${t.tier}`
+}
+// A scenario proven only locally reads as before; one with other tiers lists each.
+const mark = (s: TraceRow['scenarios'][number]) => {
+  const runnable = s.tiers.some(t => t.tier !== 'manual')
+  if (!s.tested && runnable) return '✗ no test'
+  if (s.tiers.length === 1 && s.tiers[0]!.tier === 'local') return s.outcome === 'pass' ? '✓ pass' : s.outcome === 'fail' ? '✗ fail' : '· not run'
+  return s.tiers.map(tierMark).join(' · ')
+}
 
 export const table = (rs: TraceRow[]) => [
   '| Epic | Story | Status | v | Implementation | Scenario | Test |',
   '|---|---|---|---|---|---|---|',
   ...rs.flatMap(r => {
-    const head = `| ${r.epic} | ${r.story} ${r.title} | ${r.status} | ${r.version} | ${r.implementation} |`
+    const head = `| ${r.epic} | ${r.story} ${r.title} | ${r.status === 'done' && r.version ? `done (v${r.version})` : r.status} | ${r.version} | ${r.implementation} |`
     if (r.scenarios.length === 0) return [`${head} — | ✗ no scenarios |`]
     return r.scenarios.map((s, i) => i === 0 ? `${head} ${s.id} | ${mark(s)} |` : `| | | | | | ${s.id} | ${mark(s)} |`)
   }),
@@ -46,7 +57,10 @@ export const table = (rs: TraceRow[]) => [
 export const portTable = (ports: PortCoverage[]) => [
   '| Port | Defined in | Adapters | Contract tests run |',
   '|---|---|---|---|',
-  ...ports.map(p => `| ${p.port} | ${p.file} | ${p.adapters.join('<br>') || '✗ none'} | ${p.contractTests.join('<br>') || '✗ none'} |`),
+  ...ports.map(p => {
+    const adapters = p.adapters.map(a => `${a} ${(p.exercisedIn[a] ?? []).length ? `(${p.exercisedIn[a]!.map(t => `✓ ${t}`).join(', ')})` : '(✗ never exercised)'}`)
+    return `| ${p.port} | ${p.file} | ${adapters.join('<br>') || '✗ none'} | ${p.contractTests.join('<br>') || '✗ none'} |`
+  }),
 ].join('\n')
 
 export const traceMarkdown = (rs: TraceRow[], ports: PortCoverage[] = []) =>

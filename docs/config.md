@@ -17,6 +17,8 @@
 | `exemptStatuses` | `["superseded"]` | Statuses listed in the trace but exempt from every story rule |
 | `testCommand` | `"vitest run --passWithNoTests --reporter=json --outputFile=.storyspec/vitest.json"` | Runs the tests and writes a JSON report |
 | `testReport` | `".storyspec/vitest.json"` | Where the trace reads results |
+| `tiers` | `{ "local": {}, "manual": {} }` | Where scenarios can be proven. `local` runs `testCommand` (or its own `command`) on every trace. Add a tier with `{ "command": "…", "report": "…" }` (report defaults to `testReport`) and run it with `storyspec trace --tier <name>`; its results are recorded in `stories/PROOF.json`. A tier with no command is proven by hand (`storyspec prove`). The command runs with `STORYSPEC_TIER=<name>` |
+| `defaultProof` | `["local"]` | The tiers a scenario must be proven in unless its story (`proof:` in story.md) or its tag (`{#S-001.1 proof=…}`) says otherwise |
 | `storyTemplateDir` | `"templates/story"` | Your own `story.md`/`spec.md` templates; built-ins are used if absent |
 | `ignore` | `["node_modules", "dist", ".storyspec", ".git"]` | Never scanned |
 | `rules` | `{}` | Severity per rule, overriding the default: `{ "slug": "error", "port-adapter": "off" }`. Values are `"error"`, `"warning"` or `"off"` |

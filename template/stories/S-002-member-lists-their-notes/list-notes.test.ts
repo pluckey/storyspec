@@ -17,4 +17,7 @@ story(gen, {
     const run = listNotes({ notes: fakeNoteStore([note('Old', 'ana', '2026-01-01'), note('New', 'ana', '2026-01-02')]) })
     expect((await run({ memberId: 'ana' })).notes.map(n => n.id)).toEqual(['New', 'Old'])
   },
+
+  // Proven by a person (proof=manual in spec.md): nothing to run.
+  'S-002.3': {},
 })

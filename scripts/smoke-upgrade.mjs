@@ -45,14 +45,14 @@ try {
 
   const OUR_NOTES = '## Our conventions\n\nDeploy with `make deploy`. Payments are faked in tests.\n'
   const apps = {
-    // Made and never touched.
+    // The example app, never touched: its stories were written as done before done was derived.
     plain: () => {},
     // The team wrote its own notes into AGENTS.md.
     edited: (app) => writeFileSync(join(app, 'AGENTS.md'), readFileSync(join(app, 'AGENTS.md'), 'utf8') + '\n' + OUR_NOTES),
   }
   for (const [name, change] of Object.entries(apps)) {
     const app = join(tmp, name)
-    sh(`STORYSPEC_SPEC=file:${tmp}/${prevCli} node ${creator} ${app} --no-example`, tmp)
+    sh(`STORYSPEC_SPEC=file:${tmp}/${prevCli} node ${creator} ${app}${name === 'plain' ? '' : ' --no-example'}`, tmp)
     sh('npm run -s check', app)
     change(app)
 
@@ -61,7 +61,15 @@ try {
     expectIn(before, 'framework-sync', `${name}: the check after installing ${current}`)
     console.log(sh('npx storyspec sync', app))
     sh('npx storyspec sync --check', app)
-    expectNotIn(sh('npm run -s check', app), 'framework-sync', `${name}: the check after sync`)
+    console.log(sh('npx storyspec migrate', app))
+    const after = sh('npm run -s check', app)
+    expectNotIn(after, 'framework-sync', `${name}: the check after sync`)
+    expectNotIn(after, 'derived-status', `${name}: the check after migrate`)
+    if (name === 'plain') {
+      // Written as done before; derived as done now, from the tests that pass.
+      if (!before.includes('derived-status')) fail('plain: installing a version that derives done should warn about status: done')
+      expectIn(after, 'S-001 Member saves a note | done (v1)', 'plain: S-001 after migrating')
+    }
     const agents = readFileSync(join(app, 'AGENTS.md'), 'utf8')
     expectIn(agents, `<!-- storyspec:begin ${current} `, `${name}: AGENTS.md`)
     if (name === 'edited') expectIn(agents, OUR_NOTES, 'edited: the team\'s notes')

@@ -4,28 +4,46 @@
 //   import { gen } from './scenarios.gen'
 //
 //   story(gen, {
-//     'S-001.1': async () => { … },
-//     'S-001.2': async () => { … },
+//     'S-001.1': async () => { … },                          // proven locally (the default)
+//     'S-001.2': { local: () => { … }, deployed: async () => { … } },   // spec.md: {#S-001.2 proof=local,deployed}
+//     'S-001.3': {},                                         // proof=manual: proven with `storyspec prove`, nothing to run
 //   })
 //
-// Leaving out a scenario is a type error, and so is a key that isn't in the spec.
-// Test names come from spec.md ("S-001.1 Valid note is saved"), so the trace can read results.
+// Leaving out a scenario, or a tier it must be proven in, is a type error, and so is a key that isn't in the spec.
+// Tests run only for the active tier (STORYSPEC_TIER, default local; `storyspec trace --tier <name>` sets it) and are
+// named from spec.md, "S-001.2 [deployed] Title", so the trace can read results per tier.
 import { describe, test } from 'vitest'
 
+export type GenScenario = string | { readonly title: string; readonly proof: readonly string[] }
 export type StoryGen = {
   readonly storyId: string
   readonly title: string
-  readonly scenarios: Readonly<Record<string, string>>
+  readonly scenarios: Readonly<Record<string, GenScenario>>
 }
 
-export type Cases<G extends StoryGen> = { readonly [K in keyof G['scenarios']]: () => unknown }
+type Run = () => unknown
+// A plain title is a local-only scenario: one function. Otherwise one function per tier that runs tests (manual doesn't).
+type Tiered<T extends string> = [T] extends [never] ? Record<string, never> : { readonly [K in T]: Run }
+type CaseFor<S> = S extends string ? Run
+  : S extends { readonly proof: readonly (infer T)[] } ? Tiered<Exclude<T & string, 'manual'>> : never
+export type Cases<G extends StoryGen> = { readonly [K in keyof G['scenarios']]: CaseFor<G['scenarios'][K]> }
+
+export const activeTier = () => process.env.STORYSPEC_TIER || 'local'
 
 export const story = <G extends StoryGen>(gen: G, cases: Cases<G>): void => {
+  const tier = activeTier()
   describe(`${gen.storyId} ${gen.title}`.trim(), () => {
-    for (const [id, title] of Object.entries(gen.scenarios)) {
-      const run = (cases as Record<string, () => unknown>)[id]
-      if (!run) throw new Error(`${id} has no case; run storyspec gen and typecheck`)
-      test(`${id} ${title}`, async () => { await run() })
+    for (const [id, scenario] of Object.entries(gen.scenarios)) {
+      const c = (cases as Record<string, Run | Record<string, Run>>)[id]
+      if (c === undefined) throw new Error(`${id} has no case; run storyspec gen and typecheck`)
+      if (typeof scenario === 'string') {
+        // Local-only cases run in every tier, as before tiers existed; their results count as local.
+        if (typeof c !== 'function') throw new Error(`${id} is proven locally only; its case is a function`)
+        test(`${id} ${scenario}`, async () => { await c() })
+        continue
+      }
+      const run = typeof c === 'function' ? undefined : c[tier]
+      if (run) test(`${id} [${tier}] ${scenario.title}`, async () => { await run() })
     }
   })
 }

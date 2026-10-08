@@ -33,7 +33,17 @@ export type Config = {
   ignore: string[]
   /** Severity per rule name, overriding the default: "error", "warning" or "off". */
   rules: Record<string, RuleSetting>
+  /**
+   * Where scenarios can be proven. `local` runs `testCommand` (or its own `command`) on every trace; any other tier with
+   * a `command` runs on `storyspec trace --tier <name>` and its results are recorded in stories/PROOF.json; a tier with no
+   * command (`manual`) is proven with `storyspec prove`.
+   */
+  tiers: Record<string, Tier>
+  /** The tiers a scenario must be proven in, unless its story (`proof:` in story.md) or its tag (`{#S-001.1 proof=…}`) says otherwise. */
+  defaultProof: string[]
 }
+
+export type Tier = { command?: string; report?: string }
 
 export type RuleSetting = 'error' | 'warning' | 'off'
 
@@ -61,6 +71,8 @@ export const defaults: Config = {
   storyTemplateDir: 'templates/story',
   ignore: ['node_modules', 'dist', '.storyspec', '.git'],
   rules: {},
+  tiers: { local: {}, manual: {} },
+  defaultProof: ['local'],
 }
 
 const stringList = (v: unknown) => Array.isArray(v) && v.every(x => typeof x === 'string')
@@ -78,6 +90,12 @@ export const loadConfig = (root: string): Config => {
   for (const [key, value] of Object.entries(raw)) {
     if (key.startsWith('$')) continue
     if (!(key in defaults)) { problems.push(`unknown key "${key}"`); continue }
+    if (key === 'tiers') {
+      const bad = value === null || typeof value !== 'object' || Object.values(value as object).some(t =>
+        t === null || typeof t !== 'object' || Object.entries(t as object).some(([k, v]) => !['command', 'report'].includes(k) || typeof v !== 'string'))
+      if (bad) problems.push('"tiers" should map tier names to { "command"?: string, "report"?: string }')
+      continue
+    }
     if (key === 'rules') {
       const bad = value === null || typeof value !== 'object' || Object.values(value).some(v => !['error', 'warning', 'off'].includes(v as string))
       if (bad) problems.push('"rules" should map rule names to "error", "warning" or "off"')
@@ -89,6 +107,10 @@ export const loadConfig = (root: string): Config => {
       : typeof value === typeof expected
     if (!okType) problems.push(`"${key}" should be ${Array.isArray(expected) ? 'a list of strings' : typeof expected === 'object' ? 'an object of string lists' : `a ${typeof expected}`}`)
   }
+  // local and manual always exist; a project adds tiers or gives local its own command.
+  const tiers = { ...defaults.tiers, ...(raw.tiers as Record<string, Tier> | undefined) }
+  const defaultProof = (raw.defaultProof as string[] | undefined) ?? defaults.defaultProof
+  for (const t of defaultProof) if (!(t in tiers)) problems.push(`"defaultProof" names tier "${t}", which isn't in "tiers"`)
   if (problems.length) throw new Error(`storyspec.config.json: ${problems.join('; ')}`)
-  return { ...defaults, ...(raw as Partial<Config>) }
+  return { ...defaults, ...(raw as Partial<Config>), tiers, defaultProof }
 }

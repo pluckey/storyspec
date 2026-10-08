@@ -8,11 +8,21 @@ import { trace } from './index.js'
 import { findingsText, portTable, table } from './trace/report.js'
 import { scan } from './trace/scan.js'
 import { installedVersion, plan, sync } from './sync.js'
+import { recordManual } from './proof.js'
+import { execSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
 
 const HELP = `storyspec: story-first, spec-driven development
 
 Usage:
-  storyspec trace [--no-run] [--json]   Run tests, write stories/TRACE.md, check every rule
+  storyspec trace [--tier <name>] [--require-proven] [--no-run] [--json]
+                                        Run a tier's tests (default local), write stories/TRACE.md, check every rule.
+                                        A tier other than local is recorded in stories/PROOF.json.
+                                        --require-proven: fail unless every story past ready is done.
+  storyspec prove <ID> [--tier manual] [--fail] [--note "<text>"] [--by "<name>"]
+                                        Record a proof by hand of a scenario (S-001.2) or of a story's scenarios (S-001)
+  storyspec migrate                     Update stories for this version (0.3: status: done becomes in-progress,
+                                        since done is now worked out from proof)
   storyspec gen [--check]               Write scenarios.gen.ts for each story (--check: fail if stale)
   storyspec story "<title>" [--epic "<epic>"]   Create the next story folder from templates
   storyspec check                       gen --check, then trace
@@ -41,7 +51,11 @@ const findRoot = (start: string) => {
   return dir
 }
 
-const main = (): number => {
+const gitUser = (root: string) => {
+  try { return execSync('git config user.name', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' }).trim() || undefined } catch { return undefined }
+}
+
+const main = async (): Promise<number> => {
   if (flag('--help') || flag('-h') || args.length === 0) { console.log(HELP); return 0 }
   const root = findRoot(option('--root') ?? process.cwd())
   const command = args.shift()
@@ -75,7 +89,9 @@ const main = (): number => {
   if (command === 'trace' || command === 'check') {
     const json = flag('--json')
     const run = !flag('--no-run')
-    const result = trace(root, { runTests: run })
+    const requireProven = flag('--require-proven')
+    const tier = option('--tier')
+    const result = await trace(root, { runTests: run, tier, requireProven })
     if (json) console.log(JSON.stringify(result, null, 2))
     else {
       console.log(table(result.rows))
@@ -86,6 +102,31 @@ const main = (): number => {
       if (result.ok) console.log(`\nOK: ${result.rows.length} stories, ${n} scenarios traced.`)
     }
     return result.ok ? 0 : 1
+  }
+
+  if (command === 'prove') {
+    const tier = option('--tier') ?? 'manual', note = option('--note'), by = option('--by') ?? gitUser(root)
+    const failed = flag('--fail')
+    const target = args.shift()
+    if (!target) { console.error('usage: storyspec prove <S-001 | S-001.2> [--tier manual] [--fail] [--note "…"] [--by "…"]'); return 1 }
+    const ids = recordManual(scan(root, config), target, tier, { outcome: failed ? 'fail' : 'pass', at: new Date().toISOString(), ...(by && { by }), ...(note && { note }) })
+    console.log(`Recorded ${failed ? 'a failure' : 'proof'} in the ${tier} tier for ${ids.join(', ')}${by ? ` (by ${by})` : ''}. Run storyspec trace to see where the story stands.`)
+    return 0
+  }
+
+  if (command === 'migrate') {
+    // 0.3: done is derived from proof, so a story written as done goes back to in-progress.
+    const changed: string[] = []
+    for (const s of scan(root, config).stories) {
+      if (s.front.status !== 'done') continue
+      const file = join(root, s.dir, 'story.md')
+      writeFileSync(file, readFileSync(file, 'utf8').replace(/^status:[ \t]*done[ \t]*$/m, 'status: in-progress'))
+      changed.push(s.id)
+    }
+    console.log(changed.length
+      ? `status: done → in-progress for ${changed.join(', ')}. The trace shows each one as done when its scenarios are proven.`
+      : 'Nothing to migrate.')
+    return 0
   }
 
   if (command === 'sync') {
@@ -106,9 +147,7 @@ const main = (): number => {
   return 1
 }
 
-try {
-  process.exitCode = main()
-} catch (e) {
-  console.error((e as Error).message)
+main().then(code => { process.exitCode = code }, (e: Error) => {
+  console.error(e.message)
   process.exitCode = 1
-}
+})

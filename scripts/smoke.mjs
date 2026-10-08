@@ -22,6 +22,10 @@ try {
   console.log(sh('npm run -s check', app))
   // A new app's agent guidance is the installed version's.
   sh('npx storyspec sync --check', app)
+  // S-002.3 needs a person's check; once proven, S-002 is done.
+  sh('npx storyspec prove S-002.3 --by smoke --note "checked on a phone"', app)
+  const proven = sh('npm run -s check', app)
+  if (!/S-002 Member lists their notes \| done \(v1\)/.test(proven)) throw new Error('S-002 should be done once S-002.3 is proven')
   sh('npm run -s story -- "Member deletes a note" --epic "E-1 Notes"', app)
   const afterStory = sh('npm run -s check', app)
   if (!afterStory.includes('S-003 Member deletes a note | draft')) throw new Error('new draft story missing from trace')

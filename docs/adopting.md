@@ -19,6 +19,7 @@ The agent guidance comes from the installed storyspec version, so it updates wit
 ```bash
 npm i -D storyspec@latest
 npx storyspec sync     # rewrites the storyspec blocks and files from the new version
+npx storyspec migrate  # updates stories if the version changed their format (0.3: status: done → in-progress)
 npm run check
 ```
 

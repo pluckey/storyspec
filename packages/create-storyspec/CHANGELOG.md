@@ -1,5 +1,17 @@
 # create-storyspec
 
+## 0.3.0
+
+### Minor Changes
+
+- Done is proven, not declared. A scenario names the tiers that must prove it (`{#S-001.2 proof=local,deployed}`, or `proof:` in story.md, or `defaultProof` in config): `local` reruns on every trace; a tier with a command (`tiers` in config) runs with `storyspec trace --tier <name>` and its results are recorded in the committed `stories/PROOF.json`; `manual` is recorded with `storyspec prove <ID>`. Each recorded proof carries a hash of the scenario's text, so changed wording makes it stale. A story shows as `done (vN)` only when every scenario is proven in every tier it needs; `status: done` in story.md is no longer written (`derived-status` warns; `storyspec migrate` sets in-progress). `story()` cases for tiered scenarios take one function per tier, checked at compile time. `trace --require-proven` gates a release on every story being done. New rules: `proof`, `derived-status`, `unproven`, `adapter-untested`.
+  
+  The ports table shows which tiers exercised each adapter, so an adapter over a real service counts as proven only by a tier that reached it.
+  
+  The import graph now comes from dependency-cruiser: tsconfig path aliases no longer bypass the layer rules, and a story's `*.types.ts` may be imported for its types alone from anywhere. `ids-outside-stories` ignores import statements. `trace()` in the library API is now async.
+  
+  Requires Node 22 or later.
+
 ## 0.2.0
 
 ### Minor Changes

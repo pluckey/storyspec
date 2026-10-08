@@ -1,6 +1,6 @@
 # Working in this repo
 
-<!-- storyspec:begin 0.2.0 sha=4d99f24a60af9973 -->
+<!-- storyspec:begin 0.3.0 sha=95776c105548c65a -->
 <!-- Managed by storyspec. `npx storyspec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
@@ -19,7 +19,7 @@ stories/S-001-member-saves-a-note/
 - **New behaviour gets a new story:** `npm run story -- "<title>" --epic "<epic>"`. Don't repurpose another story's folder.
 - **The folder is `<ID>-<slug of the title>`.** If you change a title, rename the folder to match (keep the ID) and run `npm run gen`; the trace warns when they drift.
 - **Changed behaviour revises its story:** edit spec.md, bump `version`, add a line under Revisions, update the tests. Don't open a second story for the same behaviour.
-- **Status:** draft → ready → in-progress → done. A done story needs every scenario test passing. A retired story becomes `superseded`: it stays in the trace for history and is exempt from the rules.
+- **Status:** draft → ready → in-progress. **Never write `done`**: the trace shows a story as done when every scenario is proven in every tier it needs (see Proof tiers). A retired story becomes `superseded`: it stays in the trace for history and is exempt from the rules.
 - **One requirement per story, one sentence:** `WHEN <trigger> THE SYSTEM SHALL <response>.` It says what the story does.
 - **Every condition, edge case and error is a scenario,** not another SHALL line. That way each one gets exactly one test, and nothing in the spec is untested. (The trace fails if the requirement has more than one SHALL.)
 - **Order of work:** scenarios (get them approved) → `npm run gen` → failing tests → use case → wiring → `npm run check`.
@@ -40,6 +40,30 @@ story(gen, {
 - `story(gen, cases)` registers one Vitest test per scenario, named `<ID> <scenario title>` from spec.md, inside a `describe('<story ID> <story title>')`.
 - Each case takes no arguments and may return a promise. Use `expect` from `vitest` as usual.
 - The type requires **exactly** the scenarios in spec.md: a missing case or an unknown key fails the typecheck. After editing scenarios, run `npm run gen` and fix what the typecheck reports.
+
+## Proof tiers
+
+A scenario is proven in the tiers it needs: `local` (the default: tests that run on every check), a tier you configure such as `deployed` (tests against real infrastructure), or `manual` (a person checks it). Declare other tiers on the scenario tag, or for a whole story with `proof: local, deployed` in story.md:
+
+```markdown
+#### Scenario: Only granted tools are listed {#S-006.1 proof=local,deployed}
+#### Scenario: The member consents in their browser {#S-010.2 proof=manual}
+```
+
+Then its case has one function per tier that runs tests (a manual-only scenario's case is `{}`):
+
+```ts
+story(gen, {
+  'S-006.1': { local: () => { /* fakes */ }, deployed: async () => { /* the real system */ } },
+  'S-010.2': {},
+})
+```
+
+- `npm run check` proves the local tier. `npx storyspec trace --tier deployed` runs the deployed tier's command (`tiers` in storyspec.config.json) and records the results in `stories/PROOF.json`; commit that file.
+- `npx storyspec prove S-010.2` records a person's check (`--fail`, `--note "…"`).
+- Every recorded proof carries a hash of the scenario's text. Change the text and the proof is stale: the trace warns and the story is no longer done until it is proven again.
+- `npx storyspec trace --require-proven` fails unless every story past ready is done; use it to gate a release.
+- Don't branch on the environment inside a case (`if (deployed) …`): give the scenario the tier and the case a function for it.
 
 ## The use case
 
@@ -95,7 +119,7 @@ Adapter tests live in `test/`, not beside the adapter in `src/adapters` (adapter
 
 - `npm run check`: generated files are fresh, typecheck, then trace.
 - `npm run trace`: runs the tests and writes `stories/TRACE.md` with two tables: stories (epic → story → implementation → scenario → result) and ports (port → adapters → contract tests that ran). It fails on gaps, orphans, stale generated files, untested adapters or layer violations, and prints warnings (like a port with no adapter yet, or a folder that doesn't match its title) above the result. Each finding names its rule; `node_modules/storyspec/docs/rules.md` explains every rule and its fix. Paths and prefixes are in `storyspec.config.json`.
-- Drafts and ready stories only warn about missing code or tests. In-progress and done stories fail.
+- Drafts and ready stories only warn about missing code, tests or failing tests. Every other story fails on them.
 
 ## Before designing on a platform
 
@@ -116,6 +140,7 @@ This guidance and the `/story` command come from the installed storyspec version
 ```bash
 npm i -D storyspec@latest
 npx storyspec sync    # rewrites the storyspec blocks in AGENTS.md and CLAUDE.md, the /story command and its hooks
+npx storyspec migrate # updates stories for the new version, if it changed their format
 npm run check
 ```
 
