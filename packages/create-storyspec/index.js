@@ -59,7 +59,7 @@ Created ${rel}.
   npm run story -- "Your first story"  # or /story "…" in Claude Code
 ${flags.has('--no-example') ? '' : '  npm run dev                         # example notes API on :3000\n'}
 Read AGENTS.md for the rules, and README.md for how it fits together.
-To take a newer storyspec later: npm i -D storyspec@latest && npx storyspec sync
+To take a newer storyspec later: ${pkg.devDependencies.storyspec.startsWith('file:') ? `git pull && npm ci && npm run build in ${resolve(checkout, '../..')}` : 'npm i -D storyspec@latest'}, then npx storyspec sync
 `)
 
 // Leaves the structure, tooling and docs, with no stories: start with `npm run story`.
