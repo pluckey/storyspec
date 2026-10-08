@@ -34,7 +34,9 @@ if (existsSync(join(target, 'gitignore'))) renameSync(join(target, 'gitignore'),
 const pkgPath = join(target, 'package.json')
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
 pkg.name = basename(target).toLowerCase().replace(/[^a-z0-9-_.]/g, '-')
-pkg.devDependencies.storyspec = process.env.STORYSPEC_SPEC ?? `^${own.version}`
+// Run from a storyspec checkout, the app links that checkout's package; installed from npm, it takes the release.
+const checkout = join(here, '..', 'storyspec')
+pkg.devDependencies.storyspec = process.env.STORYSPEC_SPEC ?? (existsSync(join(checkout, 'package.json')) ? `file:${checkout}` : `^${own.version}`)
 
 if (flags.has('--no-example')) stripExample(target, pkg)
 writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')

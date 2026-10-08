@@ -1,7 +1,7 @@
 name: Release
+# Run by hand: storyspec isn't published to npm yet. Restore `push: branches: [main]` to release on every merge.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 concurrency: release
 jobs:
   release:
