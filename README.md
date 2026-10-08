@@ -2,16 +2,12 @@
 
 **Story-first, spec-driven development: every story owns its spec, code and tests, and one check proves it.**
 
-storyspec isn't on npm yet. Use it from a checkout:
-
 ```bash
-git clone https://github.com/pluckey/storyspec && cd storyspec
-npm ci && npm run build
-node packages/create-storyspec/index.js ../my-app    # links the app to this checkout's storyspec
-cd ../my-app && npm run check
+npm create storyspec@latest my-app
+cd my-app && npm run check
 ```
 
-To update later: `git pull && npm ci && npm run build` in the checkout, then `npx storyspec sync` in your app (see [updating](docs/adopting.md#updating-storyspec)).
+In an existing repo: `npm i -D storyspec vitest`, then `npx storyspec sync` (see [adopting](docs/adopting.md)). To update later: `npm i -D storyspec@latest && npx storyspec sync && npx storyspec migrate` (see [updating](docs/adopting.md#updating-storyspec)).
 
 <!-- GIF: add a scenario to spec.md → test file turns red → implement → TRACE.md turns green -->
 
@@ -45,7 +41,7 @@ Underneath is clean architecture with ports and adapters (`src/domain`, `src/por
 
 | Command | Does |
 |---|---|
-| `node packages/create-storyspec/index.js <dir>` (`npm create storyspec@latest <dir>` once published) | New app with the example notes API (`--no-example` for a bare structure with one draft story) |
+| `npm create storyspec@latest <dir>` | New app with the example notes API (`-- --no-example` for a bare structure with one draft story) |
 | `storyspec story "<title>" [--epic "<epic>"]` | Next story folder from templates |
 | `storyspec gen [--check]` | Write `scenarios.gen.ts` per story (`--check` fails if stale) |
 | `storyspec trace [--tier <name>] [--require-proven] [--no-run] [--json]` | Run a tier's tests (local by default), write TRACE.md, enforce every rule; another tier's results are recorded in `stories/PROOF.json` |
