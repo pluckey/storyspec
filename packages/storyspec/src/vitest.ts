@@ -32,18 +32,22 @@ export const activeTier = () => process.env.STORYSPEC_TIER || 'local'
 
 export const story = <G extends StoryGen>(gen: G, cases: Cases<G>): void => {
   const tier = activeTier()
-  describe(`${gen.storyId} ${gen.title}`.trim(), () => {
-    for (const [id, scenario] of Object.entries(gen.scenarios)) {
-      const c = (cases as Record<string, Run | Record<string, Run>>)[id]
-      if (c === undefined) throw new Error(`${id} has no case; run storyspec gen and typecheck`)
-      if (typeof scenario === 'string') {
-        // Local-only cases run in every tier, as before tiers existed; their results count as local.
-        if (typeof c !== 'function') throw new Error(`${id} is proven locally only; its case is a function`)
-        test(`${id} ${scenario}`, async () => { await c() })
-        continue
-      }
-      const run = typeof c === 'function' ? undefined : c[tier]
-      if (run) test(`${id} [${tier}] ${scenario.title}`, async () => { await run() })
+  const tests: [name: string, run: Run][] = []
+  for (const [id, scenario] of Object.entries(gen.scenarios)) {
+    const c = (cases as Record<string, Run | Record<string, Run>>)[id]
+    if (c === undefined) throw new Error(`${id} has no case; run storyspec gen and typecheck`)
+    if (typeof scenario === 'string') {
+      // Local-only cases run in every tier, as before tiers existed; their results count as local.
+      if (typeof c !== 'function') throw new Error(`${id} is proven locally only; its case is a function`)
+      tests.push([`${id} ${scenario}`, c])
+      continue
     }
+    const run = typeof c === 'function' ? undefined : c[tier]
+    if (run) tests.push([`${id} [${tier}] ${scenario.title}`, run])
+  }
+  // A story with nothing to run in this tier (say, deployed-only, in a local run) registers nothing.
+  if (!tests.length) return
+  describe(`${gen.storyId} ${gen.title}`.trim(), () => {
+    for (const [name, run] of tests) test(name, async () => { await run() })
   })
 }
