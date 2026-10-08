@@ -44,10 +44,10 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
-    "build": "tsup src/cli.ts src/index.ts src/vitest.ts --format esm --dts --clean --target node20 && node -e \"require('node:fs').cpSync('../../docs','docs',{recursive:true})\"",
+    "build": "tsup src/cli.ts src/index.ts src/vitest.ts --format esm --dts --clean --target node22 && node -e \"require('node:fs').cpSync('../../docs','docs',{recursive:true})\"",
     "test": "vitest run && tsc --noEmit -p test/types"
   },
   "peerDependencies": {
