@@ -11,15 +11,14 @@ import { fileURLToPath } from 'node:url'
 const packageRoot = fileURLToPath(new URL('..', import.meta.url))
 export const installedVersion = (): string => (JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8')) as { version: string }).version
 const guidance = (name: string) => readFileSync(join(packageRoot, 'agent', name), 'utf8')
+// The text storyspec 0.1's template copied into projects (agent/legacy): a file equal to it was never edited and is
+// replaced whole; a file that starts with it had notes added, which are kept.
+const legacyText = (file: string) => {
+  const p = join(packageRoot, 'agent', 'legacy', '0.1', file)
+  return existsSync(p) ? readFileSync(p, 'utf8') : undefined
+}
 
 const hash = (text: string) => createHash('sha256').update(text).digest('hex').slice(0, 16)
-
-// What storyspec 0.1's template copied into projects, unedited. A file still exactly like this is replaced whole.
-const UNEDITED_0_1: Record<string, string> = {
-  'AGENTS.md': '1d37d31ae60d3ed7',
-  'CLAUDE.md': '95bb15378cab5a9b',
-  '.claude/commands/story.md': 'bad59880ffb90653',
-}
 
 const BEGIN = /<!-- storyspec:begin (\S+) sha=([0-9a-f]+) -->\n/
 const END = '<!-- storyspec:end -->'
@@ -45,11 +44,15 @@ export type SyncAction = 'created' | 'updated' | 'migrated' | 'unchanged' | 'edi
 export type SyncChange = { file: string; action: SyncAction; message?: string; next?: string }
 
 // A file whose storyspec part is a block inside the project's own text.
-const blockFile = (file: string, existing: string | undefined, content: string, version: string, force: boolean, fresh: (b: string) => string,
-  adopt: (text: string, b: string) => string): SyncChange => {
+const blockFile = (file: string, existing: string | undefined, content: string, version: string, force: boolean,
+  layout: { fresh: (b: string) => string; withNotes: (b: string, notes: string) => string; adopt: (text: string, b: string) => string }): SyncChange => {
+  const { fresh, withNotes, adopt } = layout
   const b = block(content, version)
   if (existing === undefined) return { file, action: 'created', next: fresh(b) }
-  if (hash(existing) === UNEDITED_0_1[file]) return { file, action: 'migrated', next: fresh(b), message: 'was the unedited storyspec 0.1 copy; replaced with a managed block' }
+  const legacy = legacyText(file)
+  if (existing === legacy) return { file, action: 'migrated', next: fresh(b), message: 'was the unedited storyspec 0.1 copy; replaced with a managed block' }
+  if (legacy !== undefined && existing.startsWith(legacy) && existing.length > legacy.length && !findBlock(existing))
+    return { file, action: 'migrated', next: withNotes(b, existing.slice(legacy.length).trim()), message: 'was the storyspec 0.1 copy plus your notes; the copy became the managed block and your notes were kept after it' }
   const found = findBlock(existing)
   if (!found) return { file, action: 'updated', next: adopt(existing, b), message: 'added the storyspec block; check your own text beside it for anything it now duplicates' }
   const next = existing.slice(0, found.start) + b + existing.slice(found.end)
@@ -63,7 +66,7 @@ const ownedFile = (file: string, existing: string | undefined, content: string, 
   const body = content.replace(/\n*$/, '\n')
   const next = `${body}\n<!-- storyspec:managed ${version} sha=${hash(body)} -->\n`
   if (existing === undefined) return { file, action: 'created', next }
-  if (hash(existing) === UNEDITED_0_1[file]) return { file, action: 'migrated', next, message: 'was the unedited storyspec 0.1 copy' }
+  if (existing === legacyText(file)) return { file, action: 'migrated', next, message: 'was the unedited storyspec 0.1 copy' }
   const m = OWNED.exec(existing)
   // The stamp follows the content after one blank line; the hash covers the content alone.
   if (!m || hash(existing.slice(0, m.index)) !== m[2])
@@ -101,16 +104,21 @@ const settingsFile = (existing: string | undefined): SyncChange => {
 export const plan = (root: string, opts: { claude?: boolean; force?: boolean } = {}): SyncChange[] => {
   const v = installedVersion(), force = !!opts.force
   const read = (f: string) => existsSync(join(root, f)) ? readFileSync(join(root, f), 'utf8') : undefined
-  const changes = [blockFile('AGENTS.md', read('AGENTS.md'), guidance('AGENTS.md'), v, force,
-    b => `# Working in this repo\n\n${b}\n\n## This project\n\nNotes for agents about this repo go here, outside the storyspec block, so updates keep them.\n`,
-    (text, b) => {
+  const changes = [blockFile('AGENTS.md', read('AGENTS.md'), guidance('AGENTS.md'), v, force, {
+    fresh: b => `# Working in this repo\n\n${b}\n\n## This project\n\nNotes for agents about this repo go here, outside the storyspec block, so updates keep them.\n`,
+    withNotes: (b, notes) => `# Working in this repo\n\n${b}\n\n${notes}\n`,
+    adopt: (text, b) => {
       const h1 = /^# .*\n/.exec(text)
       return h1 ? `${h1[0]}\n${b}\n\n${text.slice(h1[0].length).replace(/^\n+/, '')}` : `${b}\n\n${text}`
-    })]
+    },
+  })]
   const claude = opts.claude || existsSync(join(root, 'CLAUDE.md')) || existsSync(join(root, '.claude'))
   if (claude) changes.push(
-    blockFile('CLAUDE.md', read('CLAUDE.md'), guidance('CLAUDE.md'), v, force, b => `@AGENTS.md\n\n${b}\n`,
-      (text, b) => `${/^@AGENTS\.md$/m.test(text) ? '' : '@AGENTS.md\n\n'}${text.replace(/\n*$/, '\n')}\n${b}\n`),
+    blockFile('CLAUDE.md', read('CLAUDE.md'), guidance('CLAUDE.md'), v, force, {
+      fresh: b => `@AGENTS.md\n\n${b}\n`,
+      withNotes: (b, notes) => `@AGENTS.md\n\n${b}\n\n${notes}\n`,
+      adopt: (text, b) => `${/^@AGENTS\.md$/m.test(text) ? '' : '@AGENTS.md\n\n'}${text.replace(/\n*$/, '\n')}\n${b}\n`,
+    }),
     ownedFile('.claude/commands/story.md', read('.claude/commands/story.md'), guidance('commands/story.md'), v, force),
     settingsFile(read('.claude/settings.json')),
   )

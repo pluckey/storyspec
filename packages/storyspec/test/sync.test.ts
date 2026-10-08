@@ -48,6 +48,17 @@ describe('sync', () => {
     expect(plan(root).every(c => c.action === 'unchanged')).toBe(true)
   })
 
+  test('a 0.1 copy the project added notes to keeps the notes and doesn\'t duplicate the guidance', () => {
+    const root = project(join(import.meta.dirname, 'fixtures/v0.1'))
+    writeFileSync(join(root, 'AGENTS.md'), read(root, 'AGENTS.md') + '\n' + NOTES)
+    const change = sync(root).find(c => c.file === 'AGENTS.md')
+    expect(change).toMatchObject({ action: 'migrated' })
+    expect(change!.message).toMatch(/notes were kept/)
+    const agents = read(root, 'AGENTS.md')
+    expect(agents.match(/## Story tests/g)).toHaveLength(1)
+    expect(agents.endsWith(`<!-- storyspec:end -->\n\n${NOTES}`)).toBe(true)
+  })
+
   test('an update rewrites only the block: the project\'s notes are kept', () => {
     const root = project()
     sync(root)
