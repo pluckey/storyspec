@@ -1,6 +1,6 @@
 # Working in this repo
 
-<!-- storyspec:begin 0.3.0 sha=95776c105548c65a -->
+<!-- storyspec:begin 0.3.0 sha=8a097ce2d337affb -->
 <!-- Managed by storyspec. `npx storyspec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
@@ -98,9 +98,11 @@ export const todoStoreContract = (name: string, make: () => TodoStore) =>
   describe(`TodoStore contract: ${name}`, () => { test('…', async () => { … }) })
 
 // test/contracts/todo-store.test.ts: the runner, one line per implementation
-todoStoreContract('memory adapter', () => new MemoryTodoStore())
+todoStoreContract('src/adapters/memory/todo-store.ts', () => new MemoryTodoStore())
 todoStoreContract('test fake', () => fakeTodoStore())
 ```
+
+**Name each run after the adapter's file**, as above: the trace counts an adapter as exercised in a tier only when a test that ran there names it, so the ports table shows which tiers proved each adapter. An adapter over a real service is proven by the tier that reaches the service (`if (process.env.…) storeContract('src/adapters/postgres/todo-store.ts', …)` inside that tier's run).
 
 Adapter tests live in `test/`, not beside the adapter in `src/adapters` (adapters may not import test code).
 

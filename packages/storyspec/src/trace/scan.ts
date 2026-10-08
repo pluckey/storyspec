@@ -33,6 +33,8 @@ export type Repo = {
   root: string; config: Config; stories: Story[]; kernel: SourceFile[]; outcomes: Map<string, 'pass' | 'fail'>; failures: Map<string, string>; hasReport: boolean; executedTests: string[]
   // Results by scenario and tier: a test named "S-001.1 [deployed] …" ran in the deployed tier; an untagged one counts as local.
   tierOutcomes: Map<string, Map<string, 'pass' | 'fail'>>
+  // Full names (with their describe blocks) of the tests that passed, which name the adapters contract suites ran against.
+  passedTestNames: string[]
   // Failed tests that aren't scenarios (contract suites, other tests), and test files that failed without running a test.
   otherFailures: { file: string; test?: string; message: string }[]
 }
@@ -112,6 +114,7 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
 
   const outcomes = new Map<string, 'pass' | 'fail'>()
   const tierOutcomes: Repo['tierOutcomes'] = new Map()
+  const passedTestNames: string[] = []
   const executedTests: string[] = []
   const failures = new Map<string, string>()
   const otherFailures: Repo['otherFailures'] = []
@@ -119,7 +122,9 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
   const report = join(root, config.testReport)
   const hasReport = existsSync(report)
   if (hasReport) {
-    const json = JSON.parse(read(report)) as { testResults?: { name?: string; status?: string; message?: string; assertionResults?: { title: string; fullName?: string; status: string; failureMessages?: string[] }[] }[] }
+    const json = JSON.parse(read(report)) as { testResults?: { name?: string; status?: string; message?: string; assertionResults?: { title: string; fullName?: string; ancestorTitles?: string[]; status: string; failureMessages?: string[] }[] }[] }
+    for (const f of json.testResults ?? []) for (const a of f.assertionResults ?? [])
+      if (a.status === 'passed') passedTestNames.push(a.fullName || [...a.ancestorTitles ?? [], a.title].join(' '))
     for (const f of json.testResults ?? []) if (f.name && (f.assertionResults ?? []).length) executedTests.push(rel(resolve(root, f.name)))
     for (const f of json.testResults ?? []) {
       const file = f.name ? rel(resolve(root, f.name)) : '(unknown file)'
@@ -144,7 +149,7 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
     }
   }
 
-  return { root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes }
+  return { root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes, passedTestNames }
 }
 
 // "local, deployed" → ['local', 'deployed']; absent → undefined.

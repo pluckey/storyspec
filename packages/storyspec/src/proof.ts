@@ -5,7 +5,7 @@
 import { execSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Repo, Scenario, SourceFile, Story } from './trace/scan.js'
+import type { Repo, Scenario, Story } from './trace/scan.js'
 
 export type ProofEntry = { outcome: 'pass' | 'fail'; at: string; hash: string; version?: string; commit?: string; by?: string; note?: string }
 export type AdapterEntry = { at: string; commit?: string }
@@ -45,16 +45,14 @@ export const currentCommit = (root: string): string | undefined => {
 const adapterFiles = (repo: Repo) =>
   repo.kernel.filter(f => f.path === repo.config.adaptersDir || f.path.startsWith(repo.config.adaptersDir + '/')).filter(f => !/\.(test|spec)\./.test(f.path))
 
-/** Adapters the run's executed tests exercise: a test imports the adapter, or imports a module that does. */
-export const exercisedAdapters = (repo: Repo): string[] => {
-  const byPath = new Map(repo.kernel.map(f => [f.path.replace(/\.(c|m)?tsx?$/, ''), f]))
-  const executed = repo.kernel.filter(f => repo.executedTests.includes(f.path))
-  const reach = (t: SourceFile) => [t, ...t.imports.map(i => byPath.get(i)).filter((x): x is SourceFile => !!x)]
-  return adapterFiles(repo).map(a => a.path).filter(a => {
+/** Adapters the run exercised: a test that passed names the adapter's file in its name or a describe around it. Contract
+ * suites put the path in their name (`thingStoreContract('src/adapters/memory/things.ts', …)`), so an adapter counts only
+ * where its suite actually ran, not wherever a file that could run it was loaded. */
+export const exercisedAdapters = (repo: Repo): string[] =>
+  adapterFiles(repo).map(a => a.path).filter(a => {
     const bare = a.replace(/\.(c|m)?tsx?$/, '')
-    return executed.some(t => reach(t).some(f => f.imports.includes(bare)))
+    return repo.passedTestNames.some(n => n.includes(bare))
   })
-}
 
 /** Records what a run of `tier` proved: its scenarios that need that tier, and the adapters it exercised. */
 export const recordRun = (repo: Repo, tier: string, now: string, commit = currentCommit(repo.root)): ProofFile => {

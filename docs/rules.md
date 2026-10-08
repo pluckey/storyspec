@@ -17,7 +17,7 @@
 | `proof` | gap / warning | A recorded tier failed for a scenario at its current text (gap: errors unless the story is a draft), or the scenario's text changed since a tier proved it (warning: stale) | Fix and rerun the tier (`storyspec trace --tier <name>`), or prove a manual scenario again (`storyspec prove <ID>`) |
 | `derived-status` | warning | story.md says `status: done`, which the trace now works out itself | `storyspec migrate` (sets `in-progress`) |
 | `unproven` | error | With `--require-proven`: a story past ready isn't done; the message lists each scenario and tier still to prove | Prove what's listed, or don't gate on it yet |
-| `adapter-untested` | warning | No tier's tests, in this run or recorded, exercise an adapter (import it directly or through a module they import) | Run its contract suite against it, in the tier that reaches the real service |
+| `adapter-untested` | warning | No test that ran, in this run or a recorded tier, names the adapter's file (`src/adapters/…/x.ts`) in its name or a describe around it | Run its contract suite against it with the file path as the suite's name, in the tier that reaches the real service |
 | `gen-fresh` | error | `scenarios.gen.ts` is missing or out of date with `spec.md` | `storyspec gen` |
 | `story-imports` | error | Story code imports outside its own folder and `storyMayImport` (tests also get `storyTestMayAlsoImport`) | Depend on a port or a domain rule instead of an adapter or another story |
 | `ids-outside-stories` | error | A story ID appears in code outside `stories/` (import statements don't count: who may import a story is the `wiring` rule's question) | Move the story-specific logic into the story; keep the kernel generic |

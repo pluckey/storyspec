@@ -94,9 +94,11 @@ export const todoStoreContract = (name: string, make: () => TodoStore) =>
   describe(`TodoStore contract: ${name}`, () => { test('…', async () => { … }) })
 
 // test/contracts/todo-store.test.ts: the runner, one line per implementation
-todoStoreContract('memory adapter', () => new MemoryTodoStore())
+todoStoreContract('src/adapters/memory/todo-store.ts', () => new MemoryTodoStore())
 todoStoreContract('test fake', () => fakeTodoStore())
 ```
+
+**Name each run after the adapter's file**, as above: the trace counts an adapter as exercised in a tier only when a test that ran there names it, so the ports table shows which tiers proved each adapter. An adapter over a real service is proven by the tier that reaches the service (`if (process.env.…) storeContract('src/adapters/postgres/todo-store.ts', …)` inside that tier's run).
 
 Adapter tests live in `test/`, not beside the adapter in `src/adapters` (adapters may not import test code).
 

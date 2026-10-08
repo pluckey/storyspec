@@ -119,7 +119,7 @@ describe('trace', () => {
 
   test('contract-tests: a port with an adapter needs an executed test outside stories', async () => {
     const root = fixture()
-    edit(root, '.storyspec/vitest.json', s => s.replace('"test/contracts/things.test.ts"', '"test/contracts/never-ran.test.ts"'))
+    edit(root, '.storyspec/vitest.json', s => s.replace('"test/contracts/things.test.ts"', '"test/contracts/never-ran.test.ts"').replace('ThingStore contract: src/adapters/memory/things.ts saves a thing', 'something else'))
     expect(await rulesOf(root)).toEqual(['contract-tests'])
     expect((await run(root)).ports).toEqual([{ port: 'ThingStore', file: 'src/ports/thing-store.ts', adapters: ['src/adapters/memory/things.ts'], contractTests: [], exercisedIn: { 'src/adapters/memory/things.ts': [] } }])
   })
@@ -232,7 +232,7 @@ describe('trace', () => {
 
   test('failing-test: a failing test outside stories, or a file that crashed, fails the trace', async () => {
     const root = fixture()
-    edit(root, '.storyspec/vitest.json', r => r.replace('{ "title": "saves a thing", "status": "passed" }', '{ "title": "saves a thing", "fullName": "ThingStore contract: memory saves a thing", "status": "failed", "failureMessages": ["lost it"] }'))
+    edit(root, '.storyspec/vitest.json', r => r.replace('{ "title": "saves a thing", "fullName": "ThingStore contract: src/adapters/memory/things.ts saves a thing", "status": "passed" }', '{ "title": "saves a thing", "fullName": "ThingStore contract: memory saves a thing", "status": "failed", "failureMessages": ["lost it"] }'))
     expect((await run(root)).findings.filter(f => f.rule === 'failing-test').map(f => [f.file, f.message.split('\n')[0]]))
       .toEqual([['test/contracts/things.test.ts', '"ThingStore contract: memory saves a thing" fails']])
     const crashed = fixture()

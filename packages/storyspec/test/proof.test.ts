@@ -53,7 +53,7 @@ story(gen, {
 type Result = { title: string; status: 'passed' | 'failed' }
 const report = (root: string, results: Result[], contracts = true) => writeFileSync(join(root, '.storyspec/vitest.json'), JSON.stringify({ testResults: [
   { name: `${S}/do-thing.test.ts`, assertionResults: results },
-  ...(contracts ? [{ name: 'test/contracts/things.test.ts', assertionResults: [{ title: 'saves a thing', status: 'passed' }] }] : []),
+  ...(contracts ? [{ name: 'test/contracts/things.test.ts', assertionResults: [{ title: 'saves a thing', fullName: 'ThingStore contract: src/adapters/memory/things.ts saves a thing', status: 'passed' }] }] : []),
 ] }))
 const LOCAL: Result[] = [{ title: 'S-001.1 Does it', status: 'passed' }, { title: 'S-001.2 [local] Does it twice', status: 'passed' }]
 const DEPLOYED = (status: Result['status'] = 'passed'): Result[] => [...LOCAL, { title: 'S-001.2 [deployed] Does it twice', status }]
