@@ -29,12 +29,16 @@ export const renderGen = (story: Story) => {
 
 export type GenStatus = { story: string; file: string; state: 'fresh' | 'stale' | 'missing' }
 
-// The generated file types TypeScript tests. A story implemented elsewhere (implementedBy:) with no TypeScript in its
-// folder, such as a Python one whose tests sit beside its spec, has nothing to type and gets none.
-const typed = (s: Story) => s.implementedBy.length === 0 || [...s.code, ...s.tests].some(f => isTypeScript(f.path))
+// The generated file types TypeScript tests. A story with TypeScript in its folder gets one; so does one with nothing
+// there yet in a TypeScript project (tsconfig.json at the root, or TypeScript in any story's folder), whose use case is
+// still to be written. A story implemented elsewhere (implementedBy:), or in a project that isn't TypeScript (Swift,
+// Python), has nothing to type.
+const typed = (s: Story, tsProject: boolean) =>
+  [...s.code, ...s.tests].some(f => isTypeScript(f.path)) || (tsProject && s.implementedBy.length === 0)
 
 export const genStatus = (root: string, stories: Story[]): GenStatus[] =>
-  stories.filter(s => s.hasSpecMd && typed(s)).map(s => {
+  stories.filter(s => s.hasSpecMd && typed(s, existsSync(join(root, 'tsconfig.json'))
+    || stories.some(x => [...x.code, ...x.tests].some(f => isTypeScript(f.path))))).map(s => {
     const file = join(s.dir, GEN_FILE)
     const abs = join(root, file)
     const state = !existsSync(abs) ? 'missing' : readFileSync(abs, 'utf8') === renderGen(s) ? 'fresh' : 'stale'

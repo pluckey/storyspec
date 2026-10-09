@@ -23,6 +23,6 @@ story(gen, {
   'S-002.3': async () => {
     const root = pythonProject()
     edit(root, `${STORY}/story.md`, s => s.replace('implementedBy: app/greet.py\n', ''))
-    expect(await rulesOf(root)).toEqual(['gen-fresh', 'ids-outside-stories', 'implementation'])
+    expect(await rulesOf(root)).toEqual(['ids-outside-stories', 'implementation'])
   },
 })

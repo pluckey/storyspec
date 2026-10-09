@@ -19,6 +19,7 @@
 | `testReport` | `".storyspec/vitest.json"` | Where the trace reads results: Vitest/Jest JSON or JUnit XML, recognised from the content. A list reads several reports (say, pytest's and a conformance suite's); one the run didn't write is skipped |
 | `tiers` | `{ "local": {}, "manual": {} }` | Where scenarios can be proven. `local` runs `testCommand` (or its own `command`) on every trace. Add a tier with `{ "command": "…", "report": "…" }` (report defaults to `testReport`, and may also be a list) and run it with `storyspec trace --tier <name>`; its results are recorded in `stories/PROOF.json`. A tier with no command is proven by hand (`storyspec prove`). The command runs with `STORYSPEC_TIER=<name>` |
 | `defaultProof` | `["local"]` | The tiers a scenario must be proven in unless its story (`proof:` in story.md) or its tag (`{#S-001.1 proof=…}`) says otherwise |
+| `unspecified` | `[]` | Path prefixes of code that no story covers on purpose, such as a feature kept out of scope. The `unclaimed-code` rule doesn't report them; unlike `ignore`, the rest of the trace still reads them |
 | `storyTemplateDir` | `"templates/story"` | Your own `story.md`/`spec.md` templates; built-ins are used if absent |
 | `ignore` | `["node_modules", "dist", ".storyspec", ".git"]` | Never scanned |
 | `rules` | `{}` | Severity per rule, overriding the default: `{ "slug": "error", "port-adapter": "off" }`. Values are `"error"`, `"warning"` or `"off"` |
