@@ -5,8 +5,7 @@ export const gen = {
   scenarios: {
     'S-005.1': 'Python imports resolve to the repo\'s files',
     'S-005.2': 'A Python layer violation is reported',
-    'S-005.3': 'Swift imports resolve to package targets',
-    'S-005.4': 'Tests in other languages may name their scenarios',
+    'S-005.3': 'Tests in other languages may name their scenarios',
   },
 } as const
 

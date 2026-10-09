@@ -1,4 +1,4 @@
-// Languages other than TypeScript, for the import graph. Each is data: its file extensions, which files are tests, the
+// Languages other than TypeScript, for the import graph (Python, for now). Each is data: its file extensions, which files are tests, the
 // ast-grep patterns that find its imports, and how a module name maps to repo files. TypeScript stays with
 // dependency-cruiser (graph.ts), which knows tsconfig paths and type-only imports.
 import { execFileSync } from 'node:child_process'
@@ -39,17 +39,9 @@ const python: Language = {
   },
 }
 
-const swift: Language = {
-  name: 'swift',
-  astGrep: 'swift',
-  extensions: ['.swift'],
-  tests: /Tests?\.swift$|(^|\/)Tests\//,
-  imports: ['import $M', '@testable import $M'],
-  // A Swift module is a package target: Sources/<Module> by convention.
-  resolve: (_file, { module }, exists) => [`Sources/${module}`].filter(p => exists(p)),
-}
-
-export const LANGUAGES: Language[] = [python, swift]
+// Swift is deliberately absent: in a single-module app its files use each other without imports, so an import graph
+// would see nothing and report clean. Its layers are SwiftPM targets, which the compiler already enforces.
+export const LANGUAGES: Language[] = [python]
 
 export const languageOf = (path: string) => LANGUAGES.find(l => l.extensions.some(e => path.endsWith(e)))
 

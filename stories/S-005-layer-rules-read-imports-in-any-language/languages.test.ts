@@ -47,20 +47,6 @@ story(gen, {
   },
 
   'S-005.3': async () => {
-    const files = {
-      'Sources/Domain/Model.swift': 'import Foundation\npublic struct Thing {}\n',
-      'Sources/Adapters/Store.swift': 'import Domain\n',
-      'Sources/Domain/Bad.swift': 'import Adapters\n',
-      'Tests/DomainTests/ModelTests.swift': 'import XCTest\n@testable import Domain\n',
-    }
-    const root = project(files)
-    const graph = await importGraph(root, Object.keys(files))
-    expect(graph.get('Sources/Domain/Bad.swift')?.imports).toEqual(['Sources/Adapters'])
-    expect(graph.get('Sources/Domain/Model.swift')?.imports).toEqual([])
-    expect(graph.get('Tests/DomainTests/ModelTests.swift')?.imports).toEqual(['Sources/Domain'])
-  },
-
-  'S-005.4': async () => {
     const root = pythonProject()
     expect(await rulesOf(root)).toEqual([])
     writeFileSync(join(root, 'app/notes.py'), '# see S-001.2\n')

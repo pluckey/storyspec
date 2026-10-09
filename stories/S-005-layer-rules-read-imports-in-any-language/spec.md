@@ -2,7 +2,7 @@
 
 ### Requirement: Imports in any language {#S-005}
 
-WHEN a project has source files in a language storyspec describes (Python, Swift) THE SYSTEM SHALL read their imports with ast-grep and check them against `layers` as it does TypeScript's.
+WHEN a project has source files in a language storyspec describes (Python) THE SYSTEM SHALL read their imports with ast-grep and check them against `layers` as it does TypeScript's.
 
 #### Scenario: Python imports resolve to the repo's files {#S-005.1}
 
@@ -16,13 +16,7 @@ WHEN a project has source files in a language storyspec describes (Python, Swift
 - WHEN app/domain/model.py imports app.adapters.db
 - THEN the trace reports the import under the layers rule, and the same import from app/adapters is allowed
 
-#### Scenario: Swift imports resolve to package targets {#S-005.3}
-
-- GIVEN a Swift package with targets Sources/Domain and Sources/Adapters
-- WHEN a file in Sources/Domain says `import Adapters`, and a test says `@testable import Domain`
-- THEN the imports map to Sources/Adapters and Sources/Domain, and system modules (Foundation) are left out
-
-#### Scenario: Tests in other languages may name their scenarios {#S-005.4}
+#### Scenario: Tests in other languages may name their scenarios {#S-005.3}
 
 - GIVEN a pytest file outside the stories folder that marks a test `@pytest.mark.verifies("S-001.2")`
 - WHEN the trace checks for story IDs outside stories
