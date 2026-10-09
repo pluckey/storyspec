@@ -12,4 +12,4 @@ Work on the story described by: $ARGUMENTS
 5. Wire it in src/entry/composition.ts and an entry point if callers need it.
 6. Run `npm run check` and fix everything it reports. Never set status to `done`: the trace shows the story as done once every scenario is proven in every tier it needs. Tell me which tiers are still awaiting (a deployed run, or a check only a person can make with `storyspec prove`), then show me the story's rows from stories/TRACE.md.
 
-<!-- storyspec:managed 0.6.0 sha=cba44383f939efad -->
+<!-- storyspec:managed 0.7.0 sha=cba44383f939efad -->
