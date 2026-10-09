@@ -142,7 +142,7 @@ class PostgresArticles:
         return [self._article(r) for r in found], total
 
     def tags(self):
-        return [r["tag"] for r in self.db.rows("SELECT DISTINCT tag FROM article_tags ORDER BY tag")]
+        return [r["tag"] for r in self.db.rows('SELECT DISTINCT tag COLLATE "C" AS tag FROM article_tags ORDER BY 1')]  # code point order, as the memory adapter sorts; a locale collation would ignore punctuation
 
     def favorite(self, user_id, article_id):
         self.db.conn.execute("INSERT INTO favorites VALUES (%s, %s) ON CONFLICT DO NOTHING", (user_id, article_id))

@@ -32,3 +32,14 @@ WHEN a signed-in member comments on an article, or its comments are listed or de
 
 - WHEN someone comments or deletes without a token; ana comments on, lists or deletes from a slug that doesn't exist; ana deletes a comment that doesn't exist
 - THEN without a token: 401, token "is missing"; an unknown article: 404, article "not found"; an unknown comment: 404, comment "not found"
+
+#### Scenario: An article's author can't delete other people's comments {#S-013.6}
+
+- GIVEN ben commented on ana's article
+- WHEN ana deletes ben's comment
+- THEN the response is 403 with comment "forbidden", and the comment is still listed
+
+### Decisions
+
+- Only a comment's author may delete it, not the article's author; pinned by S-013.4, S-013.6
+- Comments are listed oldest first (free)

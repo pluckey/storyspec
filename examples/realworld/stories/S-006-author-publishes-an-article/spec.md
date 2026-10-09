@@ -33,3 +33,14 @@ WHEN a signed-in member publishes an article with a title, description, body and
 - GIVEN the database answers in a time zone other than UTC (the deployed tier's Postgres runs in America/Chicago)
 - WHEN ana publishes an article
 - THEN its creation and update times are UTC, to the millisecond, ending in Z
+
+#### Scenario: A clashing slug gets -2, -3, … {#S-006.6}
+
+- GIVEN ana published "Hello world", which got a slug made from that title
+- WHEN she publishes a second and a third "Hello world"
+- THEN they get the first slug followed by -2 and -3
+
+### Decisions
+
+- A slug is the title in lowercase ASCII with other characters as hyphens; a clash appends -2, -3, …; pinned by S-006.3, S-006.6
+- A missing or null tagList on publish means no tags (free)

@@ -26,3 +26,14 @@ WHEN an article's author changes some of its fields THE SYSTEM SHALL change only
 
 - WHEN someone edits without a token, or ana edits a slug that doesn't exist
 - THEN without a token: 401, token "is missing"; an unknown slug: 404, article "not found"
+
+#### Scenario: A new title keeps the slug {#S-008.5}
+
+- GIVEN ana published an article
+- WHEN she changes its title
+- THEN the new title is returned and kept, and the slug is unchanged, so links to it keep working
+
+### Decisions
+
+- The slug never changes after publishing, even when the title does; pinned by S-008.5
+- Any successful edit moves updatedAt on, at least a millisecond after the previous time; pinned by S-008.1

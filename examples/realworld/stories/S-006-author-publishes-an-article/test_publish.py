@@ -51,3 +51,10 @@ def test_times_are_given_in_utc(api, member, publish):
     assert UTC_MS.match(a["updatedAt"]), a["updatedAt"]
     got = api.get(f"/api/articles/{a['slug']}").json()["article"]
     assert (got["createdAt"], got["updatedAt"]) == (a["createdAt"], a["updatedAt"])
+
+
+@v("S-006.6")
+def test_a_clashing_slug_gets_a_number(member, publish):
+    ana = member("ana")
+    first, second, third = (publish(ana, "Hello world") for _ in range(3))
+    assert (second["slug"], third["slug"]) == (f"{first['slug']}-2", f"{first['slug']}-3")

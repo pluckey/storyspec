@@ -65,6 +65,14 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
     for (const sc of s.scenarios)
       if (!s.testedIds.includes(sc.id) && sc.proof.some(t => t !== 'manual')) gap('untested-scenario', `${sc.id}: no test`, `${s.dir}/spec.md`)
 
+    // A decision either names the scenarios that pin it, so every implementation must agree, or says any choice is
+    // acceptable (free). A decision that does neither is a judgment call a regeneration would silently make again.
+    const allScenarios = new Set(stories.flatMap(x => x.scenarios.map(sc => sc.id)))
+    for (const d of s.decisions) {
+      for (const id of d.pinnedBy) if (!allScenarios.has(id)) add('decisions', 'error', `${s.id}: the decision "${d.text}" is pinned by ${id}, which isn't a scenario`, `${s.dir}/spec.md`)
+      if (!d.pinnedBy.length && !d.free) add('decisions', 'warning', `${s.id}: the decision "${d.text}" is neither pinned by a scenario (name its ID) nor marked free`, `${s.dir}/spec.md`)
+    }
+
     if (status === 'done') add('derived-status', 'warning', `${s.id}: "done" is worked out from proof now, not written; run storyspec migrate (it sets status: in-progress) and the trace shows done when every scenario is proven`, `${s.dir}/story.md`)
     for (const sc of s.scenarios) for (const t of scenarioStates(repo, proof, sc)) {
       if (t.tier === 'local') continue

@@ -7,13 +7,23 @@ Most codebases organize by technical layer (controllers, services, repositories)
 | File | Role |
 |---|---|
 | `story.md` | Who wants what and why, plus `id`, `title`, `epic`, `status`, `version` and a revision log |
-| `spec.md` | One requirement, a single EARS sentence (`WHEN … THE SYSTEM SHALL …`) tagged `{#S-001}`, and GIVEN/WHEN/THEN scenarios tagged `{#S-001.1}` … for every case |
+| `spec.md` | One requirement, a single EARS sentence (`WHEN … THE SYSTEM SHALL …`) tagged `{#S-001}`, GIVEN/WHEN/THEN scenarios tagged `{#S-001.1}` … for every case, and optionally the story's decisions (see below) |
 | `<use-case>.ts` | The behaviour, tagged `// @implements S-001`. Every decision the story makes lives here. |
 | `<use-case>.types.ts` | Request and response types |
 | `scenarios.gen.ts` | Generated from spec.md; never edited by hand |
 | `<use-case>.test.ts` | `story(gen, { … })`: exactly one case per scenario, enforced by the type system |
 
 A story's whole history is `git log stories/S-001-*`, a review of S-001 touches one folder, and "implement S-007" gives an agent an obvious destination and a finish line.
+
+### story.md front matter
+
+| Field | Written by | Meaning |
+|---|---|---|
+| `id`, `title`, `epic` | you | The story's ID (matching its folder), its title (the folder's slug), and its group in TRACE.md |
+| `status` | you | `draft`, `ready`, `in-progress` or `superseded`; `done` is derived (see Lifecycle) |
+| `version` | you | Bumped when the spec's behaviour changes, with a line under Revisions |
+| `proof` | you, optional | The tiers every scenario needs, comma-separated (`local, deployed`), unless a scenario's tag says otherwise |
+| `implementedBy` | you, optional | The files that implement the story when they aren't TypeScript in its folder, comma-separated: `implementedBy: app/usecases/publish.py, app/entry/http.py` |
 
 ## Requirement and scenarios
 
@@ -25,6 +35,24 @@ Story ─1──1─ Requirement (one sentence: the behaviour)
 The requirement says *what* the story does, in one sentence. The scenarios say *exactly how* it behaves in each case. Conditions never go in the requirement as extra SHALL lines: a second SHALL would be a statement of behaviour with no test of its own. As a scenario, it gets exactly one, enforced by the type system.
 
 If two SHALL statements really are different behaviours, they're two stories.
+
+## Decisions
+
+Scenarios pin what every implementation must do. A story also makes judgment calls they don't pin, such as how long a token lasts, how slug clashes are resolved, or whether usernames are case-sensitive. An agent regenerating the code makes those calls again, silently, and may choose differently. A cleanroom regeneration of the RealWorld example made about 27 such choices, and at least 5 differed from the original while every test passed.
+
+Record them under `### Decisions` in spec.md, one bullet each, and say which kind each is:
+
+```
+### Decisions
+
+- Slug clashes get -2, -3, … after the title's slug; pinned by S-006.3
+- Tokens last 7 days (free)
+```
+
+- **Pinned:** name the scenario that proves it, and every implementation must agree. Add the scenario if there isn't one.
+- **Free:** any reasonable choice is acceptable. The bullet records what this implementation chose, so a reader or an agent knows it was a choice.
+
+The `decisions` rule errors on a pin to a scenario that doesn't exist, and warns on a decision that is neither pinned nor free. TRACE.md lists every decision. When you find a silent choice that matters (a bug report, a regeneration that differs), pin it.
 
 ## Lifecycle
 

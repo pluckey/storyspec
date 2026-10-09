@@ -1,6 +1,6 @@
 # Working in this repo
 
-<!-- storyspec:begin 0.6.0 sha=d3b438de6c30ab25 -->
+<!-- storyspec:begin 0.6.0 sha=51c3d8865d313a26 -->
 <!-- Managed by storyspec. `npx storyspec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
@@ -17,6 +17,7 @@ stories/S-001-member-saves-a-note/
 ```
 
 - **Code that isn't TypeScript in the story's folder** (Python, Terraform, a policy file) is listed in story.md under `implementedBy:` instead of tagged `@implements`, and its tests name scenarios in the JUnit report (`test_S_001_1_…`). `layers` checks Python imports too; see storyspec's docs/rules.md.
+- **Record the judgment calls the scenarios don't pin** under `### Decisions` in spec.md (token lifetime, slug clashes, case rules): `pinned by S-00x.n` when every implementation must agree (add that scenario), or `(free)` when any reasonable choice will do. A regeneration otherwise makes them again, silently.
 - **New behaviour gets a new story:** `npm run story -- "<title>" --epic "<epic>"`. Don't repurpose another story's folder.
 - **The folder is `<ID>-<slug of the title>`.** If you change a title, rename the folder to match (keep the ID) and run `npm run gen`; the trace warns when they drift.
 - **Changed behaviour revises its story:** edit spec.md, bump `version`, add a line under Revisions, update the tests. Don't open a second story for the same behaviour.

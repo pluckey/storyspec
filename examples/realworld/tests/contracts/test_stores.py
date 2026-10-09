@@ -90,6 +90,7 @@ def test_listing_filters_pages_and_counts_newest_first(stores):
     articles.unfavorite(fan.id, new.id)
     assert articles.favorites_count(new.id) == 0
     assert tag in articles.tags()
+    assert articles.tags() == sorted(articles.tags()), 'tags in code point order (S-014.2)'
 
 
 def test_deleting_an_article_removes_its_comments_and_favorites(stores):

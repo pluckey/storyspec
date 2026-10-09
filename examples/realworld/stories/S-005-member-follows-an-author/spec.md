@@ -27,3 +27,7 @@ WHEN a signed-in member follows or unfollows a member THE SYSTEM SHALL record it
 - GIVEN ana is signed in
 - WHEN she follows or unfollows nobody
 - THEN the response is 404 with profile "not found"
+
+### Decisions
+
+- Members may follow themselves; following twice is the same as once (free)
