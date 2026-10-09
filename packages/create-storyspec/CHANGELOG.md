@@ -1,5 +1,11 @@
 # create-storyspec
 
+## 0.4.1
+
+### Patch Changes
+
+- d4b2e66: Docs: a pytest test names its scenario with `@pytest.mark.verifies("S-001.1")`, through a short `conftest.py` hook (in docs/adopting.md) that writes it into the JUnit report.
+
 ## 0.4.0
 
 ### Minor Changes
