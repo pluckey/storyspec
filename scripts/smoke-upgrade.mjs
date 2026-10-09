@@ -66,9 +66,11 @@ try {
     expectNotIn(after, 'framework-sync', `${name}: the check after sync`)
     expectNotIn(after, 'derived-status', `${name}: the check after migrate`)
     if (name === 'plain') {
-      // Written as done before; derived as done now, from the tests that pass.
-      if (!before.includes('derived-status')) fail('plain: installing a version that derives done should warn about status: done')
-      expectIn(after, 'S-001 Member saves a note | done (v1)', 'plain: S-001 after migrating')
+      // Before 0.3 the example's stories were written as done; from 0.3 done is derived, from the tests that pass.
+      const wroteDone = Number(prevVersion.split('.')[0]) === 0 && Number(prevVersion.split('.')[1]) < 3
+      if (wroteDone && !before.includes('derived-status')) fail('plain: installing a version that derives done should warn about status: done')
+      if (!wroteDone) expectNotIn(before, 'derived-status', `plain: an app made with ${prevVersion} has no written done`)
+      expectIn(after, 'S-001 Member saves a note | done (v1)', 'plain: S-001 after upgrading')
     }
     const agents = readFileSync(join(app, 'AGENTS.md'), 'utf8')
     expectIn(agents, `<!-- storyspec:begin ${current} `, `${name}: AGENTS.md`)

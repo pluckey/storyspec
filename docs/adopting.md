@@ -21,16 +21,34 @@ stories/S-001-greet-a-person/
   story.md        front matter adds: implementedBy: app/greet.py
   spec.md         the requirement and its scenarios, as in any project
 app/greet.py      # @implements S-001
+conftest.py       the verifies marker (below)
 tests/test_greet.py
 ```
 
 ```python
-def test_S_001_1_greets_by_name():
+@pytest.mark.verifies("S-001.1")
+def test_greets_by_name():
     assert greet("Ada") == "Hello, Ada!"
 
-def test_greets_a_stranger(record_property):
-    record_property("scenario", "S-001.2")
+def test_S_001_2_greets_a_stranger():   # or name the scenario in the function name
     assert greet(None) == "Hello, stranger!"
+```
+
+The `verifies` marker needs this in `conftest.py`, which writes the scenario into pytest's JUnit report:
+
+```python
+import pytest
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "verifies(scenario, tier=None): the storyspec scenario this test proves")
+
+@pytest.fixture(autouse=True)
+def _storyspec_verifies(request, record_property):
+    marker = request.node.get_closest_marker("verifies")
+    if marker:
+        record_property("scenario", marker.args[0])
+        if marker.kwargs.get("tier"):
+            record_property("tier", marker.kwargs["tier"])
 ```
 
 ```json

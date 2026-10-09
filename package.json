@@ -12,7 +12,8 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:upgrade": "node scripts/smoke-upgrade.mjs",
     "smoke:python": "node scripts/smoke-python.mjs",
-    "lint:package": "publint packages/storyspec && publint packages/create-storyspec && attw --pack packages/storyspec --profile esm-only"
+    "lint:package": "publint packages/storyspec && publint packages/create-storyspec && attw --pack packages/storyspec --profile esm-only",
+    "version": "changeset version && npm install --package-lock-only && npm run build && cd template && storyspec sync"
   },
   "engines": {
     "node": ">=22"

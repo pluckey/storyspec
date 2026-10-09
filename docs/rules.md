@@ -50,6 +50,6 @@ In JUnit, a test names its scenario in one of three ways:
 |---|---|
 | The ID at the start of its name, as in TypeScript | `S-001.1 [deployed] greets by name` |
 | A function name, where `-` and `.` aren't allowed | `test_S_001_1_greets_by_name`, or `test_S_001_1__deployed__greets` to name a tier |
-| A `scenario` property (and optionally `tier`) | pytest: `record_property("scenario", "S-001.1")` |
+| A `scenario` property (and optionally `tier`) | pytest: `@pytest.mark.verifies("S-001.1")` with the conftest hook in [Projects that aren't TypeScript](adopting.md#projects-that-arent-typescript), or `record_property("scenario", "S-001.1")` |
 
 A JUnit test that names no tier ran in the tier whose command wrote the report, so a tier selects its tests through its command (`pytest tests/deployed`, `pytest -m deployed`). The typed `story()` helper and `scenarios.gen.ts` are TypeScript-only; a story implemented elsewhere (`implementedBy:`) with no TypeScript in its folder gets no generated file. See [Projects that aren't TypeScript](adopting.md#projects-that-arent-typescript).
