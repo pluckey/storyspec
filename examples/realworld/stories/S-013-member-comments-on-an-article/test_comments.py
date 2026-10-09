@@ -66,3 +66,13 @@ def test_comments_need_a_token_and_an_article(api, member, publish, uid):
         assert (r.status_code, r.json()["errors"]) == (404, {"article": ["not found"]})
     r = api.delete(f"/api/articles/{publish(ana)['slug']}/comments/99999999", headers=ana.auth)
     assert (r.status_code, r.json()["errors"]) == (404, {"comment": ["not found"]})
+
+
+@v("S-013.6")
+def test_an_articles_author_cant_delete_other_peoples_comments(api, member, publish):
+    ana, ben = member("ana"), member("ben")
+    slug = publish(ana)["slug"]
+    c = comment(api, ben, slug, "Ben's").json()["comment"]
+    r = api.delete(f"/api/articles/{slug}/comments/{c['id']}", headers=ana.auth)
+    assert (r.status_code, r.json()["errors"]) == (403, {"comment": ["forbidden"]})
+    assert [x["body"] for x in listed(api, slug)] == ["Ben's"]

@@ -36,3 +36,10 @@ def test_limit_and_offset_page_through_the_list(api, member, publish):
     second = listing(api, author=ana.username, limit=1, offset=1)
     assert ([a["slug"] for a in first["articles"]], first["articlesCount"]) == ([newer["slug"]], 2)
     assert ([a["slug"] for a in second["articles"]], second["articlesCount"]) == ([older["slug"]], 2)
+
+
+@v("S-010.4")
+def test_out_of_range_limit_and_offset_are_clamped(api, member, publish):
+    publish(member("ana"))
+    assert len(listing(api, limit=1000)["articles"]) <= 100
+    assert [a["slug"] for a in listing(api, offset=-5, limit=5)["articles"]] == [a["slug"] for a in listing(api, offset=0, limit=5)["articles"]]

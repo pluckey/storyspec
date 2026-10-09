@@ -27,3 +27,11 @@ WHEN a visitor registers with a username, email and password THE SYSTEM SHALL cr
 - GIVEN a password of 7 characters
 - WHEN the visitor registers
 - THEN the response is 422 on password
+
+### Decisions
+
+- Passwords are hashed with scrypt (16-byte salt), never stored or logged in clear (free: any strong, salted hash)
+- Passwords may be 8 to 128 characters; a longer one is refused with 422 (free above 64, the least NIST lets you accept)
+- Usernames and emails are compared exactly, so case matters; emails get no format check (free, though a product would likely fold email case)
+- Fields are stored as entered; whitespace-only counts as blank (free)
+- The username is checked before the email, and only the first clash is reported; pinned by S-001.3

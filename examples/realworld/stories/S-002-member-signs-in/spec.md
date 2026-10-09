@@ -21,3 +21,8 @@ WHEN a member signs in with their email and password THE SYSTEM SHALL return the
 - GIVEN ana registered
 - WHEN she signs in with the wrong password
 - THEN the response is 401 with credentials "invalid"
+
+### Decisions
+
+- Tokens are HS256 JWTs carrying the user id, valid for 7 days, signed with JWT_SECRET (free; JWT_SECRET must be set outside development)
+- Sign-in failures never say which part was wrong; pinned by S-002.3

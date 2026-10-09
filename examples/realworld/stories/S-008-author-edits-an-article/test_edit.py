@@ -44,3 +44,12 @@ def test_editing_needs_a_token_and_an_article(api, member, uid):
     assert (r.status_code, r.json()["errors"]) == (401, {"token": ["is missing"]})
     r = edit(api, member("ana"), f"nothing-here-{uid}", body="x")
     assert (r.status_code, r.json()["errors"]) == (404, {"article": ["not found"]})
+
+
+@v("S-008.5")
+def test_a_new_title_keeps_the_slug(api, member, publish, uid):
+    ana = member("ana")
+    a = publish(ana)
+    r = edit(api, ana, a["slug"], title=f"A better title {uid}")
+    assert (r.status_code, r.json()["article"]["title"], r.json()["article"]["slug"]) == (200, f"A better title {uid}", a["slug"])
+    assert api.get(f"/api/articles/{a['slug']}").json()["article"]["title"] == f"A better title {uid}"

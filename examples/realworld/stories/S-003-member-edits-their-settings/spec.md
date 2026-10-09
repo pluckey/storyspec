@@ -45,3 +45,15 @@ WHEN a signed-in member reads or changes their account THE SYSTEM SHALL return i
 - GIVEN ben is registered
 - WHEN ana changes her username to ben's
 - THEN the response is 409: "has already been taken"
+
+#### Scenario: A bad token is refused even where signing in is optional {#S-003.8}
+
+- GIVEN a token that is malformed or wasn't issued by this server
+- WHEN someone sends it to an endpoint where signing in is optional (a profile, an article, the article list, comments)
+- THEN the response is 401 with token "is invalid", instead of treating them as a visitor
+
+### Decisions
+
+- A bad token on an optional endpoint is refused, not ignored; pinned by S-003.8
+- Changing username or email returns a new token, and earlier tokens keep working (they carry the user id) (free)
+- The Authorization header may say Token or Bearer (free; RealWorld clients send Token)

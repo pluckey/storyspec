@@ -9,6 +9,7 @@
 | `requirement-shape` | gap / error | The requirement has no SHALL statement (gap) or more than one (error) | One sentence for the behaviour; move each extra condition or edge case into a scenario, or split a separate behaviour into another story |
 | `scenarios` | gap | `spec.md` has no scenarios | Add `#### Scenario: … {#S-001.1}` blocks |
 | `scenario-ownership` | error | A scenario carries another story's ID, or an ID appears twice | Use `<this story's ID>.<n>`, each once |
+| `decisions` | error / warning | A decision under `### Decisions` in spec.md pins a scenario that doesn't exist (error), or is neither pinned by a scenario nor marked free (warning) | Pin a decision every implementation must keep by naming its scenario; mark the rest `free` |
 | `implementation` | gap / error | No file says `@implements <ID>` and story.md lists no `implementedBy:` (gap), more than one file does (error), a file implements another story's ID (error), or an `implementedBy:` file doesn't exist (error) | One use case per story, tagged on its first line; code that isn't TypeScript in the story's folder (Python, Terraform, Cedar) is listed under `implementedBy:` |
 | `untested-scenario` | gap | A scenario has no test | Add its case to `story(gen, { … })` (the typecheck will already be complaining) |
 | `orphan-test` | error | A test names a scenario that isn't in `spec.md` | Remove the case, or add the scenario and run `storyspec gen` |
@@ -23,7 +24,7 @@
 | `ids-outside-stories` | error | A story ID appears in code outside `stories/` (import statements don't count: who may import a story is the `wiring` rule's question) | Move the story-specific logic into the story; keep the kernel generic |
 | `wiring` | error | A file other than a `wiring` file imports a story. Importing a story's `*.types.ts` for its types alone (`import type`) is allowed anywhere | Call the story through `composition.ts` |
 | `layers` | error | A file imports something its layer doesn't allow (`layers` in config) | Invert the dependency through a port, or move the code to the right layer |
-| `contract-tests` | error | A port has an adapter, but no test outside `stories/` that actually ran mentions the port (directly or through a module it imports) | Add a runner `test/contracts/<port>.test.ts` that calls the port's contract suite for each adapter and the fake |
+| `contract-tests` | error | A port has an adapter, but no test outside `stories/` that actually ran mentions the port (directly or through a module it imports) | Add a runner `test/contracts/<port>.test.ts` that calls the port's contract suite for each adapter and the fake. Moving the interface out of `portsDir` silences the rule without testing the adapter |
 | `slug` | warning | A story folder isn't `<ID>-<slug of the title>` | Rename the folder (keep the ID), then `storyspec gen` |
 | `port-adapter` | warning | An interface in `portsDir` isn't mentioned by any adapter | Write the adapter, or ignore the warning while it's in progress |
 | `framework-sync` | warning | `AGENTS.md` (or, in a project that uses Claude Code, `CLAUDE.md`, the `/story` command or its hooks) has no storyspec guidance, guidance from another storyspec version, or a storyspec block edited by hand | `storyspec sync`. Move project notes outside the storyspec blocks; `sync --force` replaces a hand-edited block |

@@ -76,3 +76,12 @@ def test_another_members_username_or_email_is_taken(api, member):
     assert (r.status_code, r.json()["errors"]) == (409, {"username": ["has already been taken"]})
     r = put(api, ana, email=ben.email)
     assert (r.status_code, r.json()["errors"]) == (409, {"email": ["has already been taken"]})
+
+
+@v("S-003.8")
+def test_a_bad_token_is_refused_even_where_signing_in_is_optional(api, member, publish):
+    slug = publish(member("ana"))["slug"]
+    bad = {"Authorization": "Token not-a-token-this-server-issued"}
+    for path in (f"/api/articles/{slug}", "/api/articles", f"/api/articles/{slug}/comments"):
+        r = api.get(path, headers=bad)
+        assert (r.status_code, r.json()["errors"]) == (401, {"token": ["is invalid"]}), path

@@ -32,7 +32,12 @@ export type Story = {
   /** Files that implement the story when its use case isn't TypeScript in its folder (`implementedBy:` in story.md):
    * Python, Terraform, Cedar, … repo-relative. */
   implementedBy: string[]
+  /** Judgment calls recorded under `### Decisions` in spec.md: each pinned by scenarios, or marked free. */
+  decisions: Decision[]
 }
+
+/** One `- …` line under `### Decisions`. `pinnedBy`: scenario IDs it names; `free`: any choice is acceptable. */
+export type Decision = { text: string; pinnedBy: string[]; free: boolean }
 
 export type Repo = {
   root: string; config: Config; stories: Story[]; kernel: SourceFile[]; outcomes: Map<string, 'pass' | 'fail'>; failures: Map<string, string>; hasReport: boolean; executedTests: string[]
@@ -115,6 +120,7 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
         id, dir: rel(dir), hasStoryMd: existsSync(storyMd), hasSpecMd: existsSync(specMd), front, spec,
         requirementTagged: spec.includes(`{#${id}}`), requirementShalls: shallCount(spec, id), scenarios, code, tests, testedIds,
         implementedBy: list(front.implementedBy) ?? [],
+        decisions: decisions(spec, config.idPrefix),
       }
     })
 
@@ -174,6 +180,22 @@ export const scenarioHash = (spec: string, tagAt: number) => {
   const text = (spec.slice(start, spec.indexOf('\n', tagAt) + 1) + (next < 0 ? rest : rest.slice(0, next)))
     .replace(/\{#[^}]*\}/g, '').replace(/\s+/g, ' ').trim()
   return createHash('sha256').update(text).digest('hex').slice(0, 12)
+}
+
+// The bullets of spec.md's `### Decisions` section, up to the next heading of that level or higher.
+const decisions = (spec: string, prefix: string): Decision[] => {
+  const at = spec.search(/^###\s+Decisions\s*$/m)
+  if (at < 0) return []
+  const body = spec.slice(spec.indexOf('\n', at) + 1)
+  const end = body.search(/^#{1,3}\s/m)
+  return (end < 0 ? body : body.slice(0, end)).split('\n').filter(l => /^\s*[-*]\s+\S/.test(l)).map(l => {
+    const text = l.replace(/^\s*[-*]\s+/, '').trim()
+    return {
+      text,
+      pinnedBy: [...new Set([...text.matchAll(new RegExp(`\\b${prefix}-\\d+\\.\\d+\\b`, 'g'))].map(m => m[0]))],
+      free: /\bfree\b/i.test(text),
+    }
+  })
 }
 
 const frontmatter = (md: string) =>
