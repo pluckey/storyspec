@@ -8,12 +8,13 @@
   ],
   "scripts": {
     "build": "npm run build -w storyspec -w create-storyspec && npm rebuild storyspec",
-    "test": "npm run build && npm test -w storyspec && npm run check -w template && npm exec -w template -- storyspec sync --check",
+    "test": "npm run build && npm test -w storyspec && npm run check -w template && npm exec -w template -- storyspec sync --check && npm run check:self",
     "smoke": "node scripts/smoke.mjs",
     "smoke:upgrade": "node scripts/smoke-upgrade.mjs",
     "smoke:python": "node scripts/smoke-python.mjs",
     "lint:package": "publint packages/storyspec && publint packages/create-storyspec && attw --pack packages/storyspec --profile esm-only",
-    "version": "changeset version && npm install --package-lock-only && npm run build && cd template && storyspec sync"
+    "version": "changeset version && npm install --package-lock-only && npm run build && cd template && storyspec sync",
+    "check:self": "node scripts/self-check.mjs"
   },
   "engines": {
     "node": ">=22"
