@@ -1,5 +1,7 @@
 """What the use cases need from the outside world. Each port has a memory adapter and a Postgres adapter, and a
 contract suite (tests/contracts) both must pass."""
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Protocol
 
