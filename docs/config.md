@@ -16,7 +16,7 @@
 | `mustPassFor` | `["done"]` | Statuses that require every scenario test to pass |
 | `exemptStatuses` | `["superseded"]` | Statuses listed in the trace but exempt from every story rule |
 | `testCommand` | `"vitest run --passWithNoTests --reporter=json --outputFile=.storyspec/vitest.json"` | Runs the tests and writes a JSON report |
-| `testReport` | `".storyspec/vitest.json"` | Where the trace reads results |
+| `testReport` | `".storyspec/vitest.json"` | Where the trace reads results: Vitest/Jest JSON or JUnit XML, recognised from the content |
 | `tiers` | `{ "local": {}, "manual": {} }` | Where scenarios can be proven. `local` runs `testCommand` (or its own `command`) on every trace. Add a tier with `{ "command": "…", "report": "…" }` (report defaults to `testReport`) and run it with `storyspec trace --tier <name>`; its results are recorded in `stories/PROOF.json`. A tier with no command is proven by hand (`storyspec prove`). The command runs with `STORYSPEC_TIER=<name>` |
 | `defaultProof` | `["local"]` | The tiers a scenario must be proven in unless its story (`proof:` in story.md) or its tag (`{#S-001.1 proof=…}`) says otherwise |
 | `storyTemplateDir` | `"templates/story"` | Your own `story.md`/`spec.md` templates; built-ins are used if absent |
@@ -38,6 +38,6 @@ Default `layers`:
 
 Paths are matched as prefixes against repo-relative import targets, so `"src/ports"` allows `src/ports/clock` and `src/ports.ts`. Only relative imports are checked; package imports (`vitest`, `zod`) are always allowed.
 
-## Other test runners
+## Other test runners and languages
 
-The trace reads a Jest/Vitest-style JSON report (`testResults[].assertionResults[].{title,status}`). Jest's `--json --outputFile` produces the same shape, so `"testCommand": "jest --json --outputFile=.storyspec/vitest.json"` works for plain `test('S-001.1 …')` names. The typed `story()` helper is Vitest-only for now.
+The trace reads a Vitest/Jest JSON report or a JUnit XML report (pytest, Go, Gradle and most other runners). See [Other test runners and languages](rules.md#other-test-runners-and-languages), and for a whole project in another language, [Projects that aren't TypeScript](adopting.md#projects-that-arent-typescript).

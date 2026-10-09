@@ -12,6 +12,41 @@ You don't have to restructure everything at once. Stories can grow beside existi
 
 Run `npx storyspec sync` to add the agent guidance: a storyspec block in `AGENTS.md`, and with `--claude` (or once the project has a `CLAUDE.md` or `.claude/`) the `CLAUDE.md` block, the `/story` command and the hooks. If your repo already has an `AGENTS.md`, the block goes under its title and your text stays. Write notes about your folders and conventions outside the block.
 
+## Projects that aren't TypeScript
+
+storyspec runs on Node, but the code it traces can be any language. A Python project:
+
+```
+stories/S-001-greet-a-person/
+  story.md        front matter adds: implementedBy: app/greet.py
+  spec.md         the requirement and its scenarios, as in any project
+app/greet.py      # @implements S-001
+tests/test_greet.py
+```
+
+```python
+def test_S_001_1_greets_by_name():
+    assert greet("Ada") == "Hello, Ada!"
+
+def test_greets_a_stranger(record_property):
+    record_property("scenario", "S-001.2")
+    assert greet(None) == "Hello, stranger!"
+```
+
+```json
+{
+  "testCommand": "pytest --junitxml=.storyspec/junit.xml",
+  "testReport": ".storyspec/junit.xml",
+  "layers": {}
+}
+```
+
+- **`implementedBy:`** lists the files that implement the story, since Python can't import from a folder named `S-001-…`. Any file type works, so it also suits a story implemented by Terraform or a policy file.
+- **Tests live wherever pytest finds them.** The trace learns which scenarios they prove from the JUnit report (see [how tests are matched](rules.md#other-test-runners-and-languages)).
+- **What stays TypeScript-only:** the typed `story()` helper, `scenarios.gen.ts`, and the import rules (`layers`, `wiring`, `story-imports`), which only read TypeScript. Set `"layers": {}`. For Python layering, [import-linter](https://github.com/seddonym/import-linter) enforces the same kind of contract.
+
+Install storyspec with `npm i -D storyspec` (a `package.json` beside `pyproject.toml` is enough) and run `npx storyspec check`.
+
 ## Updating storyspec
 
 The agent guidance comes from the installed storyspec version, so it updates with the package:

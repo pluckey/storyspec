@@ -5,22 +5,64 @@ on:
     branches: [main]
   schedule:
     - cron: '0 9 * * 1'   # weekly, to catch dependency rot
+permissions:
+  contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         node: [22, 24]   # Node 20 reached end of life in April 2026
+        include:
+          # macOS paths differ (/var is /private/var), which has broken the trace before.
+          - os: macos-latest
+            node: 24
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0   # smoke:upgrade builds the previous release from git
-      - uses: actions/setup-node@v4
+          fetch-depth: 0   # smoke:upgrade builds the previous release from git; changeset status compares with main
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - run: pip install pytest
       - run: npm ci
       - run: npm test
+      - run: npm run lint:package
       - run: npm run smoke
       - run: npm run smoke:upgrade
+      - run: npm run smoke:python
+
+  # peerDependencies says vitest >=2; prove the oldest still works.
+  oldest-vitest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run smoke
+        env:
+          SMOKE_VITEST: '2'
+
+  # A change to a package ships only with a changeset (the CHANGELOG entry and version bump).
+  changeset:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx changeset status --since=origin/${{ github.base_ref }}

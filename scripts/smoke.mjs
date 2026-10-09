@@ -19,6 +19,8 @@ try {
   // Full example app.
   sh(`${env} node ${creator} ${tmp}/app`, tmp)
   const app = join(tmp, 'app')
+  // The oldest vitest storyspec supports (peerDependencies), when CI asks for it.
+  if (process.env.SMOKE_VITEST) { sh(`npm install --no-audit --no-fund -D vitest@${process.env.SMOKE_VITEST}`, app); console.log(sh("npx vitest --version", app)) }
   console.log(sh('npm run -s check', app))
   // A new app's agent guidance is the installed version's.
   sh('npx storyspec sync --check', app)

@@ -9,7 +9,7 @@
 | `requirement-shape` | gap / error | The requirement has no SHALL statement (gap) or more than one (error) | One sentence for the behaviour; move each extra condition or edge case into a scenario, or split a separate behaviour into another story |
 | `scenarios` | gap | `spec.md` has no scenarios | Add `#### Scenario: … {#S-001.1}` blocks |
 | `scenario-ownership` | error | A scenario carries another story's ID, or an ID appears twice | Use `<this story's ID>.<n>`, each once |
-| `implementation` | gap / error | No file says `@implements <ID>` (gap), more than one does (error), or a file implements another story's ID (error) | One use case per story, tagged on its first line |
+| `implementation` | gap / error | No file says `@implements <ID>` and story.md lists no `implementedBy:` (gap), more than one file does (error), a file implements another story's ID (error), or an `implementedBy:` file doesn't exist (error) | One use case per story, tagged on its first line; code that isn't TypeScript in the story's folder (Python, Terraform, Cedar) is listed under `implementedBy:` |
 | `untested-scenario` | gap | A scenario has no test | Add its case to `story(gen, { … })` (the typecheck will already be complaining) |
 | `orphan-test` | error | A test names a scenario that isn't in `spec.md` | Remove the case, or add the scenario and run `storyspec gen` |
 | `failing-test` | gap / error | A scenario's test failed in a story that isn't in `mustPassFor` (a gap: a draft's only warns, an in-progress story's fails), or a test outside the stories (a contract suite, any other test) failed, or a test file failed before its tests ran (error) | Fix the test or the code. Every failing test is reported, so the trace never passes while something is red |
@@ -35,4 +35,21 @@ The `layers`, `wiring`, `story-imports` and `contract-tests` rules read the impo
 
 ## How tests are matched to scenarios
 
-A scenario counts as tested if a test file in the story's folder contains either a `story()` case key (`'S-001.1': …`) or a plain test name starting with the ID (`test('S-001.1 …')`). Results are read from the JSON report by test title, so `story()` names its tests `<ID> <scenario title>`.
+A scenario counts as tested if a test file in the story's folder contains either a `story()` case key (`'S-001.1': …`) or a plain test name starting with the ID (`test('S-001.1 …')`), or if a test in the report ran under the scenario's ID, wherever that test lives. Results are read from the report by test name, so `story()` names its tests `<ID> <scenario title>`. A skipped test proves nothing.
+
+## Other test runners and languages
+
+The trace reads two report formats, recognised from the file's content:
+
+- **Vitest or Jest JSON** (`testResults[].assertionResults[]`): `vitest --reporter=json`, or `jest --json --outputFile=…`.
+- **JUnit XML**, which most runners in any language write: `pytest --junitxml=…`, `vitest --reporter=junit`, `jest-junit`, `go-junit-report`, `gradle test`.
+
+In JUnit, a test names its scenario in one of three ways:
+
+| How | Example |
+|---|---|
+| The ID at the start of its name, as in TypeScript | `S-001.1 [deployed] greets by name` |
+| A function name, where `-` and `.` aren't allowed | `test_S_001_1_greets_by_name`, or `test_S_001_1__deployed__greets` to name a tier |
+| A `scenario` property (and optionally `tier`) | pytest: `record_property("scenario", "S-001.1")` |
+
+A JUnit test that names no tier ran in the tier whose command wrote the report, so a tier selects its tests through its command (`pytest tests/deployed`, `pytest -m deployed`). The typed `story()` helper and `scenarios.gen.ts` are TypeScript-only; a story implemented elsewhere (`implementedBy:`) with no TypeScript in its folder gets no generated file. See [Projects that aren't TypeScript](adopting.md#projects-that-arent-typescript).
