@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import type { Config } from '../config.js'
 import type { ImportGraph } from './graph.js'
+import { readResults } from './results.js'
 
 // `imports`: repo files it imports, without extension (from the import graph); `typeOnly`: those imported only for types.
 export type SourceFile = { path: string; text: string; imports: string[]; typeOnly: string[] }
@@ -25,8 +26,11 @@ export type Story = {
   scenarios: Scenario[]
   code: SourceFile[]
   tests: SourceFile[]
-  /** Scenario IDs a test names, via test('S-001.1 …') or story(gen, { 'S-001.1': … }). */
+  /** Scenario IDs a test names, via test('S-001.1 …') or story(gen, { 'S-001.1': … }), or that a test in the report ran under. */
   testedIds: string[]
+  /** Files that implement the story when its use case isn't TypeScript in its folder (`implementedBy:` in story.md):
+   * Python, Terraform, Cedar, … repo-relative. */
+  implementedBy: string[]
 }
 
 export type Repo = {
@@ -72,8 +76,8 @@ export const sourceFiles = (root: string, config: Config) => {
 }
 
 /** Reads the repo. `graph` supplies imports (trace builds it with importGraph); without it, files have none, which is
- * enough for gen, story and migrate. */
-export const scan = (root: string, config: Config, graph: ImportGraph = new Map()): Repo => {
+ * enough for gen, story and migrate. `tier` is the tier whose report is read. */
+export const scan = (root: string, config: Config, graph: ImportGraph = new Map(), tier = 'local'): Repo => {
   const { rel, walk } = walker(root, config)
   const read = (p: string) => readFileSync(p, 'utf8')
   const source = (p: string): SourceFile => {
@@ -107,6 +111,7 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
       return {
         id, dir: rel(dir), hasStoryMd: existsSync(storyMd), hasSpecMd: existsSync(specMd), front, spec,
         requirementTagged: spec.includes(`{#${id}}`), requirementShalls: shallCount(spec, id), scenarios, code, tests, testedIds,
+        implementedBy: list(front.implementedBy) ?? [],
       }
     })
 
@@ -121,32 +126,34 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
   const firstLines = (msg: string) => msg.replace(/\u001b\[[0-9;]*m/g, '').split('\n').slice(0, 6).join('\n')
   const report = join(root, config.testReport)
   const hasReport = existsSync(report)
-  if (hasReport) {
-    const json = JSON.parse(read(report)) as { testResults?: { name?: string; status?: string; message?: string; assertionResults?: { title: string; fullName?: string; ancestorTitles?: string[]; status: string; failureMessages?: string[] }[] }[] }
-    for (const f of json.testResults ?? []) for (const a of f.assertionResults ?? [])
-      if (a.status === 'passed') passedTestNames.push(a.fullName || [...a.ancestorTitles ?? [], a.title].join(' '))
-    for (const f of json.testResults ?? []) if (f.name && (f.assertionResults ?? []).length) executedTests.push(rel(resolve(root, f.name)))
-    for (const f of json.testResults ?? []) {
-      const file = f.name ? rel(resolve(root, f.name)) : '(unknown file)'
-      if (f.status === 'failed' && !(f.assertionResults ?? []).some(a => a.status === 'failed'))
-        otherFailures.push({ file, message: firstLines(f.message || 'the file failed before its tests ran') })
-      for (const a of f.assertionResults ?? [])
-        if (a.status === 'failed' && !re.resultTitle.test(a.title)) otherFailures.push({ file, test: a.fullName || a.title, message: firstLines(a.failureMessages?.[0] ?? '') })
-    }
-    for (const f of json.testResults ?? []) for (const a of f.assertionResults ?? []) {
-      const m = a.title.match(re.resultTitle)
-      const id = m?.[1]
-      if (!id) continue
-      // A scenario run more than once (e.g. retried) fails if any run failed.
-      const outcome = a.status === 'passed' ? 'pass' : 'fail'
-      if (outcomes.get(id) !== 'fail') outcomes.set(id, outcome)
-      const byTier = tierOutcomes.get(id) ?? new Map<string, 'pass' | 'fail'>()
-      const tier = m[2] ?? 'local'
-      if (byTier.get(tier) !== 'fail') byTier.set(tier, outcome)
-      tierOutcomes.set(id, byTier)
-      const msg = a.failureMessages?.[0]
-      if (msg) failures.set(id, firstLines(msg))
-    }
+  const results = hasReport ? readResults(report, config.idPrefix, tier) : []
+  for (const f of results) for (const a of f.cases) if (a.status === 'passed') passedTestNames.push(a.fullName)
+  for (const f of results) if (f.name && f.cases.length) executedTests.push(rel(resolve(root, f.name)))
+  for (const f of results) {
+    const file = f.name ? rel(resolve(root, f.name)) : '(unknown file)'
+    if (f.failed && !f.cases.some(a => a.status === 'failed'))
+      otherFailures.push({ file, message: firstLines(f.message || 'the file failed before its tests ran') })
+    for (const a of f.cases)
+      if (a.status === 'failed' && !re.resultTitle.test(a.title)) otherFailures.push({ file, test: a.fullName || a.title, message: firstLines(a.message ?? '') })
+  }
+  for (const f of results) for (const a of f.cases) {
+    const m = a.title.match(re.resultTitle)
+    const id = m?.[1]
+    if (!id || a.status === 'skipped') continue
+    // A scenario run more than once (e.g. retried) fails if any run failed.
+    const outcome = a.status === 'passed' ? 'pass' : 'fail'
+    if (outcomes.get(id) !== 'fail') outcomes.set(id, outcome)
+    const byTier = tierOutcomes.get(id) ?? new Map<string, 'pass' | 'fail'>()
+    const tier = m[2] ?? 'local'
+    if (byTier.get(tier) !== 'fail') byTier.set(tier, outcome)
+    tierOutcomes.set(id, byTier)
+    if (a.message) failures.set(id, firstLines(a.message))
+  }
+  // A test that ran under a scenario's ID tests it, wherever it lives: in another language, tests can't sit in the
+  // story's folder or be read for their IDs.
+  for (const s of stories) {
+    const ran = [...tierOutcomes.keys()].filter(id => id.startsWith(`${s.id}.`))
+    s.testedIds = [...new Set([...s.testedIds, ...ran])]
   }
 
   return { root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes, passedTestNames }

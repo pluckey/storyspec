@@ -10,7 +10,8 @@
     "build": "npm run build -w storyspec -w create-storyspec && npm rebuild storyspec",
     "test": "npm run build && npm test -w storyspec && npm run check -w template && npm exec -w template -- storyspec sync --check",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:upgrade": "node scripts/smoke-upgrade.mjs"
+    "smoke:upgrade": "node scripts/smoke-upgrade.mjs",
+    "smoke:python": "node scripts/smoke-python.mjs"
   },
   "engines": {
     "node": ">=22"

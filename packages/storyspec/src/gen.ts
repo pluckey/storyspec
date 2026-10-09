@@ -29,8 +29,12 @@ export const renderGen = (story: Story) => {
 
 export type GenStatus = { story: string; file: string; state: 'fresh' | 'stale' | 'missing' }
 
+// The generated file types TypeScript tests. A story implemented elsewhere (implementedBy:) with no TypeScript in its
+// folder, such as a Python one, has nothing to type and gets none.
+const typed = (s: Story) => s.implementedBy.length === 0 || s.code.length + s.tests.length > 0
+
 export const genStatus = (root: string, stories: Story[]): GenStatus[] =>
-  stories.filter(s => s.hasSpecMd).map(s => {
+  stories.filter(s => s.hasSpecMd && typed(s)).map(s => {
     const file = join(s.dir, GEN_FILE)
     const abs = join(root, file)
     const state = !existsSync(abs) ? 'missing' : readFileSync(abs, 'utf8') === renderGen(s) ? 'fresh' : 'stale'

@@ -1,4 +1,6 @@
 // Judgements over a scanned repo. Each finding names its rule so docs/rules.md can explain it.
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { genStatus } from '../gen.js'
 import { slugify } from '../new-story.js'
 import { plan } from '../sync.js'
@@ -48,7 +50,10 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
 
     const impls = s.code.filter(f => [...f.text.matchAll(re.implTag)].some(m => m[1] === s.id))
     if (impls.length > 1) add('implementation', 'error', `${s.id}: ${impls.length} files say @implements ${s.id}; a story has one use case`, s.dir)
-    if (impls.length === 0) gap('implementation', `${s.id}: no file says @implements ${s.id}`, s.dir)
+    for (const f of s.implementedBy)
+      if (!existsSync(join(repo.root, f))) add('implementation', 'error', `${s.id}: story.md says implementedBy ${f}, which doesn't exist`, `${s.dir}/story.md`)
+    if (impls.length === 0 && s.implementedBy.length === 0)
+      gap('implementation', `${s.id}: no file says @implements ${s.id} (or, for code that isn't TypeScript in the story's folder, list it under implementedBy: in story.md)`, s.dir)
     for (const f of s.code) for (const m of f.text.matchAll(re.implTag))
       if (m[1] !== s.id) add('implementation', 'error', `@implements ${m[1]} inside ${s.id}'s folder`, f.path)
 

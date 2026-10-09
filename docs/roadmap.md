@@ -2,9 +2,10 @@
 
 Ideas, roughly in order. Open an issue to discuss any of them before building.
 
-## Next (0.4)
+## Next
 
-- **Implementations in any file:** `implementedBy:` lists `.tf`, `.cedar` or other files for a story that has no TypeScript use case.
+- **Python layering:** run import-linter beside the TypeScript import rules and report its findings, and a typed scenario module for pytest like `scenarios.gen.ts`.
+- **Lists for `portsDir`/`adaptersDir`,** so a client and a server in one project both get port coverage.
 - **Relationships between stories:**
   - `extends:` (this story changes the behaviour of another): the trace shows "extended by", and a revision of the extended story makes its extenders' proofs stale.
   - `after:` (build order): a generated "ready to build" list of the stories whose dependencies are done.

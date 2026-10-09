@@ -49,7 +49,7 @@ export const trace = async (root: string, opts: TraceOptions = {}): Promise<Trac
   // The trace reads the report of the tier it ran.
   const config = { ...loaded, testReport: tierRun(loaded, tier).report }
   if (opts.runTests) runTests(root, config, tier)
-  const repo = scan(root, config, await importGraph(root, sourceFiles(root, config)))
+  const repo = scan(root, config, await importGraph(root, sourceFiles(root, config)), tier)
   // Another tier's results are recorded; the local tier reruns every time.
   const proof = tier !== 'local' && repo.hasReport ? recordRun(repo, tier, opts.now ?? new Date().toISOString()) : readProof(repo)
   const derived = new Map(repo.stories.map(s => [s.id, derivedStatus(repo, proof, s)]))

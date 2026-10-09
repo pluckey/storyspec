@@ -21,7 +21,7 @@ export const rows = (repo: Repo, proof: ProofFile = { scenarios: {}, adapters: {
       title: s.front.title ?? '',
       status: derived?.get(s.id) ?? s.front.status ?? '',
       version: s.front.version ?? '',
-      implementation: impl?.path ?? '',
+      implementation: impl?.path ?? s.implementedBy.join('<br>'),
       scenarios: s.scenarios.map(sc => ({
         id: sc.id,
         title: sc.title,
