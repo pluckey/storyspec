@@ -1,5 +1,11 @@
 # create-storyspec
 
+## 0.4.2
+
+### Patch Changes
+
+- d6322d3: Docs: the pytest `verifies` hook adds the scenario at collection time, so a test that fails in setup is still reported against its scenario ("fails", not "no test").
+
 ## 0.4.1
 
 ### Patch Changes
