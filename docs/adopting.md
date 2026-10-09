@@ -56,13 +56,14 @@ def pytest_collection_modifyitems(items):
 {
   "testCommand": "pytest --junitxml=.storyspec/junit.xml",
   "testReport": ".storyspec/junit.xml",
-  "layers": {}
+  "layers": { "app/domain": ["app/domain"], "app/adapters": ["app/domain", "app/adapters"] }
 }
 ```
 
 - **`implementedBy:`** lists the files that implement the story, since Python can't import from a folder named `S-001-…`. Any file type works, so it also suits a story implemented by Terraform or a policy file.
 - **Tests live wherever pytest finds them.** The trace learns which scenarios they prove from the JUnit report (see [how tests are matched](rules.md#other-test-runners-and-languages)).
-- **What stays TypeScript-only:** the typed `story()` helper, `scenarios.gen.ts`, and the import rules (`layers`, `wiring`, `story-imports`), which only read TypeScript. Set `"layers": {}`. For Python layering, [import-linter](https://github.com/seddonym/import-linter) enforces the same kind of contract.
+- **Layers work in Python and Swift too.** storyspec reads their imports with [ast-grep](https://ast-grep.github.io), so `layers` (for example `"app/domain": ["app/domain"]`) is checked as it is for TypeScript. A Python import maps to `a/b.py` or `a/b/__init__.py`, and a Swift `import Domain` maps to the package target `Sources/Domain`. The RealWorld example (`examples/realworld`) enforces its hexagonal layers this way.
+- **What stays TypeScript-only:** the typed `story()` helper and `scenarios.gen.ts`.
 
 Install storyspec with `npm i -D storyspec` (a `package.json` beside `pyproject.toml` is enough) and run `npx storyspec check`.
 

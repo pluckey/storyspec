@@ -12,7 +12,7 @@ stories/S-001-member-saves-a-note/
   save-note.test.ts       story(gen, { 'S-001.1': …, 'S-001.2': … }): one case per scenario
 ```
 
-- **Code that isn't TypeScript in the story's folder** (Python, Terraform, a policy file) is listed in story.md under `implementedBy:` instead of tagged `@implements`, and its tests name scenarios in the JUnit report (`test_S_001_1_…`); see storyspec's docs/rules.md.
+- **Code that isn't TypeScript in the story's folder** (Python, Terraform, a policy file) is listed in story.md under `implementedBy:` instead of tagged `@implements`, and its tests name scenarios in the JUnit report (`test_S_001_1_…`). `layers` checks Python and Swift imports too; see storyspec's docs/rules.md.
 - **New behaviour gets a new story:** `npm run story -- "<title>" --epic "<epic>"`. Don't repurpose another story's folder.
 - **The folder is `<ID>-<slug of the title>`.** If you change a title, rename the folder to match (keep the ID) and run `npm run gen`; the trace warns when they drift.
 - **Changed behaviour revises its story:** edit spec.md, bump `version`, add a line under Revisions, update the tests. Don't open a second story for the same behaviour.

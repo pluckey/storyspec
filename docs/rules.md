@@ -31,7 +31,9 @@
 
 ## How imports are read
 
-The `layers`, `wiring`, `story-imports` and `contract-tests` rules read the import graph from [dependency-cruiser](https://github.com/sverweij/dependency-cruiser): module resolution, `tsconfig.json` path aliases (`@/…`), re-exports and type-only imports are resolved the way TypeScript resolves them. storyspec applies its own rules to that graph.
+TypeScript imports come from [dependency-cruiser](https://github.com/sverweij/dependency-cruiser), which resolves tsconfig paths and knows type-only imports. Python and Swift imports come from [ast-grep](https://ast-grep.github.io), which parses many languages the same way. Each language is described as data in `src/trace/languages.ts`: its file extensions, which files are tests, the patterns that find its imports, and how a module name maps to repo files. A Python import maps to `a/b.py` or `a/b/__init__.py` (relative imports from the importing file's package). A Swift import maps to the package target `Sources/<Module>`. Imports of anything outside the repo are left out. Adding a language means adding its description there.
+
+Story IDs outside the stories folder are allowed in two places. The first is an `@implements` tag in a file a story lists under `implementedBy:`. The second is tests in languages other than TypeScript, which name the scenarios they prove and can't always sit in the story's folder.
 
 ## How tests are matched to scenarios
 
