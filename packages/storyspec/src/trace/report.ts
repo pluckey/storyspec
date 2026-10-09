@@ -10,6 +10,7 @@ export type TraceRow = {
   version: string
   implementation: string
   decisions: { text: string; pinnedBy: string[]; free: boolean }[]
+  after: string[]
   scenarios: { id: string; title: string; tested: boolean; outcome: 'pass' | 'fail' | 'not-run'; tiers: TierState[] }[]
 }
 
@@ -24,6 +25,7 @@ export const rows = (repo: Repo, proof: ProofFile = { scenarios: {}, adapters: {
       version: s.front.version ?? '',
       implementation: impl?.path ?? s.implementedBy.join('<br>'),
       decisions: s.decisions,
+      after: s.after,
       scenarios: s.scenarios.map(sc => ({
         id: sc.id,
         title: sc.title,
@@ -50,7 +52,7 @@ export const table = (rs: TraceRow[]) => [
   '| Epic | Story | Status | v | Implementation | Scenario | Test |',
   '|---|---|---|---|---|---|---|',
   ...rs.flatMap(r => {
-    const head = `| ${r.epic} | ${r.story} ${r.title} | ${r.status === 'done' && r.version ? `done (v${r.version})` : r.status} | ${r.version} | ${r.implementation} |`
+    const head = `| ${r.epic} | ${r.story} ${r.title}${r.after.length ? `<br>after ${r.after.join(', ')}` : ''} | ${r.status === 'done' && r.version ? `done (v${r.version})` : r.status} | ${r.version} | ${r.implementation} |`
     if (r.scenarios.length === 0) return [`${head} — | ✗ no scenarios |`]
     return r.scenarios.map((s, i) => i === 0 ? `${head} ${s.id} | ${mark(s)} |` : `| | | | | | ${s.id} | ${mark(s)} |`)
   }),
