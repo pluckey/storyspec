@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/storyspec/schema/storyspec.config.schema.json",
+  "testCommand": "python3 -m pytest -q -p no:cacheprovider --junitxml=.storyspec/junit.xml",
+  "testReport": ".storyspec/junit.xml",
+  "storyMayImport": [],
+  "wiring": [],
+  "layers": {},
+  "ignore": ["node_modules", "dist", ".storyspec", ".git", ".venv", "hurl"],
+  "defaultProof": ["local", "deployed"],
+  "tiers": {
+    "deployed": { "command": "scripts/deployed.sh", "report": ".storyspec/deployed.xml" }
+  }
+}

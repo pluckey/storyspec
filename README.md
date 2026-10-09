@@ -65,6 +65,7 @@ Underneath is clean architecture with ports and adapters (`src/domain`, `src/por
 | `packages/storyspec` | The CLI and library (`storyspec`, `storyspec/vitest`) |
 | `packages/create-storyspec` | The scaffolder behind `npm create storyspec` |
 | `template` | The app new projects start from (a working notes API) |
+| `examples/realworld` | The RealWorld API in Python (FastAPI, Postgres), built story by story: proof tiers, a deployed tier on docker compose, and the official RealWorld suite as part of proof |
 | `docs` | Documentation |
 
 ## Prior art

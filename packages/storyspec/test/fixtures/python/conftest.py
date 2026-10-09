@@ -7,10 +7,11 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "verifies(scenario, tier=None): the storyspec scenario this test proves")
 
 
-@pytest.fixture(autouse=True)
-def _storyspec_verifies(request, record_property):
-    marker = request.node.get_closest_marker("verifies")
-    if marker:
-        record_property("scenario", marker.args[0])
-        if marker.kwargs.get("tier"):
-            record_property("tier", marker.kwargs["tier"])
+def pytest_collection_modifyitems(items):
+    # At collection, so the scenario is in the report even when a test fails in setup.
+    for item in items:
+        marker = item.get_closest_marker("verifies")
+        if marker:
+            item.user_properties.append(("scenario", marker.args[0]))
+            if marker.kwargs.get("tier"):
+                item.user_properties.append(("tier", marker.kwargs["tier"]))
