@@ -17,6 +17,7 @@ npm run smoke:upgrade   # builds the previous release from git and upgrades apps
 
 To try an unreleased build in another project: `npm run build` here, then `node packages/create-storyspec/index.js <dir>` for a new app (it links this checkout), or `npm i -D <path>/packages/storyspec` in an existing one.
 
+- `stories/`: storyspec's own behaviour, written as stories. `npm run check:self` checks them with the last **published** storyspec (installed into `.storyspec/released`), never with this build, so a regression in the trace can't vouch for itself. New behaviour starts as a story here; existing tests in `packages/storyspec/test` move into stories when their area changes. In this repo the architecture rules, the agent-guidance check and `ids-outside-stories` are off (the framework's own code talks about IDs), and stories list their code under `implementedBy:`.
 - `packages/storyspec`: the CLI and library. Rules live in `src/trace/rules.ts`; each one has a mutation test in `test/trace.test.ts`, and a row in `docs/rules.md`.
 - `packages/create-storyspec`: the scaffolder. It bundles `template/` when packed.
 - `template`: the app new projects get. It must always pass `npm run check`.

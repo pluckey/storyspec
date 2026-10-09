@@ -23,6 +23,13 @@ Ideas, roughly in order. Open an issue to discuss any of them before building.
 
 ## Later
 
+- **OpenSpec as a story source.** storyspec's `spec.md` already uses OpenSpec's Markdown (`### Requirement:`, `#### Scenario:`, SHALL, WHEN/THEN) plus `{#ID}` tags. To follow OpenSpec exactly:
+  - **Identity:** IDs derived from titles (`capability/requirement/scenario`), since OpenSpec has none. A rename shows up as an orphan test plus an untested scenario, and a `storyspec rename` command could move the proof across.
+  - **Shape:** one requirement per capability, so `openspec/specs/<capability>/` is the story folder. Whether code and tests can sit beside `spec.md` there is the first thing to test against `openspec validate` and `archive`.
+  - **Extra fields:** `proof:`, `implementedBy:` and the user story need a place OpenSpec allows.
+  - **Status:** an active change means in progress, and a requirement in `specs/` must be proven.
+  - **Cost:** about 3–5 days.
+  - **When:** someone asks for it, or storyspec sets out to grow its audience. Start with a half-day spike that converts the template.
 - **Per-story coverage attribution.** Run each story's tests with coverage, then report which stories exercise each line of `src/`. Flags shared code no story justifies, and gives a reverse trace (code → stories).
 - **Orphan detection.** Files and exports in `src/` unreachable from any story or entry point (via the import graph, or by wiring in `knip`).
 - **ESLint plugin.** The per-file rules (`implementation`, `story-imports`, `layers`, `ids-outside-stories`) as editor squiggles, before you run the trace.

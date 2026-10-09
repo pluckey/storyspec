@@ -1,0 +1,29 @@
+{
+  "$schema": "./packages/storyspec/schema/storyspec.config.schema.json",
+  "storyMayImport": [
+    "packages/storyspec/src"
+  ],
+  "storyTestMayAlsoImport": [
+    "test"
+  ],
+  "wiring": [],
+  "layers": {},
+  "portsDir": "packages/storyspec/src/ports",
+  "adaptersDir": "packages/storyspec/src/adapters",
+  "testCommand": "vitest run --dir stories --reporter=json --outputFile=.storyspec/vitest.json",
+  "ignore": [
+    "node_modules",
+    "dist",
+    ".storyspec",
+    ".git",
+    "template",
+    "packages/create-storyspec",
+    "packages/storyspec/test",
+    "packages/storyspec/docs",
+    "scripts"
+  ],
+  "rules": {
+    "ids-outside-stories": "off",
+    "framework-sync": "off"
+  }
+}
