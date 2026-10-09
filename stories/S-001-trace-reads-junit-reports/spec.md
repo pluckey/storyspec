@@ -69,3 +69,9 @@ WHEN a tier's test report is JUnit XML THE SYSTEM SHALL read each test's scenari
 - GIVEN a deployed tier whose JUnit report passes S-001.1 and fails S-001.2, by names that don't mention the tier
 - WHEN `storyspec trace --tier deployed` reads it
 - THEN PROOF.json records S-001.1 passed and S-001.2 failed in the deployed tier
+
+#### Scenario: A test with no file is reported by its name {#S-001.12}
+
+- GIVEN a JUnit report whose failing test case has no file or class, only a name like `hurl/tags.hurl` (as Hurl writes them)
+- WHEN the trace reports the failure
+- THEN it names `hurl/tags.hurl` as the file, not "(unknown file)"

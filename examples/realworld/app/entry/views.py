@@ -1,12 +1,13 @@
 """Domain records → RealWorld's JSON, as seen by the viewer (following, favorited)."""
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.domain.model import Article, Comment, User
 from app.usecases import Deps
 
 
 def stamp(at: datetime) -> str:
-    return at.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    """UTC to the millisecond, e.g. 2026-10-09T13:30:24.607Z, whatever time zone the database answers in."""
+    return at.astimezone(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def user_view(deps: Deps, user: User) -> dict:

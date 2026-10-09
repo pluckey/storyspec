@@ -14,6 +14,7 @@ export const gen = {
     'S-001.9': 'A failure outside any scenario fails the trace',
     'S-001.10': 'A skipped test proves nothing',
     'S-001.11': 'Another tier records what its command ran',
+    'S-001.12': 'A test with no file is reported by its name',
   },
 } as const
 

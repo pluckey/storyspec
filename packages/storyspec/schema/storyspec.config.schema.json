@@ -115,14 +115,25 @@
       }
     },
     "testCommand": {
-      "description": "Command that runs the tests and writes a vitest-style JSON report to testReport.",
+      "description": "Command that runs the tests and writes its report(s) to testReport.",
       "default": "vitest run --passWithNoTests --reporter=json --outputFile=.storyspec/vitest.json",
       "type": "string"
     },
     "testReport": {
-      "description": "Where testCommand writes its JSON report.",
+      "description": "Where testCommand writes its report: Vitest/Jest JSON or JUnit XML, recognised from the content. A list reads several reports (for example pytest's and a conformance suite's); a listed report that wasn't written is skipped.",
       "default": ".storyspec/vitest.json",
-      "type": "string"
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ]
     },
     "storyTemplateDir": {
       "description": "Folder of story templates (story.md, spec.md). Built-in templates are used when it does not exist.",
@@ -164,6 +175,49 @@
           "warning",
           "off"
         ]
+      }
+    },
+    "tiers": {
+      "description": "Where scenarios can be proven. local runs testCommand (or its own command) on every trace; another tier with a command runs on `storyspec trace --tier <name>` and its results are recorded in stories/PROOF.json; a tier with no command (manual) is proven with `storyspec prove`.",
+      "default": {
+        "local": {},
+        "manual": {}
+      },
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Runs the tier's tests, with STORYSPEC_TIER set to the tier's name."
+          },
+          "report": {
+            "description": "Where the command writes its report(s); defaults to testReport.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    "defaultProof": {
+      "description": "The tiers a scenario must be proven in, unless its story (proof: in story.md) or its tag ({#S-001.1 proof=\u2026}) says otherwise.",
+      "default": [
+        "local"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
       }
     }
   }

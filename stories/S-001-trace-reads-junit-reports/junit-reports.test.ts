@@ -91,4 +91,11 @@ story(gen, {
     const proof = readProof({ root, config: { storiesDir: 'stories' } as never })
     expect(Object.fromEntries(Object.entries(proof.scenarios).map(([id, t]) => [id, t.deployed?.outcome]))).toEqual({ 'S-001.1': 'pass', 'S-001.2': 'fail' })
   },
+
+  'S-001.12': async () => {
+    const root = pythonProject()
+    report(root, pass('test_S_001_1'), pass('test_S_001_2'), '<testcase name="hurl/tags.hurl"><failure message="Assert failure">x</failure></testcase>')
+    const finding = (await trace(root, { write: false })).findings.find(f => f.rule === 'failing-test')
+    expect(finding?.file).toBe('hurl/tags.hurl')
+  },
 })
