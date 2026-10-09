@@ -67,7 +67,8 @@ const fromJunit = (xml: string, prefix: string, runTier: string): TestFile[] => 
     const classname = String(c['@_classname'] ?? '')
     const props = Object.fromEntries(asList((c.properties as Node | undefined)?.property as Node | Node[]).map(p => [String(p['@_name']), String(p['@_value'] ?? '')]))
     const problem = c.failure ?? c.error
-    const file = String(c['@_file'] ?? suite['@_file'] ?? (classname || suite['@_name'] || ''))
+    // Where the test lives: its file, its suite's, its class, or (Hurl, which names cases by their file) its own name.
+    const file = String(c['@_file'] ?? suite['@_file'] ?? (classname || name || suite['@_name'] || ''))
     const f = byFile.get(file) ?? { name: file || undefined, failed: false, cases: [] }
     f.cases.push({
       title: junitTitle(prefix, name, props, runTier) ?? name,

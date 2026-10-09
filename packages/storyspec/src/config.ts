@@ -24,9 +24,10 @@ export type Config = {
   mustPassFor: string[]
   /** Statuses listed in the trace but exempt from every story rule (retired stories). */
   exemptStatuses: string[]
-  /** Command that runs the tests and writes a vitest-style JSON report to `testReport`. */
+  /** Command that runs the tests and writes its report(s) to `testReport`. */
   testCommand: string
-  testReport: string
+  /** Vitest/Jest JSON or JUnit XML. A list reads several reports; one that wasn't written is skipped. */
+  testReport: string | string[]
   /** Optional folder of story templates (story.md, spec.md); the built-in ones are used otherwise. */
   storyTemplateDir: string
   /** Path prefixes never scanned. */
@@ -43,7 +44,10 @@ export type Config = {
   defaultProof: string[]
 }
 
-export type Tier = { command?: string; report?: string }
+export type Tier = { command?: string; report?: string | string[] }
+
+/** A report setting as a list of paths. */
+export const reportPaths = (report: string | string[]) => typeof report === 'string' ? [report] : report
 
 export type RuleSetting = 'error' | 'warning' | 'off'
 
@@ -92,13 +96,18 @@ export const loadConfig = (root: string): Config => {
     if (!(key in defaults)) { problems.push(`unknown key "${key}"`); continue }
     if (key === 'tiers') {
       const bad = value === null || typeof value !== 'object' || Object.values(value as object).some(t =>
-        t === null || typeof t !== 'object' || Object.entries(t as object).some(([k, v]) => !['command', 'report'].includes(k) || typeof v !== 'string'))
-      if (bad) problems.push('"tiers" should map tier names to { "command"?: string, "report"?: string }')
+        t === null || typeof t !== 'object' || Object.entries(t as object).some(([k, v]) =>
+          k === 'command' ? typeof v !== 'string' : k === 'report' ? !(typeof v === 'string' || (stringList(v) && (v as string[]).length > 0)) : true))
+      if (bad) problems.push('"tiers" should map tier names to { "command"?: string, "report"?: string or a list of strings }')
       continue
     }
     if (key === 'rules') {
       const bad = value === null || typeof value !== 'object' || Object.values(value).some(v => !['error', 'warning', 'off'].includes(v as string))
       if (bad) problems.push('"rules" should map rule names to "error", "warning" or "off"')
+      continue
+    }
+    if (key === 'testReport') {
+      if (!(typeof value === 'string' || (stringList(value) && (value as string[]).length > 0))) problems.push('"testReport" should be a string or a list of strings')
       continue
     }
     const expected = defaults[key as keyof Config]

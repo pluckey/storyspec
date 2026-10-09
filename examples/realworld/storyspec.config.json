@@ -5,9 +5,25 @@
   "storyMayImport": [],
   "wiring": [],
   "layers": {},
-  "ignore": ["node_modules", "dist", ".storyspec", ".git", ".venv", "hurl"],
-  "defaultProof": ["local", "deployed"],
+  "ignore": [
+    "node_modules",
+    "dist",
+    ".storyspec",
+    ".git",
+    ".venv",
+    "hurl"
+  ],
+  "defaultProof": [
+    "local",
+    "deployed"
+  ],
   "tiers": {
-    "deployed": { "command": "scripts/deployed.sh", "report": ".storyspec/deployed.xml" }
+    "deployed": {
+      "command": "scripts/deployed.sh",
+      "report": [
+        ".storyspec/pytest.xml",
+        ".storyspec/hurl.xml"
+      ]
+    }
   }
 }

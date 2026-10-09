@@ -11,3 +11,9 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # TypeScript 7 (the Go compiler) has no JavaScript API, which tsup's declaration build (rollup-plugin-dts) needs:
+      # the build fails with "Cannot read properties of undefined (reading 'useCaseSensitiveFileNames')". Revisit when
+      # tsup supports it, or move declarations to TypeScript 7's own tsc.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]

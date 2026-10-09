@@ -39,3 +39,15 @@ def test_two_articles_with_the_same_title_get_different_slugs(member, publish):
 def test_publishing_needs_a_token(api):
     r = api.post("/api/articles", json={"article": {"title": "T", "description": "D", "body": "B"}})
     assert (r.status_code, r.json()["errors"]) == (401, {"token": ["is missing"]})
+
+
+UTC_MS = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$")
+
+
+@v("S-006.5")
+def test_times_are_given_in_utc(api, member, publish):
+    a = publish(member("ana"))
+    assert UTC_MS.match(a["createdAt"]), a["createdAt"]
+    assert UTC_MS.match(a["updatedAt"]), a["updatedAt"]
+    got = api.get(f"/api/articles/{a['slug']}").json()["article"]
+    assert (got["createdAt"], got["updatedAt"]) == (a["createdAt"], a["updatedAt"])

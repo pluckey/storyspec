@@ -27,3 +27,9 @@ WHEN a signed-in member publishes an article with a title, description, body and
 - GIVEN no Authorization header
 - WHEN someone publishes
 - THEN the response is 401 with token "is missing"
+
+#### Scenario: Times are given in UTC {#S-006.5}
+
+- GIVEN the database answers in a time zone other than UTC (the deployed tier's Postgres runs in America/Chicago)
+- WHEN ana publishes an article
+- THEN its creation and update times are UTC, to the millisecond, ending in Z

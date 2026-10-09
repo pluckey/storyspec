@@ -2,6 +2,8 @@
 services:
   db:
     image: postgres:17
+    # Not UTC on purpose: the API must give UTC times whatever zone the database answers in (S-006.5).
+    command: ["postgres", "-c", "timezone=America/Chicago"]
     environment:
       POSTGRES_USER: realworld
       POSTGRES_PASSWORD: realworld

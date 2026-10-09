@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
-import type { Config } from '../config.js'
+import { reportPaths, type Config } from '../config.js'
 import type { ImportGraph } from './graph.js'
 import { readResults } from './results.js'
 
@@ -124,9 +124,10 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
   const failures = new Map<string, string>()
   const otherFailures: Repo['otherFailures'] = []
   const firstLines = (msg: string) => msg.replace(/\u001b\[[0-9;]*m/g, '').split('\n').slice(0, 6).join('\n')
-  const report = join(root, config.testReport)
-  const hasReport = existsSync(report)
-  const results = hasReport ? readResults(report, config.idPrefix, tier) : []
+  // Every listed report the run wrote, read as one.
+  const reports = reportPaths(config.testReport).map(r => join(root, r)).filter(r => existsSync(r))
+  const hasReport = reports.length > 0
+  const results = reports.flatMap(r => readResults(r, config.idPrefix, tier))
   for (const f of results) for (const a of f.cases) if (a.status === 'passed') passedTestNames.push(a.fullName)
   for (const f of results) if (f.name && f.cases.length) executedTests.push(rel(resolve(root, f.name)))
   for (const f of results) {

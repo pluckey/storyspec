@@ -2,7 +2,7 @@
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { delimiter, dirname, join } from 'node:path'
-import { loadConfig, type Config } from './config.js'
+import { loadConfig, reportPaths, type Config } from './config.js'
 import { evaluate, portCoverage, type Finding, type PortCoverage } from './trace/rules.js'
 import { derivedStatus, readProof, recordRun } from './proof.js'
 import { rows, traceMarkdown, type TraceRow } from './trace/report.js'
@@ -29,14 +29,16 @@ export const tierRun = (config: Config, tier: string) => {
   if (!t) throw new Error(`No tier "${tier}" in storyspec.config.json (tiers: ${Object.keys(config.tiers).join(', ')})`)
   const command = t.command ?? (tier === 'local' ? config.testCommand : undefined)
   if (!command) throw new Error(`The ${tier} tier has no command; prove its scenarios with: storyspec prove <ID> --tier ${tier}`)
-  return { command, report: t.report ?? config.testReport }
+  return { command, reports: reportPaths(t.report ?? config.testReport) }
 }
 
-/** Runs a tier's tests (STORYSPEC_TIER set to it), writing its JSON report where the trace reads it. */
+/** Runs a tier's tests (STORYSPEC_TIER set to it), writing its report(s) where the trace reads them. */
 export const runTests = (root: string, config: Config, tier = 'local') => {
-  const { command, report } = tierRun(config, tier)
-  rmSync(join(root, report), { force: true })
-  mkdirSync(dirname(join(root, report)), { recursive: true })
+  const { command, reports } = tierRun(config, tier)
+  for (const report of reports) {
+    rmSync(join(root, report), { force: true })
+    mkdirSync(dirname(join(root, report)), { recursive: true })
+  }
   // Like npm scripts: the repo's own binaries come first, so `storyspec trace` works outside `npm run`.
   const PATH = [join(root, 'node_modules', '.bin'), process.env.PATH].filter(Boolean).join(delimiter)
   const r = spawnSync(command, { cwd: root, shell: true, stdio: 'ignore', env: { ...process.env, PATH, STORYSPEC_TIER: tier } })
@@ -47,7 +49,7 @@ export const trace = async (root: string, opts: TraceOptions = {}): Promise<Trac
   const tier = opts.tier ?? 'local'
   const loaded = loadConfig(root)
   // The trace reads the report of the tier it ran.
-  const config = { ...loaded, testReport: tierRun(loaded, tier).report }
+  const config = { ...loaded, testReport: tierRun(loaded, tier).reports }
   if (opts.runTests) runTests(root, config, tier)
   const repo = scan(root, config, await importGraph(root, sourceFiles(root, config)), tier)
   // Another tier's results are recorded; the local tier reruns every time.
@@ -59,7 +61,7 @@ export const trace = async (root: string, opts: TraceOptions = {}): Promise<Trac
     return setting === 'off' ? [] : setting ? [{ ...f, severity: setting }] : [f]
   })
   if (opts.runTests && !repo.hasReport)
-    findings.push({ rule: 'tests', severity: 'error', message: `"${config.testCommand}" did not write ${config.testReport}` })
+    findings.push({ rule: 'tests', severity: 'error', message: `"${tierRun(config, tier).command}" did not write ${reportPaths(config.testReport).join(' or ')}` })
   const rs = rows(repo, proof, derived)
   const ports = portCoverage(repo, proof, tier)
   if (opts.write !== false) writeFileSync(join(root, config.storiesDir, 'TRACE.md'), traceMarkdown(rs, ports))
