@@ -23,4 +23,6 @@ To try an unreleased build in another project: `npm run build` here, then `node 
 
 ## Releasing
 
-Add a changeset (`npx changeset`) to any PR that changes a published package. `npx changeset version` bumps the versions and writes the changelogs; `npx changeset publish` publishes both packages and tags the release.
+Add a changeset (`npx changeset`) to any PR that changes a published package; CI fails without one. Releases are automatic: after a merge to `main`, the Release workflow opens a "Version Packages" PR that bumps both versions and writes the changelogs, and merging that PR publishes both packages to npm (trusted publishing, with provenance) and tags the release. Nobody publishes from a laptop.
+
+CI also runs `npm run lint:package` (publint and Are the Types Wrong on the packed packages), `npm run smoke:python` (needs `pytest` on PATH), the smoke test against the oldest supported vitest (`SMOKE_VITEST=2 npm run smoke`), and macOS.
