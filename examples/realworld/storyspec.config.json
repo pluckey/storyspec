@@ -4,7 +4,28 @@
   "testReport": ".storyspec/junit.xml",
   "storyMayImport": [],
   "wiring": [],
-  "layers": {},
+  "layers": {
+    "app/domain": [
+      "app/domain"
+    ],
+    "app/ports": [
+      "app/domain",
+      "app/ports"
+    ],
+    "app/usecases": [
+      "app/domain",
+      "app/ports",
+      "app/usecases"
+    ],
+    "app/adapters": [
+      "app/domain",
+      "app/ports",
+      "app/adapters"
+    ],
+    "app/entry": [
+      "app"
+    ]
+  },
   "ignore": [
     "node_modules",
     "dist",

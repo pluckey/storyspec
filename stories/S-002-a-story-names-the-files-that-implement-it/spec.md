@@ -20,4 +20,4 @@ WHEN story.md lists files under `implementedBy:` THE SYSTEM SHALL accept them as
 
 - GIVEN a story with neither `implementedBy:` nor a file tagged `@implements`
 - WHEN the trace runs
-- THEN it reports the missing implementation, and asks for the story's generated file as for any TypeScript story
+- THEN it reports the missing implementation, asks for the story's generated file as for any TypeScript story, and flags the `@implements` tag left in app/greet.py, which no story lists

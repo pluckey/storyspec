@@ -1,7 +1,7 @@
 // spec.md → scenarios.gen.ts, so tests written with story() must cover exactly the spec's scenarios.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Story } from './trace/scan.js'
+import { isTypeScript, type Story } from './trace/scan.js'
 
 export const GEN_FILE = 'scenarios.gen.ts'
 
@@ -30,8 +30,8 @@ export const renderGen = (story: Story) => {
 export type GenStatus = { story: string; file: string; state: 'fresh' | 'stale' | 'missing' }
 
 // The generated file types TypeScript tests. A story implemented elsewhere (implementedBy:) with no TypeScript in its
-// folder, such as a Python one, has nothing to type and gets none.
-const typed = (s: Story) => s.implementedBy.length === 0 || s.code.length + s.tests.length > 0
+// folder, such as a Python one whose tests sit beside its spec, has nothing to type and gets none.
+const typed = (s: Story) => s.implementedBy.length === 0 || [...s.code, ...s.tests].some(f => isTypeScript(f.path))
 
 export const genStatus = (root: string, stories: Story[]): GenStatus[] =>
   stories.filter(s => s.hasSpecMd && typed(s)).map(s => {

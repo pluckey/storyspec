@@ -5,6 +5,7 @@ import { join, relative, resolve } from 'node:path'
 import { reportPaths, type Config } from '../config.js'
 import type { ImportGraph } from './graph.js'
 import { readResults } from './results.js'
+import { languageOf } from './languages.js'
 
 // `imports`: repo files it imports, without extension (from the import graph); `typeOnly`: those imported only for types.
 export type SourceFile = { path: string; text: string; imports: string[]; typeOnly: string[] }
@@ -54,8 +55,10 @@ export const ids = (prefix: string) => ({
   resultTitle: new RegExp(`^(${prefix}-\\d+\\.\\d+)\\b(?:\\s+\\[([a-z0-9-]+)\\])?`),
 })
 
-const isSource = (f: string) => /\.(c|m)?tsx?$/.test(f) && !f.endsWith('.d.ts')
-const isTest = (f: string) => /\.(test|spec)\.(c|m)?tsx?$/.test(f)
+const isTypeScript = (f: string) => /\.(c|m)?tsx?$/.test(f) && !f.endsWith('.d.ts')
+const isSource = (f: string) => isTypeScript(f) || !!languageOf(f)
+const isTest = (f: string) => /\.(test|spec)\.(c|m)?tsx?$/.test(f) || !!languageOf(f)?.tests.test(f)
+export { isTypeScript }
 
 const walker = (root: string, config: Config) => {
   const rel = (p: string) => relative(root, p).split('\\').join('/')

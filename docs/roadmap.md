@@ -4,7 +4,7 @@ Ideas, roughly in order. Open an issue to discuss any of them before building.
 
 ## Next
 
-- **Python layering:** run import-linter beside the TypeScript import rules and report its findings, and a typed scenario module for pytest like `scenarios.gen.ts`.
+- **Languages as data:** a typed scenario module per language (like `scenarios.gen.ts`), generated from a language-neutral `scenarios.json` and a template, and a standalone binary so projects in other languages don't need Node.
 - **Lists for `portsDir`/`adaptersDir`,** so a client and a server in one project both get port coverage.
 - **Relationships between stories:**
   - `extends:` (this story changes the behaviour of another): the trace shows "extended by", and a revision of the extended story makes its extenders' proofs stale.

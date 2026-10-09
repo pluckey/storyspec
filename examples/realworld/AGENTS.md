@@ -1,6 +1,6 @@
 # Working in this repo
 
-<!-- storyspec:begin 0.4.1 sha=5fa475eee8bff74e -->
+<!-- storyspec:begin 0.5.0 sha=5fa475eee8bff74e -->
 <!-- Managed by storyspec. `npx storyspec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
@@ -158,7 +158,7 @@ Notes for agents about this repo go here, outside the storyspec block, so update
 
 The RealWorld (Conduit) API in Python, built story by story. It's storyspec's public example of a project that isn't TypeScript.
 
-- **Code:** `app/` is hexagonal: `domain/` holds pure rules, `ports/` holds protocols, and `usecases/` has one module per story, whose first line says `# @implements S-00x`. `adapters/` has `memory/`, `postgres/` and `system.py`, and `entry/` has FastAPI, the views and composition. Each story lists its use case under `implementedBy:`.
+- **Code:** `app/` is hexagonal, and `layers` in storyspec.config.json enforces it (storyspec reads Python imports with ast-grep): `domain/` holds pure rules, `ports/` holds protocols, and `usecases/` has one module per story, whose first line says `# @implements S-00x`. `adapters/` has `memory/`, `postgres/` and `system.py`, and `entry/` has FastAPI, the views and composition. Each story lists its use case under `implementedBy:`.
 - **Tests:** a story's tests sit in its folder (`stories/S-00x-…/test_*.py`) and name their scenario with `@pytest.mark.verifies("S-00x.n")`. Each test uses the `api` fixture (`conftest.py`), so the same test proves the local tier (the app in-process, on memory adapters) and the deployed tier (the running server on Postgres).
 - **Storage contracts:** `tests/contracts/` holds the storage ports' contract. Every adapter must pass it, and Postgres runs when `DATABASE_URL` is set.
 - **Checks:**

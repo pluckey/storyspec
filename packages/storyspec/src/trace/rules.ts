@@ -5,7 +5,8 @@ import { genStatus } from '../gen.js'
 import { slugify } from '../new-story.js'
 import { plan } from '../sync.js'
 import { exercisedAdapters, type ProofFile, scenarioStates } from '../proof.js'
-import { ids, stripComments, type Repo, type SourceFile } from './scan.js'
+import { ids, isTypeScript, stripComments, type Repo, type SourceFile } from './scan.js'
+import { languageOf } from './languages.js'
 
 export type Severity = 'error' | 'warning'
 export type Finding = { rule: string; severity: Severity; file?: string; message: string }
@@ -108,7 +109,13 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
     const isWiring = config.wiring.includes(f.path)
     // Import statements (single- or multi-line) are skipped: who may import a story is the wiring rule's question.
     const text = f.text.replace(/^\s*import\s[\s\S]*?from\s*['"][^'"]+['"];?/gm, '').replace(/^\s*import\s*['"][^'"]+['"];?/gm, '')
-    for (const m of text.matchAll(re.any)) add('ids-outside-stories', 'error', `mentions ${m[0]}; story logic belongs in ${config.storiesDir}/`, f.path)
+    // A file a story names under implementedBy may say which story it implements, and a test in another language may
+    // name the scenarios it proves (its tests can't always sit in the story's folder); nothing else outside stories may.
+    const implementing = stories.filter(s => s.implementedBy.includes(f.path)).map(s => s.id)
+    const testInOtherLanguage = !isTypeScript(f.path) && (languageOf(f.path)?.tests.test(f.path) ?? false)
+    if (!testInOtherLanguage) for (const m of text.matchAll(re.any))
+      if (!implementing.some(id => m[0] === id && new RegExp(`@implements ${id}\\b`).test(text)))
+        add('ids-outside-stories', 'error', `mentions ${m[0]}; story logic belongs in ${config.storiesDir}/`, f.path)
     const layer = Object.keys(config.layers).filter(l => under(f.path, [l])).sort((a, b) => b.length - a.length)[0]
     for (const imp of f.imports) {
       // A story's request and response types carry no behaviour, so importing them for their types alone is fine anywhere.
