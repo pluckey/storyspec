@@ -26,5 +26,7 @@ jobs:
       - run: npm run build
       - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
+          # Versions, then restamps the template's agent guidance with the new version (sync --check fails otherwise).
+          version-script: npm run version
           publish-script: npx changeset publish
           github-token: ${{ secrets.GITHUB_TOKEN }}
