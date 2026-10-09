@@ -52,6 +52,31 @@ jobs:
         env:
           SMOKE_VITEST: '2'
 
+  # The RealWorld example: Python, checked by this build of storyspec on both tiers (the deployed tier on docker compose).
+  realworld:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Install Hurl
+        run: |
+          curl -fsSL -o /tmp/hurl.deb https://github.com/Orange-OpenSource/hurl/releases/download/8.0.1/hurl_8.0.1_amd64.deb
+          sudo apt-get install -y /tmp/hurl.deb
+      - run: npm ci
+      - run: npm run build
+      - run: pip install -e ".[dev]"
+        working-directory: examples/realworld
+      - run: npm run check
+        working-directory: examples/realworld
+      - run: npm run deployed
+        working-directory: examples/realworld
+
   # A change to a package ships only with a changeset (the CHANGELOG entry and version bump).
   changeset:
     if: github.event_name == 'pull_request'

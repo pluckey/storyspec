@@ -20,7 +20,8 @@
     "packages/create-storyspec",
     "packages/storyspec/test",
     "packages/storyspec/docs",
-    "scripts"
+    "scripts",
+    "examples"
   ],
   "rules": {
     "ids-outside-stories": "off",
