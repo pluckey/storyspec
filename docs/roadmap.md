@@ -9,6 +9,8 @@ Ideas, roughly in order. Open an issue to discuss any of them before building.
 - **Relationships between stories:**
   - `extends:` (this story changes the behaviour of another): the trace shows "extended by", and a revision of the extended story makes its extenders' proofs stale.
   - `after:` (build order) is read and checked since 0.8; still to come is a generated "ready to build" list of the stories whose `after:` stories are done.
+  - `trigger:` and `emits:` are read and checked since 0.8; still to come is a flow diagram of the events between stories in TRACE.md.
+  - `stories/MODEL.md` (records and their states) is read and checked since 0.8; still to come are fields, and checking that a story's scenarios only move a record along a transition the model has.
 - **Organized views of a flat folder:**
   - The `stories/` folder stays flat and append-only.
   - An optional `stories/epics.md` gives each epic its order, its description and the rules all its stories share.

@@ -6,6 +6,7 @@ import { reportPaths, type Config } from '../config.js'
 import type { ImportGraph } from './graph.js'
 import { readResults } from './results.js'
 import { languageOf } from './languages.js'
+import { readModel, type ModelRecord } from './model.js'
 
 // `imports`: repo files it imports, without extension (from the import graph); `typeOnly`: those imported only for types.
 export type SourceFile = { path: string; text: string; imports: string[]; typeOnly: string[] }
@@ -36,10 +37,16 @@ export type Story = {
   decisions: Decision[]
   /** Stories to build first (`after:` in story.md): build order, not behaviour. */
   after: string[]
+  /** What starts the story (`trigger:` in story.md), as written: one `kind:name`, or several, which the trigger rule
+   * reports. */
+  trigger: string[]
+  /** Events the story emits (`emits:` in story.md), which start the stories whose trigger is `event:<name>`. */
+  emits: string[]
 }
 
-/** One `- …` line under `### Decisions`. `pinnedBy`: scenario IDs it names; `free`: any choice is acceptable. */
-export type Decision = { text: string; pinnedBy: string[]; free: boolean }
+/** One `- …` line under `### Decisions`. `pinnedBy`: scenario IDs it names; `free`: any choice is acceptable; `open`:
+ * nobody has answered it yet, so the scenarios it names are blocked rather than pinned. */
+export type Decision = { text: string; pinnedBy: string[]; free: boolean; open: boolean }
 
 export type Repo = {
   root: string; config: Config; stories: Story[]; kernel: SourceFile[]; outcomes: Map<string, 'pass' | 'fail'>; failures: Map<string, string>; hasReport: boolean; executedTests: string[]
@@ -51,6 +58,8 @@ export type Repo = {
   otherFailures: { file: string; test?: string; message: string }[]
   // Every code file in the repo, in any language, repo-relative: what the unclaimed-code rule checks.
   codeFiles: string[]
+  // The records and their states from stories/MODEL.md; undefined when there is none.
+  model?: ModelRecord[]
 }
 
 export const ids = (prefix: string) => ({
@@ -67,6 +76,9 @@ export const ids = (prefix: string) => ({
 const isTypeScript = (f: string) => /\.(c|m)?tsx?$/.test(f) && !f.endsWith('.d.ts')
 /** Code in any common language, whether or not the trace reads its imports. */
 const CODE = /\.((c|m)?[jt]sx?|py|swift|kt|kts|java|go|rs|rb|cs|php|scala|dart|exs?|c|cc|cpp|h|hpp|m|mm)$/
+/** Scenario IDs blocked by an open decision, each with the decision. */
+export const blockedScenarios = (stories: Story[]) =>
+  new Map(stories.flatMap(s => s.decisions.filter(d => d.open).flatMap(d => d.pinnedBy.map(id => [id, d] as const))))
 export const isCode = (f: string) => CODE.test(f) && !f.endsWith('.d.ts')
 /** A test or test support file by the usual conventions of any language: test folders, test-named files, conftest.py. */
 export const looksLikeTest = (f: string) =>
@@ -133,6 +145,8 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
         implementedBy: list(front.implementedBy) ?? [],
         decisions: decisions(spec, config.idPrefix),
         after: list(front.after) ?? [],
+        trigger: list(front.trigger) ?? [],
+        emits: list(front.emits) ?? [],
       }
     })
 
@@ -179,7 +193,7 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
   }
 
   const codeFiles = walk(root).map(rel).filter(isCode)
-  return { root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes, passedTestNames, codeFiles }
+  return { model: readModel(storiesRoot), root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes, passedTestNames, codeFiles }
 }
 
 // "local, deployed" → ['local', 'deployed']; absent → undefined.
@@ -195,6 +209,11 @@ export const scenarioHash = (spec: string, tagAt: number) => {
   return createHash('sha256').update(text).digest('hex').slice(0, 12)
 }
 
+// A decision's own words, without what it quotes: a decision that quotes "(open)" or `free` is about the marker.
+const unquoted = (text: string) => text.replace(/"[^"]*"|“[^”]*”|`[^`]*`/g, '')
+/** A decision is open when it says (open) itself, not when it quotes the marker. */
+export const isOpen = (text: string) => /\(open\)/i.test(unquoted(text))
+
 // The bullets of spec.md's `### Decisions` section, up to the next heading of that level or higher.
 const decisions = (spec: string, prefix: string): Decision[] => {
   const at = spec.search(/^###\s+Decisions\s*$/m)
@@ -206,7 +225,8 @@ const decisions = (spec: string, prefix: string): Decision[] => {
     return {
       text,
       pinnedBy: [...new Set([...text.matchAll(new RegExp(`\\b${prefix}-\\d+\\.\\d+\\b`, 'g'))].map(m => m[0]))],
-      free: /\bfree\b/i.test(text),
+      free: /\bfree\b/i.test(unquoted(text)),
+      open: isOpen(text),
     }
   })
 }

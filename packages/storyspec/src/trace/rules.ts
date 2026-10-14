@@ -5,8 +5,9 @@ import { genStatus } from '../gen.js'
 import { slugify } from '../new-story.js'
 import { plan } from '../sync.js'
 import { exercisedAdapters, type ProofFile, scenarioStates } from '../proof.js'
-import { ids, isTypeScript, looksLikeTest, stripComments, type Repo, type SourceFile } from './scan.js'
+import { blockedScenarios, ids, isTypeScript, looksLikeTest, stripComments, type Repo, type SourceFile } from './scan.js'
 import { languageOf } from './languages.js'
+import { RECORD_EVENTS, recordOf, startStates } from './model.js'
 
 export type Severity = 'error' | 'warning'
 export type Finding = { rule: string; severity: Severity; file?: string; message: string }
@@ -20,6 +21,7 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
   const proof = opts.proof ?? { scenarios: {}, adapters: {} }
   const { config, stories, kernel, outcomes } = repo
   const re = ids(config.idPrefix)
+  const blocked = blockedScenarios(stories)
   const out: Finding[] = []
   const add = (rule: string, severity: Severity, message: string, file?: string) => out.push({ rule, severity, message, file })
 
@@ -63,14 +65,21 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
       if (!scenarioIds.includes(t)) add('orphan-test', 'error', `${s.id}: a test is named ${t}, which isn't a scenario in spec.md`, s.dir)
     // A scenario proven only by hand (manual) has nothing to run.
     for (const sc of s.scenarios)
-      if (!s.testedIds.includes(sc.id) && sc.proof.some(t => t !== 'manual')) gap('untested-scenario', `${sc.id}: no test`, `${s.dir}/spec.md`)
+      if (!s.testedIds.includes(sc.id) && !blocked.has(sc.id) && sc.proof.some(t => t !== 'manual')) gap('untested-scenario', `${sc.id}: no test`, `${s.dir}/spec.md`)
 
     // A decision either names the scenarios that pin it, so every implementation must agree, or says any choice is
     // acceptable (free). A decision that does neither is a judgment call a regeneration would silently make again.
     const allScenarios = new Set(stories.flatMap(x => x.scenarios.map(sc => sc.id)))
     for (const d of s.decisions) {
       for (const id of d.pinnedBy) if (!allScenarios.has(id)) add('decisions', 'error', `${s.id}: the decision "${d.text}" is pinned by ${id}, which isn't a scenario`, `${s.dir}/spec.md`)
-      if (!d.pinnedBy.length && !d.free) add('decisions', 'warning', `${s.id}: the decision "${d.text}" is neither pinned by a scenario (name its ID) nor marked free`, `${s.dir}/spec.md`)
+      if (d.open) add('decisions', 'warning', `${s.id}: the decision "${d.text}" is open${d.pinnedBy.length ? `; it blocks ${d.pinnedBy.join(', ')} until someone answers it` : ''}`, `${s.dir}/spec.md`)
+      else if (!d.pinnedBy.length && !d.free) add('decisions', 'warning', `${s.id}: the decision "${d.text}" is neither pinned by a scenario, marked free, nor marked open (name a scenario's ID, or write "(free)" or "(open)")`, `${s.dir}/spec.md`)
+    }
+
+    // A test of a scenario whose decision is open had to assume an answer.
+    for (const sc of s.scenarios) {
+      const d = blocked.get(sc.id)
+      if (d && s.testedIds.includes(sc.id)) add('decisions', 'warning', `${sc.id}: it has a test, but its decision "${d.text}" is open: the test assumes an answer nobody gave`, `${s.dir}/spec.md`)
     }
 
     if (status === 'done') add('derived-status', 'warning', `${s.id}: "done" is worked out from proof now, not written; run storyspec migrate (it sets status: in-progress) and the trace shows done when every scenario is proven`, `${s.dir}/story.md`)
@@ -116,6 +125,37 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
     else if (!known.has(a)) add('after', 'error', `${s.id}: after: names ${a}, which isn't a story`, `${s.dir}/story.md`)
   }
   for (const cycle of afterCycles(stories)) add('after', 'error', `after: goes round in a circle: ${cycle.join(' → ')}`, `${config.storiesDir}`)
+
+  // What starts a story: one trigger of a known kind, and an event some story emits.
+  const emitted = new Set(stories.flatMap(s => s.emits))
+  for (const s of stories) {
+    const file = `${s.dir}/story.md`
+    if (s.trigger.length > 1) { add('trigger', 'error', `${s.id}: trigger: names ${s.trigger.length} triggers; a story has one requirement and so one trigger. Split the story, one per trigger`, file); continue }
+    const t = s.trigger[0]
+    if (!t) continue
+    const { kind, name } = parseTrigger(t)
+    if (!TRIGGER_KINDS.includes(kind)) add('trigger', 'error', `${s.id}: trigger: ${t} isn't a kind of trigger; use actor:<role>, event:<event>, schedule:<name> or external:<system>`, file)
+    else if (!name) add('trigger', 'error', `${s.id}: trigger: ${t} needs a name after the colon (${kind}:<${TRIGGER_NAME[kind]}>)`, file)
+    else if (kind === 'event' && !emitted.has(name)) add('trigger', 'warning', `${s.id}: trigger: ${t}, but no story emits ${name} (emits: in its story.md)`, file)
+  }
+
+  // The stories' events name states their records have, and some story moves a record into each state but the first.
+  if (repo.model) {
+    const model = repo.model
+    for (const s of stories) {
+      const events = [...s.emits.map(e => ['emits', e]), ...s.trigger.filter(t => t.startsWith('event:')).map(t => ['trigger: event:', t.slice(6).trim()])]
+      for (const [how, e] of events) {
+        const found = recordOf(model, e!)
+        if (!found || RECORD_EVENTS.includes(found.rest) || found.record.states.some(st => st.slug === found.rest)) continue
+        const all = [...found.record.states.map(st => st.slug), ...RECORD_EVENTS].map(x => `${found.record.slug}.${x}`)
+        add('model', 'error', `${s.id}: ${how === 'emits' ? 'emits ' : how}${e}, but ${found.record.name} has no state ${found.rest}; its events are ${all.join(', ')}`, `${s.dir}/story.md`)
+      }
+    }
+    const emitted = new Set(stories.flatMap(s => s.emits))
+    for (const r of model) for (const st of r.states)
+      if (!startStates(r).includes(st) && !emitted.has(`${r.slug}.${st.slug}`))
+        add('model', 'warning', `${r.name}: no story emits ${r.slug}.${st.slug}, so nothing moves a ${r.name} to ${st.name}`, `${config.storiesDir}/MODEL.md`)
+  }
 
   for (const f of unclaimed(repo))
     add('unclaimed-code', 'warning', `no story claims it; name it in a story's implementedBy:, or list it under "unspecified" in storyspec.config.json if no story should cover it`, f)
@@ -166,6 +206,14 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
   }
 
   return out
+}
+
+export const TRIGGER_KINDS = ['actor', 'event', 'schedule', 'external']
+const TRIGGER_NAME: Record<string, string> = { actor: 'role', event: 'event', schedule: 'name', external: 'system' }
+/** `event:vendor.review` → { kind: 'event', name: 'vendor.review' }; the name is everything after the first colon. */
+export const parseTrigger = (t: string) => {
+  const at = t.indexOf(':')
+  return at < 0 ? { kind: t, name: '' } : { kind: t.slice(0, at).trim(), name: t.slice(at + 1).trim() }
 }
 
 /** Each loop in the stories' build order, once, as the IDs around it. */

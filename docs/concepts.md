@@ -25,6 +25,12 @@ A story's whole history is `git log stories/S-001-*`, a review of S-001 touches 
 | `proof` | you, optional | The tiers every scenario needs, comma-separated (`local, deployed`), unless a scenario's tag says otherwise |
 | `implementedBy` | you, optional | The files that implement the story when they aren't TypeScript in its folder, comma-separated: `implementedBy: app/usecases/publish.py, app/entry/http.py` |
 | `after` | you, optional | Stories this one is built after, comma-separated: the order the product grows in, not a change in behaviour. TRACE.md shows it, and the `after` rule checks the stories exist and the order never loops |
+| `trigger` | you, optional | What starts the story, as `kind:name`: `actor:<role>` (a person in a role), `event:<event>` (another story emitted it), `schedule:<name>` (time passed) or `external:<system>` (another system called in). One per story. TRACE.md shows it beside the story and lists every trigger in a Triggers table |
+| `emits` | you, optional | Events the story emits, comma-separated. A story whose trigger is `event:<name>` starts when one is emitted, so the Triggers table shows how stories hand on to each other |
+
+### Organising stories
+
+`epic` is the area of the product a story belongs to. `trigger` is what starts it. Persona alone doesn't organise stories well: in a workflow app, half the stories start when another story changes something (a vendor moving to Review notifies its reviewer), when time passes, or when another system calls in, and no person starts them. So the trigger says who or what *starts* the story, and the "As a… I want… so that…" text says who *benefits*. When no person starts a story, keep the "so that" (why it matters) and name whoever benefits, even if that is the organisation.
 
 ## Requirement and scenarios
 
@@ -52,8 +58,29 @@ Record them under `### Decisions` in spec.md, one bullet each, and say which kin
 
 - **Pinned:** name the scenario that proves it, and every implementation must agree. Add the scenario if there isn't one.
 - **Free:** any reasonable choice is acceptable. The bullet records what this implementation chose, so a reader or an agent knows it was a choice.
+- **Open:** nobody has answered it yet, and only someone else can (a client's approval threshold, a risk team's weights). Write `(open)` and name the scenarios that wait for it: `- Approval threshold in USD a year (open); S-003.1`. Those scenarios are *blocked*: they need no test yet, TRACE.md shows them as blocked, and their story can't be done. A test of a blocked scenario is a warning, because it had to assume an answer nobody gave. To answer the decision, replace `(open)` with the answer; the scenarios it names become its pins.
 
-The `decisions` rule errors on a pin to a scenario that doesn't exist, and warns on a decision that is neither pinned nor free. TRACE.md lists every decision. When you find a silent choice that matters (a bug report, a regeneration that differs), pin it.
+The `decisions` rule errors on a pin to a scenario that doesn't exist, and warns on a decision that is open or is neither pinned, free nor open. TRACE.md lists every decision. When you find a silent choice that matters (a bug report, a regeneration that differs), pin it.
+
+## The model
+
+Many products move records through states: a vendor goes from Draft to Review to Approved. Write the records and their states once, in `stories/MODEL.md`:
+
+```markdown
+# Model
+
+## Vendor
+
+Notes about the record are fine; the trace reads only the transitions.
+
+- Draft → Review → Finance approval → Approved
+- Review → Approved
+- Finance approval → Rejected
+```
+
+Each `## Name` is a record, and each bullet of state names joined by `→` (or `->`) lists transitions. A state no transition leads to is where records start. Each record has the events `<record>.<state>` (entering a state, as slugs: `vendor.finance-approval`), `<record>.created` and `<record>.changed`, which stories name in `emits:` and `trigger: event:`.
+
+The `model` rule errors on an event for a state the record doesn't have, and warns on a state that no story moves a record into. TRACE.md gets a Model section: for each record, each state, the stories that move a record into it, the stories that entering it starts, and the states that can follow. Fields aren't modelled; they belong to the app's code.
 
 ## Lifecycle
 
