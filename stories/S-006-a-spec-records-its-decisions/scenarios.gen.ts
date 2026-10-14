@@ -8,6 +8,10 @@ export const gen = {
     'S-006.3': 'A decision marked free is accepted',
     'S-006.4': 'A decision neither pinned nor free is a warning',
     'S-006.5': 'TRACE.md lists the decisions',
+    'S-006.6': 'An open decision blocks the scenarios it names',
+    'S-006.7': 'A test of a blocked scenario is a warning',
+    'S-006.8': 'An open decision that names no scenario is a warning',
+    'S-006.9': 'A quoted (open) isn\'t the marker',
   },
 } as const
 

@@ -64,6 +64,6 @@ export const trace = async (root: string, opts: TraceOptions = {}): Promise<Trac
     findings.push({ rule: 'tests', severity: 'error', message: `"${tierRun(config, tier).command}" did not write ${reportPaths(config.testReport).join(' or ')}` })
   const rs = rows(repo, proof, derived)
   const ports = portCoverage(repo, proof, tier)
-  if (opts.write !== false) writeFileSync(join(root, config.storiesDir, 'TRACE.md'), traceMarkdown(rs, ports))
+  if (opts.write !== false) writeFileSync(join(root, config.storiesDir, 'TRACE.md'), traceMarkdown(rs, ports, repo.model))
   return { rows: rs, ports, findings, ok: !findings.some(f => f.severity === 'error') }
 }

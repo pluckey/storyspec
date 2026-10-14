@@ -1,6 +1,6 @@
 # Working in this repo
 
-<!-- storyspec:begin 0.7.0 sha=51c3d8865d313a26 -->
+<!-- storyspec:begin 0.7.0 sha=62ebb9e303fbaa4c -->
 <!-- Managed by storyspec. `npx storyspec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
@@ -8,7 +8,7 @@ This repo is organized around **stories**. A story owns its spec, its implementa
 
 ```
 stories/S-001-member-saves-a-note/
-  story.md                As a… I want… so that…  (front matter: id, title, epic, status, version)
+  story.md                As a… I want… so that…  (front matter: id, title, epic, status, version, optional trigger)
   spec.md                 EARS requirement {#S-001}, GIVEN/WHEN/THEN scenarios {#S-001.1} …
   save-note.ts            the use case: one exported factory, first line // @implements S-001
   save-note.types.ts      request and response types
@@ -17,11 +17,13 @@ stories/S-001-member-saves-a-note/
 ```
 
 - **Code that isn't TypeScript in the story's folder** (Python, Terraform, a policy file) is listed in story.md under `implementedBy:` instead of tagged `@implements`, and its tests name scenarios in the JUnit report (`test_S_001_1_…`). `layers` checks Python imports too; see storyspec's docs/rules.md.
-- **Record the judgment calls the scenarios don't pin** under `### Decisions` in spec.md (token lifetime, slug clashes, case rules): `pinned by S-00x.n` when every implementation must agree (add that scenario), or `(free)` when any reasonable choice will do. A regeneration otherwise makes them again, silently.
+- **Record the judgment calls the scenarios don't pin** under `### Decisions` in spec.md (token lifetime, slug clashes, case rules): `pinned by S-00x.n` when every implementation must agree (add that scenario), or `(free)` when any reasonable choice will do. A regeneration otherwise makes them again, silently. A question only someone else can answer (a client's threshold) is `(open)`, naming the scenarios that wait for it: never invent an answer, and don't write tests for those scenarios until it is answered.
+- **Records that move through states** (a vendor from Draft to Approved) are listed once in `stories/MODEL.md`: `## Vendor` then bullets like `- Draft → Review → Approved`. A story that moves a record into a state emits `<record>.<state>` (`vendor.review`); `<record>.created` and `<record>.changed` exist too.
 - **New behaviour gets a new story:** `npm run story -- "<title>" --epic "<epic>"`. Don't repurpose another story's folder.
 - **The folder is `<ID>-<slug of the title>`.** If you change a title, rename the folder to match (keep the ID) and run `npm run gen`; the trace warns when they drift.
 - **Changed behaviour revises its story:** edit spec.md, bump `version`, add a line under Revisions, update the tests. Don't open a second story for the same behaviour.
 - **Status:** draft → ready → in-progress. **Never write `done`**: the trace shows a story as done when every scenario is proven in every tier it needs (see Proof tiers). A retired story becomes `superseded`: it stays in the trace for history and is exempt from the rules.
+- **Say what starts a story** with `trigger:` in story.md: `actor:<role>`, `event:<event>`, `schedule:<name>` or `external:<system>`, one per story; it is the requirement's WHEN. A story that causes an event lists it under `emits:`. When no person starts the story, the "As a…" names whoever benefits.
 - **One requirement per story, one sentence:** `WHEN <trigger> THE SYSTEM SHALL <response>.` It says what the story does.
 - **Every condition, edge case and error is a scenario,** not another SHALL line. That way each one gets exactly one test, and nothing in the spec is untested. (The trace fails if the requirement has more than one SHALL.)
 - **Order of work:** scenarios (get them approved) → `npm run gen` → failing tests → use case → wiring → `npm run check`.

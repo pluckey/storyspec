@@ -31,7 +31,7 @@ story(gen, {
   'S-006.4': async () => {
     const found = await decisionFindings(withDecisions('Usernames are case-sensitive'))
     expect(found.map(f => f[0])).toEqual(['warning'])
-    expect(found[0]![1]).toContain('neither pinned by a scenario')
+    expect(found[0]![1]).toContain('neither pinned by a scenario, marked free, nor marked open')
   },
 
   'S-006.5': async () => {
@@ -41,5 +41,31 @@ story(gen, {
     expect(md).toContain('## Decisions')
     expect(md).toContain('| S-001 | Greeting punctuation: an exclamation mark; pinned by S-001.1 | S-001.1 |')
     expect(md).toContain('| S-001 | Token lifetime: 7 days (free) | free |')
+  },
+
+  'S-006.6': async () => {
+    const root = withDecisions('Approval threshold (open); S-001.3')
+    edit(root, `${STORY}/spec.md`, s => s.replace('### Decisions', '#### Scenario: Greets a big spender first {#S-001.3}\n\n### Decisions'))
+    const { findings } = await trace(root, { write: false })
+    expect(findings.filter(f => f.message.startsWith('S-001.3'))).toEqual([])
+    expect(findings.filter(f => f.rule === 'decisions').map(f => [f.severity, f.message]))
+      .toEqual([['warning', 'S-001: the decision "Approval threshold (open); S-001.3" is open; it blocks S-001.3 until someone answers it']])
+    await trace(root)
+    expect(readFileSync(join(root, 'stories/TRACE.md'), 'utf8')).toContain('| S-001.3 | ⧗ blocked: open decision |')
+  },
+
+  'S-006.7': async () => {
+    const found = await decisionFindings(withDecisions('Greeting punctuation (open); S-001.1'))
+    expect(found).toContainEqual(['warning',
+      'S-001.1: it has a test, but its decision "Greeting punctuation (open); S-001.1" is open: the test assumes an answer nobody gave'])
+  },
+
+  'S-006.9': async () => {
+    expect(await decisionFindings(withDecisions('Unanswered decisions are written "(open)" (free)'))).toEqual([])
+  },
+
+  'S-006.8': async () => {
+    expect(await decisionFindings(withDecisions('Data retention (open)')))
+      .toEqual([['warning', 'S-001: the decision "Data retention (open)" is open']])
   },
 })
