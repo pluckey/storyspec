@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>storyspec ui</title>
+<style>
+/* Layout: one fixed screen (top bar + tabs, a KPI strip, a toolbar, one grid, a status bar); details open in a right sheet. Dark only, by request. */
+:root {
+  --bg: #09090b;
+  --card: #0e0e11;
+  --muted: #18181b;
+  --hover: #1b1b1f;
+  --border: #27272a;
+  --fg: #fafafa;
+  --fg-muted: #a1a1aa;
+  --fg-dim: #71717a;
+  --primary: #fafafa;
+  --primary-fg: #09090b;
+  --primary-hover: #e4e4e7;
+  --ring: #d4d4d8;
+  --ok: #34d399;   --ok-bg: rgba(52, 211, 153, 0.12);
+  --bad: #f87171;  --bad-bg: rgba(248, 113, 113, 0.12);
+  --warn: #fbbf24; --warn-bg: rgba(251, 191, 36, 0.12); --warn-line: rgba(251, 191, 36, 0.4);
+  --info: #a5b4fc; --info-bg: rgba(165, 180, 252, 0.12); --info-line: rgba(165, 180, 252, 0.35);
+  --add-bg: rgba(52, 211, 153, 0.1); --del-bg: rgba(248, 113, 113, 0.1);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 13px; line-height: 1.45; overflow: hidden; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto minmax(0, 1fr) auto; }
+
+.top { display: flex; align-items: center; gap: 12px 16px; padding: 10px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: -0.01em; font-family: var(--mono); font-size: 13px; }
+.logo i { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--fg); position: relative; display: inline-block; }
+.logo i::after { content: ""; position: absolute; left: 3px; right: 3px; top: 5px; height: 1.5px; background: var(--fg); box-shadow: 0 3px 0 var(--fg); }
+.crumb { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); font-family: var(--mono); font-size: 12px; color: var(--fg-muted); white-space: nowrap; }
+.crumb b { color: var(--fg); font-weight: 500; }
+.tabs { display: inline-flex; gap: 2px; padding: 3px; background: var(--muted); border-radius: 8px; overflow-x: auto; max-width: 100%; }
+.tab { border: 0; background: transparent; color: var(--fg-muted); padding: 4px 12px; border-radius: 6px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { background: var(--bg); color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+.tab .n { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); }
+.tab .n.warn { color: var(--warn); }
+.spacer { flex: 1; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); font-weight: 500; white-space: nowrap; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn.primary:hover { background: var(--primary-hover); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--fg-muted); }
+.btn.ghost:hover { color: var(--fg); background: var(--hover); }
+.btn.sm { height: 26px; padding: 0 9px; font-size: 12px; }
+.btn.warn { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.kbd { font-family: var(--mono); font-size: 10.5px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; color: var(--fg-dim); }
+.spin { display: inline-block; }
+.spin.on { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; padding: 14px 20px 0; }
+.kpi { font: inherit; color: inherit; border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 11px 14px; display: flex; flex-direction: column; gap: 5px; min-width: 0; text-align: left; }
+button.kpi:hover { background: var(--hover); }
+.kpi .lbl { color: var(--fg-muted); font-size: 12px; display: flex; justify-content: space-between; gap: 8px; }
+.kpi .val { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.kpi .val small { font-size: 13px; color: var(--fg-dim); font-weight: 500; }
+.kpi .sub { color: var(--fg-dim); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi.warn .val { color: var(--warn); }
+.meter { height: 4px; border-radius: 99px; background: var(--muted); overflow: hidden; display: flex; }
+.meter i { height: 100%; transition: width 0.5s ease; }
+
+.toolbar { display: flex; align-items: center; gap: 8px; padding: 14px 20px 10px; flex-wrap: wrap; }
+.search { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); width: 240px; max-width: 100%; }
+.search input { border: 0; background: transparent; outline: none; width: 100%; }
+.search input::placeholder { color: var(--fg-dim); }
+.chip { height: 30px; padding: 0 10px; border: 1px dashed var(--border); border-radius: 6px; background: transparent; color: var(--fg-muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.chip[aria-pressed="true"] { border-style: solid; color: var(--fg); background: var(--muted); }
+.chip .n { font-family: var(--mono); font-size: 10.5px; color: var(--fg-dim); }
+.seg { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 6px; }
+.seg span { color: var(--fg-dim); font-size: 12px; padding: 0 6px 0 4px; }
+.seg button { border: 0; background: transparent; color: var(--fg-muted); height: 24px; padding: 0 8px; border-radius: 4px; font-size: 12px; }
+.seg button[aria-pressed="true"] { background: var(--muted); color: var(--fg); }
+.toolbar .count { color: var(--fg-dim); font-family: var(--mono); font-size: 11.5px; margin-left: auto; }
+
+.gridwrap { min-height: 0; margin: 0 20px; border: 1px solid var(--border); border-radius: 10px; overflow: auto; background: var(--card); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+thead th { position: sticky; top: 0; z-index: 1; background: var(--card); text-align: left; font-weight: 500; color: var(--fg-muted); font-size: 12px; height: 34px; padding: 0 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+thead th button { border: 0; background: none; padding: 0; color: inherit; display: inline-flex; gap: 4px; align-items: center; font-weight: 500; }
+thead th button:hover { color: var(--fg); }
+thead th .arrow { color: var(--fg-dim); font-size: 10px; }
+tbody td { height: 36px; padding: 0 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.row { cursor: pointer; }
+tbody tr.row:hover td { background: var(--hover); }
+tbody tr.row[aria-selected="true"] td { background: var(--muted); }
+tbody tr.group td { height: 30px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-dim); background: var(--bg); cursor: default; }
+td.wrap { white-space: normal; min-width: 260px; padding-block: 8px; }
+.id { font-family: var(--mono); font-size: 12px; color: var(--fg-muted); }
+.dim { color: var(--fg-dim); }
+.mono { font-family: var(--mono); font-size: 12px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 99px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.ok { color: var(--ok); background: var(--ok-bg); }
+.badge.bad { color: var(--bad); background: var(--bad-bg); }
+.badge.warn { color: var(--warn); background: var(--warn-bg); }
+.badge.info { color: var(--info); background: var(--info-bg); }
+.badge.none { color: var(--fg-muted); background: var(--muted); }
+.tag { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border: 1px solid var(--border); border-radius: 5px; font-family: var(--mono); font-size: 11px; color: var(--fg-muted); white-space: nowrap; }
+.tag.event { color: var(--info); border-color: var(--info-line); }
+.tag.warn { color: var(--warn); border-color: var(--warn-line); }
+.tag + .tag { margin-left: 4px; }
+.sq { display: inline-flex; gap: 3px; vertical-align: middle; }
+.sq i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.sq .proven { background: var(--ok); }
+.sq .failing { background: var(--bad); }
+.sq .notest { border: 1.5px solid var(--fg-dim); }
+.sq .blocked { border: 1.5px dashed var(--warn); }
+.empty-row td { text-align: center; color: var(--fg-dim); height: 90px; white-space: normal; }
+
+.status { display: flex; align-items: center; gap: 18px; padding: 8px 20px; margin-top: 10px; border-top: 1px solid var(--border); color: var(--fg-dim); font-family: var(--mono); font-size: 11.5px; flex-wrap: wrap; }
+.status b { color: var(--fg-muted); font-weight: 500; }
+.status .ok::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); margin-right: 6px; vertical-align: middle; }
+.status button { border: 0; background: none; padding: 0; font: inherit; color: var(--fg-dim); }
+.status button:hover { color: var(--fg); }
+.status button.has { color: var(--warn); }
+
+.model { padding: 18px; display: flex; flex-direction: column; gap: 18px; min-width: 760px; }
+.model h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.model p { margin: 0; color: var(--fg-muted); max-width: 70ch; }
+.model svg { width: 100%; height: auto; display: block; }
+.model .node rect { fill: var(--muted); stroke: var(--border); }
+.model .node.start rect { stroke: var(--fg-dim); }
+.model .node.end rect { stroke: var(--warn-line); stroke-dasharray: 4 3; }
+.model .node text { fill: var(--fg); font-family: var(--sans); font-size: 13px; font-weight: 500; }
+.model .node .note { fill: var(--warn); font-family: var(--mono); font-size: 10.5px; font-weight: 400; }
+.model .edge path { fill: none; stroke: var(--fg-dim); stroke-width: 1.4; }
+.model .edge.gap path { stroke: var(--bad); stroke-dasharray: 5 4; }
+.model .edge text { fill: var(--info); font-family: var(--mono); font-size: 11px; }
+.model .edge.gap text { fill: var(--bad); }
+.model .edge .bg { fill: var(--card); stroke: none; }
+.model .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--fg-dim); font-size: 12px; }
+
+.scrim { position: fixed; inset: 0; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+.sheet { position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100%); background: var(--bg); border-left: 1px solid var(--border); z-index: 11; transform: translateX(100%); transition: transform 0.25s ease; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet.on { transform: none; }
+.sheet-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.sheet-head .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet-head h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.sheet-head p { margin: 0; color: var(--fg-muted); }
+.sheet-body { overflow: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 18px; }
+.sheet-body > *, .section > * { flex-shrink: 0; }
+code { font-family: var(--mono); font-size: 0.92em; padding: 0 4px; border-radius: 4px; background: var(--muted); color: var(--fg); }
+details.diff > summary { list-style: none; cursor: pointer; }
+details.diff > summary::-webkit-details-marker { display: none; }
+details.diff > summary .file::before { content: "▸ "; color: var(--fg-dim); }
+details.diff[open] > summary .file::before { content: "▾ "; }
+.sheet-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.sheet-foot .hint { margin-right: auto; color: var(--fg-dim); font-size: 12px; }
+.x { width: 28px; height: 28px; border-radius: 6px; border: 0; background: transparent; color: var(--fg-muted); font-size: 16px; line-height: 1; }
+.x:hover { background: var(--hover); color: var(--fg); }
+.section { display: flex; flex-direction: column; gap: 8px; }
+.section > h3 { margin: 0; font-size: 11px; font-weight: 500; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.06em; display: flex; justify-content: space-between; align-items: center; }
+.box { border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 10px 12px; }
+.req { font-family: var(--mono); font-size: 12px; line-height: 1.65; }
+.req b { color: var(--info); font-weight: 500; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sc { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: var(--card); }
+.sc.blocked { border-color: var(--warn-line); border-style: dashed; }
+.sc-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sc-top strong { font-weight: 500; }
+.lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.lines li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.kw { font-family: var(--mono); font-size: 11px; color: var(--info); }
+.note { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; border-radius: 6px; font-size: 12px; }
+.note.warn { background: var(--warn-bg); color: var(--warn); }
+.note.info { background: var(--info-bg); color: var(--info); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; color: var(--fg-muted); }
+.input, textarea.input { width: 100%; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); padding: 7px 10px; outline: none; }
+.input:focus { border-color: var(--ring); }
+textarea.input { font-family: var(--mono); font-size: 12px; line-height: 1.6; resize: vertical; min-height: 110px; }
+.radio { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.radio:has(input:checked) { border-color: var(--ring); background: var(--muted); }
+.radio:has(input:disabled) { opacity: 0.5; cursor: default; }
+.radio input { margin-top: 3px; accent-color: var(--fg); }
+.radio small { display: block; color: var(--fg-dim); }
+.diff { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; }
+.diff .file { padding: 6px 10px; background: var(--muted); color: var(--fg-muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 8px; word-break: break-all; }
+.diff .file > span:last-child { flex-shrink: 0; word-break: normal; }
+.diff pre { margin: 0; padding: 6px 0; overflow-x: auto; }
+.diff span { display: block; padding: 0 10px; white-space: pre-wrap; word-break: break-word; }
+.diff .add { background: var(--add-bg); color: var(--ok); }
+.diff .del { background: var(--del-bg); color: var(--bad); }
+.diff .ctx { color: var(--fg-dim); }
+.finding { display: flex; gap: 10px; align-items: flex-start; }
+.finding .rule { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); }
+
+.toast { position: fixed; bottom: calc(52px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translate(-50%, 12px); background: var(--fg); color: var(--primary-fg); padding: 8px 14px; border-radius: 8px; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.2s; z-index: 20; max-width: calc(100% - 32px); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 860px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(n+5) { display: none; }
+  .top, .toolbar, .kpis { padding-left: 16px; padding-right: 16px; }
+  .gridwrap { margin: 0 16px; }
+  .hide-sm { display: none !important; }
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <span class="logo"><i aria-hidden="true"></i>storyspec</span>
+    <span class="crumb hide-sm" id="crumb"></span>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+    <span class="spacer"></span>
+    <button class="btn" id="runTrace" title="Read the files again and rerun the checks (uses the last test report; run storyspec trace to rerun tests)"><span class="spin" id="spin">⟳</span> Refresh</button>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="toolbar">
+    <label class="search"><span class="dim" aria-hidden="true">⌕</span><input id="q" placeholder="Filter…" aria-label="Filter rows" autocomplete="off"><span class="kbd hide-sm">/</span></label>
+    <div id="chips" style="display:contents"></div>
+    <span class="count" id="rowCount"></span>
+  </div>
+
+  <div class="gridwrap" id="gridwrap"></div>
+
+  <footer class="status">
+    <span class="ok" id="sTrace"></span>
+    <button id="sChanges">no changes</button>
+    <span class="hide-sm" id="sRoot"></span>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" aria-hidden="true">
+  <div class="sheet-head"><div class="row"><span class="id" id="sheetEyebrow"></span><button class="x" id="closeSheet" aria-label="Close">✕</button></div><h2 id="sheetTitle"></h2><p id="sheetSub"></p></div>
+  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sheet-foot" id="sheetFoot"></div>
+</aside>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// storyspec ui. Reads /api/state (the repo as the trace sees it) and sends each change to /api/edit, which edits one
+// story's files. Nothing is stored here: reload and the page shows the files again.
+let S = { stories: [], findings: [], model: null, changes: [], project: '', storiesDir: 'stories', ok: true };
+const $ = (s) => document.querySelector(s);
+const code = (html) => html.replace(/`([^`]+)`/g, '<code>$1</code>');
+const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const slug = (t) => t.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const state = { tab: 'decisions', q: '', chips: { decisions: 'open', stories: 'all', scenarios: 'all', findings: 'all' }, group: 'epic', sort: {}, selected: null, busy: false, loaded: false, error: '' };
+const TABS = ['decisions', 'stories', 'scenarios', 'model', 'findings'];
+const NAMES = { decisions: 'Decisions', stories: 'Stories', scenarios: 'Scenarios', model: 'Model', findings: 'Findings' };
+
+// ---------- the repo, as the server read it ----------
+const story = (id) => S.stories.find((s) => s.id === id);
+const allDecisions = () => S.stories.flatMap((s) => s.decisions.map((d, i) => ({ ...d, story: s, i, key: `${s.id}#${i}` })));
+// As TRACE.md reads them: a decision that names its scenarios is pinned, even if it also says free.
+const decState = (d) => d.open ? 'open' : d.pinnedBy.length ? 'pinned' : d.free ? 'free' : 'neither';
+const decLabel = (d) => d.text.match(/^D-\d+/)?.[0] ?? `${d.story.id} · ${d.i + 1}`;
+const decTitle = (d) => (d.open ? d.question : d.text).replace(/^D-\d+\s+/, '');
+const allScenarios = () => S.stories.flatMap((s) => s.scenarios.map((sc) => ({ ...sc, story: s })));
+const blocker = (id) => allDecisions().find((d) => d.open && d.pinnedBy.includes(id));
+function scState(sc) {
+  if (sc.blocked && !sc.tested) return 'blocked';
+  const runnable = sc.tiers.some((t) => t.tier !== 'manual');
+  if (!sc.tested && runnable) return 'notest';
+  if (sc.tiers.some((t) => t.state === 'failed')) return 'failing';
+  if (sc.tiers.some((t) => t.state === 'stale')) return 'stale';
+  if (sc.tiers.length && sc.tiers.every((t) => t.state === 'proven')) return 'proven';
+  return 'awaiting';
+}
+const proven = () => allScenarios().filter((x) => scState(x) === 'proven').length;
+const records = () => S.model ?? [];
+const evOf = (r, st) => `${r.slug}.${slug(st)}`;
+const emitters = (e) => S.stories.filter((s) => s.emits.includes(e)).map((s) => s.id);
+const listeners = (e) => S.stories.filter((s) => s.trigger === `event:${e}`).map((s) => s.id);
+const startStates = (r) => r.states.filter((st) => !r.transitions.some(([, to]) => to === st.name)).map((st) => st.name);
+
+// Where a finding is fixed: the decision, scenario or story it names.
+function findingTarget(f) {
+  if (f.rule === 'decisions') {
+    const d = allDecisions().find((x) => f.message.includes(`"${x.text}"`));
+    if (d) return { tab: 'decisions', key: d.key, act: d.open ? 'Answer' : 'Open' };
+  }
+  const sc = f.message.match(/^([A-Z]+-\d+\.\d+)/)?.[1];
+  if (sc && allScenarios().some((x) => x.id === sc)) return { tab: 'scenarios', key: sc, act: 'Open' };
+  const st = (f.message.match(/^([A-Z]+-\d+)\b/) ?? f.file?.match(/\/([A-Z]+-\d+)-/))?.[1];
+  if (st && story(st)) return { tab: 'stories', key: st, act: 'Open' };
+  if (f.rule === 'model') return { tab: 'model', act: 'Open' };
+  return null;
+}
+
+// ---------- chrome ----------
+function renderTabs() {
+  const open = allDecisions().filter((d) => d.open).length;
+  const counts = { decisions: allDecisions().length, stories: S.stories.length, scenarios: allScenarios().length, model: records().length, findings: S.findings.length };
+  $('#tabs').innerHTML = TABS.map((t, i) => `<button class="tab" role="tab" aria-selected="${state.tab === t}" data-tab="${t}" title="${NAMES[t]} (${i + 1})">${NAMES[t]} <span class="n">${counts[t]}</span>${t === 'decisions' && open ? `<span class="n warn">· ${open} open</span>` : ''}</button>`).join('');
+}
+
+function renderKpis() {
+  const scs = allScenarios(), n = scs.length || 1;
+  const p = proven(), failing = scs.filter((x) => scState(x) === 'failing').length;
+  const blocked = scs.filter((x) => scState(x) === 'blocked').length;
+  const open = allDecisions().filter((d) => d.open);
+  const by = (st) => S.stories.filter((s) => s.status === st).length;
+  const errors = S.findings.filter((f) => f.severity === 'error').length;
+  $('#kpis').innerHTML = `
+    <button class="kpi" data-jump="scenarios:all"><div class="lbl">Proven</div><div class="val">${p}<small> / ${scs.length}</small></div><div class="meter"><i style="width:${(p / n) * 100}%;background:var(--ok)"></i><i style="width:${(failing / n) * 100}%;background:var(--bad)"></i></div></button>
+    <button class="kpi ${blocked ? 'warn' : ''}" data-jump="scenarios:blocked"><div class="lbl">Blocked scenarios</div><div class="val">${blocked}</div><div class="sub">waiting on an answer</div></button>
+    <button class="kpi ${open.length ? 'warn' : ''}" data-jump="decisions:open"><div class="lbl">Open decisions</div><div class="val">${open.length}</div><div class="sub">${open.filter((d) => d.pinnedBy.length).length} block scenarios</div></button>
+    <button class="kpi" data-jump="stories:draft"><div class="lbl">Stories</div><div class="val">${by('done')}<small> done · ${by('ready')} ready · ${by('draft')} draft</small></div><div class="sub">approve a draft to make it ready</div></button>
+    <button class="kpi ${errors ? 'warn' : ''}" data-jump="findings:all"><div class="lbl">Findings</div><div class="val">${S.findings.length}</div><div class="sub">${errors} errors · ${S.findings.length - errors} warnings</div></button>`;
+}
+
+const CHIPS = {
+  decisions: [['open', 'Open'], ['blocking', 'Blocking'], ['free', 'Free'], ['pinned', 'Pinned'], ['all', 'All']],
+  stories: [['all', 'All'], ['draft', 'Draft'], ['ready', 'Ready'], ['in-progress', 'In progress'], ['done', 'Done'], ['blocked', 'Has blocked']],
+  scenarios: [['all', 'All'], ['blocked', 'Blocked'], ['notest', 'No test'], ['failing', 'Failing'], ['proven', 'Proven']],
+  findings: [['all', 'All'], ['error', 'Errors'], ['warning', 'Warnings']],
+};
+function renderChips() {
+  const list = CHIPS[state.tab];
+  if (!list) { $('#chips').innerHTML = ''; return; }
+  let html = list.map(([k, l]) => `<button class="chip" aria-pressed="${state.chips[state.tab] === k}" data-chip="${k}">${l} <span class="n">${rowsFor(state.tab, k, '').length}</span></button>`).join('');
+  if (state.tab === 'stories' && S.stories.some((x) => x.trigger)) html += `<span class="seg hide-sm"><span>group</span>${['epic', 'trigger', 'none'].map((g) => `<button aria-pressed="${state.group === g}" data-group="${g}">${g}</button>`).join('')}</span>`;
+  $('#chips').innerHTML = html;
+}
+
+function renderStatus() {
+  const errors = S.findings.filter((f) => f.severity === 'error').length;
+  const el = $('#sTrace');
+  el.className = state.error ? '' : S.ok ? 'ok' : '';
+  el.textContent = state.error ? state.error : state.busy ? 'reading the repo…' : `trace ${S.ok ? 'OK' : 'failing'} · ${errors} errors · ${S.findings.length - errors} warnings`;
+  const files = S.changes.length;
+  const b = $('#sChanges');
+  b.textContent = files ? `${files} file${files > 1 ? 's' : ''} changed · review` : 'no uncommitted changes';
+  b.classList.toggle('has', !!files);
+  $('#crumb').innerHTML = `${esc(S.project)} · <b>${esc(S.storiesDir)}/</b>`;
+  $('#sRoot').textContent = 'files are the source of truth · commit with git';
+}
+
+// ---------- rows ----------
+function rowsFor(tab, chip = state.chips[tab], q = state.q) {
+  const match = (text) => !q || text.toLowerCase().includes(q.toLowerCase());
+  if (tab === 'decisions') return allDecisions().filter((d) => {
+    const st = decState(d);
+    if (chip === 'open' && !d.open) return false;
+    if (chip === 'blocking' && !(d.open && d.pinnedBy.length)) return false;
+    if ((chip === 'free' || chip === 'pinned') && st !== chip) return false;
+    return match(`${d.story.id} ${d.text}`);
+  });
+  if (tab === 'stories') return S.stories.filter((s) => {
+    if (chip === 'blocked') { if (!s.scenarios.some((x) => scState(x) === 'blocked')) return false; }
+    else if (chip !== 'all' && s.status !== chip) return false;
+    return match(`${s.id} ${s.title} ${s.trigger} ${s.epic}`);
+  });
+  if (tab === 'scenarios') return allScenarios().filter((x) => (chip === 'all' || scState(x) === chip) && match(`${x.id} ${x.title} ${x.story.title}`));
+  if (tab === 'findings') return S.findings.filter((f) => (chip === 'all' || f.severity === chip) && match(`${f.rule} ${f.message} ${f.file ?? ''}`));
+  return [];
+}
+
+const stateBadge = (st) => ({ open: '<span class="badge warn">open</span>', free: '<span class="badge none">free</span>', pinned: '<span class="badge ok">pinned</span>', neither: '<span class="badge bad">neither</span>' }[st]);
+const statusBadge = (st) => ({ draft: '<span class="badge none">draft</span>', ready: '<span class="badge info">ready</span>', 'in-progress': '<span class="badge warn">in progress</span>', done: '<span class="badge ok">done</span>', superseded: '<span class="badge none">superseded</span>' }[st] ?? esc(st));
+const scBadge = (st) => ({ blocked: '<span class="badge warn">blocked</span>', notest: '<span class="badge none">no test</span>', proven: '<span class="badge ok">proven</span>', failing: '<span class="badge bad">failing</span>', stale: '<span class="badge warn">stale</span>', awaiting: '<span class="badge none">not run</span>' }[st]);
+const trig = (t) => t ? `<span class="tag ${t.startsWith('event:') ? 'event' : ''}">${esc(t)}</span>` : '<span class="dim">—</span>';
+const SQ = { proven: 'proven', failing: 'failing', blocked: 'blocked' };
+const squares = (s) => `<span class="sq">${s.scenarios.map((x) => `<i class="${SQ[scState(x)] ?? 'notest'}" title="${esc(x.id)} ${esc(x.title)}: ${scState(x)}"></i>`).join('')}</span>`;
+
+const COLS = {
+  decisions: [
+    { key: 'id', label: 'Decision', sort: (d) => d.key, cell: (d) => `<span class="id">${esc(decLabel(d))}</span>` },
+    { key: 'q', label: 'Question or answer', cls: 'wrap', sort: (d) => d.question, cell: (d) => esc(decTitle(d)) },
+    { key: 'story', label: 'Story', sort: (d) => d.story.id, cell: (d) => `<span class="id">${d.story.id}</span> <span class="dim hide-sm">${esc(d.story.title)}</span>` },
+    { key: 'state', label: 'State', sort: (d) => ['open', 'neither', 'pinned', 'free'].indexOf(decState(d)), cell: (d) => stateBadge(decState(d)) },
+    { key: 'scen', label: 'Blocks or pins', sort: (d) => d.pinnedBy.length, cell: (d) => d.pinnedBy.length ? d.pinnedBy.map((x) => `<span class="tag ${d.open ? 'warn' : ''}">${esc(x)}</span>`).join('') : '<span class="dim">—</span>' },
+  ],
+  stories: [
+    { key: 'id', label: 'Story', sort: (s) => s.id, cell: (s) => `<span class="id">${s.id}</span>` },
+    { key: 'title', label: 'Title', cls: 'wrap', sort: (s) => s.title, cell: (s) => `${esc(s.title)}${s.after.length ? ` <span class="dim mono">after ${esc(s.after.join(', '))}</span>` : ''}` },
+    { key: 'trigger', label: 'Trigger', sort: (s) => s.trigger, cell: (s) => trig(s.trigger) },
+    { key: 'sc', label: 'Scenarios', sort: (s) => s.scenarios.length, cell: (s) => squares(s) },
+    { key: 'status', label: 'Status', sort: (s) => s.status, cell: (s) => `${statusBadge(s.status)} <span class="dim mono">v${esc(s.version)}</span>` },
+    { key: 'open', label: 'Open', sort: (s) => s.decisions.filter((d) => d.open).length, cell: (s) => { const n = s.decisions.filter((d) => d.open).length; return n ? `<span class="badge warn">${n}</span>` : '<span class="dim">—</span>'; } },
+  ],
+  scenarios: [
+    { key: 'id', label: 'Scenario', sort: (x) => x.id, cell: (x) => `<span class="id">${x.id}</span>` },
+    { key: 'title', label: 'Title', cls: 'wrap', sort: (x) => x.title, cell: (x) => esc(x.title) },
+    { key: 'story', label: 'Story', sort: (x) => x.story.id, cell: (x) => `<span class="dim">${esc(x.story.title)}</span>` },
+    { key: 'tier', label: 'Tiers', sort: (x) => x.tiers.length, cell: (x) => x.tiers.map((t) => `<span class="tag">${esc(t.tier)}</span>`).join('') },
+    { key: 'st', label: 'Result', sort: (x) => scState(x), cell: (x) => { const b = blocker(x.id); return `${scBadge(scState(x))}${b ? ` <span class="dim mono">${esc(decLabel(b))}</span>` : ''}`; } },
+  ],
+  findings: [
+    { key: 'sev', label: '', sort: (f) => f.severity, cell: (f) => f.severity === 'error' ? '<span class="badge bad">error</span>' : '<span class="badge warn">warning</span>' },
+    { key: 'rule', label: 'Rule', sort: (f) => f.rule, cell: (f) => `<span class="tag">${esc(f.rule)}</span>` },
+    { key: 'text', label: 'Finding', cls: 'wrap', sort: (f) => f.message, cell: (f) => esc(f.message.split('\n')[0]) },
+    { key: 'file', label: 'File', sort: (f) => f.file ?? '', cell: (f) => `<span class="dim mono">${esc(f.file ?? '')}</span>` },
+    { key: 'act', label: '', sort: () => 0, cell: (f) => { const t = findingTarget(f); return t ? `<button class="btn sm ${t.act === 'Answer' ? 'warn' : ''}" data-go="${esc(JSON.stringify(t))}">${t.act} →</button>` : ''; } },
+  ],
+};
+const rowKey = (tab, r) => tab === 'decisions' ? r.key : tab === 'stories' || tab === 'scenarios' ? r.id : null;
+const sheetFor = (tab) => ({ decisions: 'decision', stories: 'story', scenarios: 'scenario' })[tab];
+
+function sortRows(tab, rows) {
+  const s = state.sort[tab];
+  if (!s) return rows;
+  const val = COLS[tab].find((c) => c.key === s.key).sort;
+  return [...rows].sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * s.dir; });
+}
+
+function renderGrid() {
+  const tab = state.tab;
+  renderChips();
+  if (!state.loaded) { $('#gridwrap').innerHTML = `<table><tbody><tr class="empty-row"><td>${state.error ? esc(state.error) : 'Reading the stories…'}</td></tr></tbody></table>`; return; }
+  if (tab === 'model') { $('#gridwrap').innerHTML = modelHtml(); $('#rowCount').textContent = records().length ? `${records().length} record${records().length > 1 ? 's' : ''}` : ''; return; }
+  const rows = sortRows(tab, rowsFor(tab));
+  $('#rowCount').textContent = `${rows.length} row${rows.length === 1 ? '' : 's'}`;
+  const cols = COLS[tab].filter((c) => !(c.key === 'trigger' && !S.stories.some((x) => x.trigger))), s = state.sort[tab];
+  const head = `<thead><tr>${cols.map((c) => `<th>${c.label ? `<button data-sort="${c.key}">${c.label}<span class="arrow">${s?.key === c.key ? (s.dir > 0 ? '▲' : '▼') : '↕'}</span></button>` : ''}</th>`).join('')}</tr></thead>`;
+  const line = (r) => { const k = rowKey(tab, r); return `<tr class="${k ? 'row' : ''}" ${k ? `data-key="${esc(k)}" tabindex="0" aria-selected="${state.selected === k}"` : ''}>${cols.map((c) => `<td class="${c.cls ?? ''}">${c.cell(r)}</td>`).join('')}</tr>`; };
+  let body;
+  if (!rows.length) body = `<tr class="empty-row"><td colspan="${cols.length}">${tab === 'decisions' && state.chips.decisions === 'open' ? 'No open decisions: nothing waits on an answer.' : tab === 'findings' && !S.findings.length ? 'No findings. The trace is clean.' : 'Nothing matches this filter.'}</td></tr>`;
+  else if (tab === 'stories' && state.group !== 'none' && !s) {
+    const keyOf = state.group === 'epic' ? (r) => r.epic || 'no epic' : (r) => r.trigger.split(':')[0] || 'no trigger';
+    const order = state.group === 'trigger' ? ['actor', 'event', 'schedule', 'external', 'no trigger'] : [...new Set(S.stories.map((x) => x.epic || 'no epic'))];
+    const label = { actor: 'started by a person', event: 'started by an event', schedule: 'started by time', external: 'started by another system' };
+    body = order.filter((g) => rows.some((r) => keyOf(r) === g)).map((g) => `<tr class="group"><td colspan="${cols.length}">${esc(label[g] ?? g)}</td></tr>${rows.filter((r) => keyOf(r) === g).map(line).join('')}`).join('');
+  } else body = rows.map(line).join('');
+  $('#gridwrap').innerHTML = `<table>${head}<tbody>${body}</tbody></table>`;
+}
+
+// ---------- model ----------
+// Lays states out in columns by distance from where records start; a transition back to an earlier column bends below.
+function lifecycleSvg(r) {
+  const W = 150, H = 44, GX = 110, GY = 46, PAD = 30;
+  // A transition back to a state already on the path from a start is a loop; the rest decide the columns, each state
+  // one column after the furthest state that leads to it.
+  const back = new Set(), seen = new Set(), onPath = new Set();
+  const visit = (s) => { seen.add(s); onPath.add(s); for (const [f, t] of r.transitions) if (f === s) { if (onPath.has(t)) back.add(`${f}>${t}`); else if (!seen.has(t)) visit(t); } onPath.delete(s); };
+  for (const s of [...startStates(r), ...r.states.map((x) => x.name)]) if (!seen.has(s)) visit(s);
+  const forward = r.transitions.filter(([f, t]) => !back.has(`${f}>${t}`));
+  const depth = new Map();
+  const depthOf = (s) => { if (!depth.has(s)) { depth.set(s, 0); depth.set(s, Math.max(0, ...forward.filter(([, t]) => t === s).map(([f]) => depthOf(f) + 1))); } return depth.get(s); };
+  for (const st of r.states) depthOf(st.name);
+  const cols = new Map();
+  for (const st of r.states) { const d = depth.get(st.name); cols.set(d, [...(cols.get(d) ?? []), st.name]); }
+  const pos = new Map();
+  for (const [d, names] of cols) names.forEach((n, i) => pos.set(n, [PAD + d * (W + GX), PAD + 18 + i * (H + GY)]));
+  const TOP = 34;
+  for (const [n, [x, y]] of pos) pos.set(n, [x, y + TOP]);
+  const maxRows = Math.max(...[...cols.values()].map((c) => c.length));
+  const width = PAD * 2 + cols.size * W + (cols.size - 1) * GX;
+  const height = PAD * 2 + 18 + TOP + maxRows * H + (maxRows - 1) * GY + 44;
+  const starts = startStates(r);
+  const edges = r.transitions.map(([f, t]) => {
+    const [x1, y1] = pos.get(f), [x2, y2] = pos.get(t);
+    const by = emitters(evOf(r, t)), gap = !by.length;
+    let d, lx, ly;
+    if (depth.get(t) - depth.get(f) > 1) { const sx = x1 + W / 2 + 12, sy = y1, ex = x2 + W / 2 - 12, ey = y2, top = Math.min(sy, ey) - 30; d = `M ${sx} ${sy} C ${sx} ${top}, ${ex} ${top}, ${ex} ${ey - 2}`; lx = (sx + ex) / 2; ly = top + 2; }
+    else if (depth.get(t) > depth.get(f)) { const sx = x1 + W, sy = y1 + H / 2, ex = x2, ey = y2 + H / 2; d = `M ${sx} ${sy} C ${sx + GX / 2} ${sy}, ${ex - GX / 2} ${ey}, ${ex - 2} ${ey}`; lx = (sx + ex) / 2; ly = (sy + ey) / 2 - 8; }
+    else { const sx = x1 + W / 2, sy = y1 + H, ex = x2 + W / 2 + 12, ey = y2 + H, low = Math.max(sy, ey) + 34; d = `M ${sx} ${sy} C ${sx} ${low}, ${ex} ${low}, ${ex} ${ey + 2}`; lx = (sx + ex) / 2; ly = low - 4; }
+    const text = gap ? '✗ no story' : by.join(' · ');
+    const w = text.length * 6.6 + 10;
+    return `<g class="edge ${gap ? 'gap' : ''}"><path d="${d}" marker-end="url(#${gap ? 'arrBad' : 'arr'})"/><rect class="bg" x="${lx - w / 2}" y="${ly - 11}" width="${w}" height="16" rx="3"/><text x="${lx}" y="${ly + 1}" text-anchor="middle">${esc(text)}</text></g>`;
+  }).join('');
+  const nodes = r.states.map((st) => {
+    const [x, y] = pos.get(st.name);
+    const end = !r.transitions.some(([f]) => f === st.name);
+    const quiet = end && !listeners(evOf(r, st.name)).length;
+    const first = starts.includes(st.name);
+    const created = emitters(`${r.slug}.created`);
+    return `<g class="node ${first ? 'start' : ''} ${quiet ? 'end' : ''}"><rect x="${x}" y="${y}" width="${W}" height="${H}" rx="8"/><text x="${x + W / 2}" y="${y + 27}" text-anchor="middle">${esc(st.name)}</text>${quiet ? `<text class="note" x="${x + W / 2}" y="${y + H + 15}" text-anchor="middle">⚠ starts nothing</text>` : ''}${first ? `<text class="note" style="fill:var(--fg-dim)" x="${x + W / 2}" y="${y - 8}" text-anchor="middle">start${created.length ? ` · created by ${esc(created.join(', '))}` : ''}</text>` : ''}</g>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${width} ${height}" style="max-width:${width}px" role="img" aria-label="${esc(r.name)} lifecycle"><defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--fg-dim)"/></marker>
+    <marker id="arrBad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--bad)"/></marker></defs>${edges}${nodes}</svg>`;
+}
+function modelHtml() {
+  if (!records().length) return `<div class="model"><div class="section"><h3 style="font-size:14px;text-transform:none;letter-spacing:-0.01em;color:var(--fg)">No model yet</h3><p>Records that move through states go in <span class="mono">${esc(S.storiesDir)}/MODEL.md</span>: a <span class="mono">## Vendor</span> heading, then transitions like <span class="mono">- Draft → Review → Approved</span>. Stories that move a record emit <span class="mono">vendor.review</span>, and this page draws the lifecycle.</p></div></div>`;
+  return `<div class="model">${records().map((r) => {
+    const starts = startStates(r);
+    const rows = r.states.map((st) => {
+      const first = starts.includes(st.name), e = evOf(r, st.name);
+      const by = [...new Set([...emitters(e), ...(first ? emitters(`${r.slug}.created`) : [])])];
+      const next = r.transitions.filter(([f]) => f === st.name).map(([, t]) => t);
+      const ls = listeners(e);
+      return `<tr><td>${esc(st.name)}${first ? ' <span class="dim">(start)</span>' : ''}</td><td class="mono">${esc(e)}</td><td>${by.map((x) => `<span class="tag">${esc(x)}</span>`).join('') || (first ? '<span class="dim">—</span>' : '<span class="tag warn">✗ no story</span>')}</td><td>${ls.map((x) => `<span class="tag event">${esc(x)}</span>`).join('') || (next.length ? '<span class="dim">—</span>' : '<span class="tag warn">nothing</span>')}</td><td>${next.map(esc).join(', ') || '<span class="dim">—</span>'}</td></tr>`;
+    }).join('');
+    return `<div class="section"><h3 style="font-size:14px;text-transform:none;letter-spacing:-0.01em;color:var(--fg)">${esc(r.name)}</h3><p>Each arrow is a transition, labelled with the stories that emit the event for entering its target state.</p></div>${lifecycleSvg(r)}
+      <table><thead><tr><th>State</th><th>Event</th><th>Entered by</th><th>Starts</th><th>Next</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }).join('')}
+  <div class="legend"><span><span class="tag">S-00n</span> moves a record into the state</span><span><span class="tag warn">⚠ starts nothing</span> an end state no story reacts to</span><span style="color:var(--bad)">✗ no story: no story emits the event for that state</span></div></div>`;
+}
+
+// ---------- sheet ----------
+function openSheet(kind, key) {
+  if (kind !== 'changes' && kind !== 'edit' && !(kind === 'decision' ? allDecisions().some((d) => d.key === key) : kind === 'story' ? story(key) : allScenarios().some((x) => x.id === key))) { closeSheet(); return; }
+  state.selected = key; state.sheet = { kind, key };
+  ({ decision: decisionSheet, story: storySheet, scenario: scenarioSheet, changes: changesSheet })[kind]?.(key);
+  $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); $('#sheet').setAttribute('aria-hidden', 'false');
+  renderGrid();
+  setTimeout(() => ($('#sheetBody').querySelector('input:not([type=radio]),textarea') ?? $('#closeSheet')).focus(), 60);
+}
+function closeSheet() {
+  $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); $('#sheet').setAttribute('aria-hidden', 'true');
+  state.selected = null; state.sheet = null; renderGrid();
+}
+function head(eyebrow, title, sub) { $('#sheetEyebrow').textContent = eyebrow; $('#sheetTitle').textContent = title; $('#sheetSub').innerHTML = sub; }
+
+const linesHtml = (lines) => lines.length ? `<ul class="lines">${lines.map((l) => { const m = l.match(/^(GIVEN|WHEN|THEN|AND|BUT)\s+(.*)$/); return m ? `<li><span class="kw">${m[1]}</span><span>${code(esc(m[2]))}</span></li>` : `<li><span></span><span>${code(esc(l))}</span></li>`; }).join('')}</ul>` : '<span class="dim">No steps written yet.</span>';
+// A diff per file; one longer than a screen starts folded, so a new test file doesn't bury the edits around it.
+const diffHtml = (diffs) => diffs.map((d) => `<details class="diff" ${d.lines.length <= 40 ? 'open' : ''}><summary><div class="file"><span>${esc(d.file)}</span><span>${d.lines.filter((l) => l[0] === '+').length}+ ${d.lines.filter((l) => l[0] === '-').length}−</span></div></summary><pre>${d.lines.map((l) => `<span class="${l[0] === '+' ? 'add' : l[0] === '-' ? 'del' : 'ctx'}">${l[0] === '+' || l[0] === '-' ? l[0] + ' ' : '  '}${esc(l.slice(1))}</span>`).join('')}</pre></details>`).join('');
+
+function scenarioCard(sc, actions = true) {
+  const b = blocker(sc.id);
+  return `<div class="sc ${b ? 'blocked' : ''}"><div class="sc-top"><span><span class="id">${esc(sc.id)}</span> <strong>${esc(sc.title)}</strong></span>${scBadge(scState(sc))}</div>${linesHtml(sc.steps)}
+    ${b ? `<div class="note warn"><span>Waits on ${esc(decLabel(b))}: ${esc(b.question)}</span><button class="btn sm warn" data-answer="${esc(b.key)}">Answer</button></div>` : ''}
+    ${actions ? `<div><button class="btn sm ghost" data-edit="${esc(sc.id)}">Edit</button></div>` : ''}</div>`;
+}
+
+const revisionNote = (s) => s.written === 'draft' ? 'Draft story: no version bump.' : `Approved story: it becomes v${+s.version + 1}, with a Revisions line.`;
+const bumpPreview = (s, why) => s.written === 'draft' ? [] : [{ file: `${s.dir}/story.md`, lines: [`-version: ${s.version}`, `+version: ${+s.version + 1}`, ' …', ' ## Revisions', `+- v${+s.version + 1} (today): ${why}`] }];
+
+function decisionSheet(key) {
+  const d = allDecisions().find((x) => x.key === key);
+  const st = decState(d);
+  head(`${d.story.id} · decision ${decLabel(d)}`, decTitle(d), `${stateBadge(st)} ${d.open ? (d.pinnedBy.length ? `blocks ${d.pinnedBy.length} scenario${d.pinnedBy.length > 1 ? 's' : ''}` : 'blocks nothing') : ''}`);
+  const scs = d.pinnedBy.map((id) => allScenarios().find((x) => x.id === id)).filter(Boolean);
+  let body = `<div class="section"><h3>In ${esc(d.story.dir)}/spec.md</h3><div class="box mono" style="font-size:12px">- ${esc(d.text)}</div></div>`;
+  if (scs.length) body += `<div class="section"><h3>${d.open ? 'Waiting on this' : 'Pinned by'}</h3>${scs.map((x) => scenarioCard(x, false)).join('')}</div>`;
+  if (d.open) body += `<form class="section" id="answerForm"><h3>Answer</h3>
+      <div class="field"><label for="ans">The answer, as it should read in the spec</label><input class="input" id="ans" autocomplete="off"></div>
+      <label class="radio"><input type="radio" name="kind" value="pinned" ${d.pinnedBy.length ? 'checked' : 'disabled'}><span>Pinned<small>${d.pinnedBy.length ? `Every implementation must keep it; ${esc(d.pinnedBy.join(' and '))} prove${d.pinnedBy.length > 1 ? '' : 's'} it.` : 'A pin needs a scenario that proves it. Add one to the story first.'}</small></span></label>
+      <label class="radio"><input type="radio" name="kind" value="free" ${d.pinnedBy.length ? '' : 'checked'}><span>Free<small>Any reasonable value will do; the spec records this one.</small></span></label>
+      <div class="section"><h3>Change</h3><div id="answerDiff"></div></div></form>`;
+  $('#sheetBody').innerHTML = body;
+  $('#sheetFoot').innerHTML = d.open
+    ? `<span class="hint">${revisionNote(d.story)}</span><button class="btn ghost" data-close>Cancel</button><button class="btn primary" id="doAnswer" disabled>Answer</button>`
+    : `<button class="btn" data-open-story="${esc(d.story.id)}">Open ${esc(d.story.id)}</button>`;
+  if (!d.open) return;
+  const kind = () => document.querySelector('input[name=kind]:checked').value;
+  const upd = () => {
+    const a = $('#ans').value.trim().replace(/\s+/g, ' ');
+    $('#doAnswer').disabled = !a || state.busy;
+    const after = `${d.question}: ${a || '…'}${kind() === 'pinned' ? `; pinned by ${d.pinnedBy.join(', ')}` : ' (free)'}`;
+    $('#answerDiff').innerHTML = diffHtml([{ file: `${d.story.dir}/spec.md`, lines: [' ### Decisions', `-- ${d.text}`, `+- ${after}`] }, ...bumpPreview(d.story, `answered "${d.question}"`)]);
+  };
+  $('#ans').addEventListener('input', upd);
+  document.querySelectorAll('input[name=kind]').forEach((r) => r.addEventListener('change', upd));
+  $('#answerForm').addEventListener('submit', (e) => { e.preventDefault(); if (!$('#doAnswer').disabled) $('#doAnswer').click(); });
+  $('#doAnswer').addEventListener('click', () => send({ op: 'answer', story: d.story.id, hash: d.story.hashes.spec, index: d.i, answer: $('#ans').value, kind: kind() }, () => closeSheet()));
+  upd();
+}
+
+function storySheet(id) {
+  const s = story(id);
+  head(`${s.id} · ${s.epic || 'no epic'} · v${s.version}`, s.title, `${statusBadge(s.status)} <span class="dim">${esc(s.text)}</span>`);
+  const blockedN = s.scenarios.filter((x) => scState(x) === 'blocked').length;
+  const req = code(esc(s.requirement)).replace(/^WHEN/, '<b>WHEN</b>').replace(/THE SYSTEM SHALL/, '<br><b>THE SYSTEM SHALL</b>');
+  $('#sheetBody').innerHTML = `
+    ${s.trigger || s.emits.length || s.after.length ? `<div class="meta">${s.trigger ? `<span class="dim">on</span> ${trig(s.trigger)}` : ''}${s.emits.length ? ` <span class="dim">emits</span> ${s.emits.map((e) => `<span class="tag event">${esc(e)}</span>`).join('')}` : ''}${s.after.length ? ` <span class="dim">after</span> ${s.after.map((a) => `<span class="tag">${esc(a)}</span>`).join('')}` : ''}</div>` : ''}
+    <div class="section"><h3>Requirement</h3><div class="box req">${req || '<span class="dim">No requirement written yet.</span>'}</div></div>
+    <div class="section"><h3>Scenarios <span>${s.scenarios.length}</span></h3>${s.scenarios.map((x) => scenarioCard({ ...x, story: s })).join('')}<div><button class="btn sm" data-add="${esc(s.id)}">+ Add scenario</button></div></div>
+    ${s.decisions.length ? `<div class="section"><h3>Decisions</h3>${s.decisions.map((d, i) => { const dd = { ...d, story: s, i, key: `${s.id}#${i}` }; return `<div class="note ${d.open ? 'warn' : 'info'}"><span>${esc(d.open ? d.question : d.text)}</span>${d.open ? `<button class="btn sm warn" data-answer="${esc(dd.key)}">Answer</button>` : stateBadge(decState(dd))}</div>`; }).join('')}</div>` : ''}`;
+  $('#sheetFoot').innerHTML = s.written === 'draft'
+    ? `<span class="hint">${blockedN ? `${blockedN} scenario${blockedN > 1 ? 's wait' : ' waits'} on a decision. You can approve now and answer later.` : 'Approving says the scenarios are right.'}</span><button class="btn primary" data-status="${esc(s.id)}:ready">Approve scenarios → ready</button>`
+    : s.written === 'ready'
+      ? `<span class="hint">Edits now bump its version.</span><button class="btn ghost" data-status="${esc(s.id)}:draft">Back to draft</button><button class="btn ghost" data-close>Close</button>`
+      : `<span class="hint">${statusBadge(s.status)} Edits bump its version.</span><button class="btn ghost" data-close>Close</button>`;
+}
+
+function scenarioSheet(id) {
+  const sc = allScenarios().find((x) => x.id === id);
+  head(`${sc.story.id} · scenario`, `${sc.id} ${sc.title}`, `${scBadge(scState(sc))} <span class="dim">${esc(sc.story.title)}</span>`);
+  const tiers = sc.tiers.map((t) => `<div class="note ${t.state === 'proven' ? 'info' : t.state === 'failed' ? 'warn' : ''}"><span class="mono">${esc(t.tier)}</span><span>${esc(t.state)}${t.entry ? ` · ${esc(t.entry.at.slice(0, 10))}${t.entry.by ? ` by ${esc(t.entry.by)}` : ''}` : ''}</span></div>`).join('');
+  $('#sheetBody').innerHTML = scenarioCard(sc, false) + `<div class="section"><h3>Proof</h3>${scState(sc) === 'blocked' ? '<div class="box dim">No test yet, and none expected: it waits on an open decision.</div>' : !sc.tested ? '<div class="box dim">No test names this scenario yet.</div>' : tiers}</div>`;
+  $('#sheetFoot').innerHTML = `<button class="btn" data-open-story="${esc(sc.story.id)}">Open ${esc(sc.story.id)}</button><button class="btn primary" data-edit="${esc(sc.id)}">Edit scenario</button>`;
+}
+
+function editSheet(s, sc) {
+  const isNew = !sc;
+  state.sheet = { kind: 'edit', key: s.id };
+  head(`${s.id} · ${isNew ? 'new scenario' : 'edit scenario'}`, isNew ? 'Add a scenario' : `${sc.id} ${sc.title}`, `Writes <span class="mono">${esc(s.dir)}/spec.md</span>. ${revisionNote(s)}`);
+  $('#sheetBody').innerHTML = `
+    <div class="field"><label for="scTitle">Title</label><input class="input" id="scTitle" value="${esc(sc?.title ?? '')}" autocomplete="off"></div>
+    <div class="field"><label for="scLines">Steps, one per line, each starting GIVEN, WHEN, THEN or AND</label><textarea class="input" id="scLines" rows="7">${esc(sc?.steps.join('\n') ?? '')}</textarea></div>
+    <div class="section"><h3>Change</h3><div id="editDiff"></div></div>`;
+  $('#sheetFoot').innerHTML = `<span class="hint" id="editHint"></span><button class="btn ghost" data-open-story="${esc(s.id)}">Cancel</button><button class="btn primary" id="doEdit" disabled>${isNew ? 'Add' : 'Save'}</button>`;
+  const next = `${s.id}.${Math.max(0, ...s.scenarios.map((x) => +x.id.split('.').pop())) + 1}`;
+  const calc = () => {
+    const title = $('#scTitle').value.trim(), steps = $('#scLines').value.split('\n').map((l) => l.trim().replace(/^[-*]\s+/, '')).filter(Boolean);
+    const bad = steps.find((l) => !/^(GIVEN|WHEN|THEN|AND|BUT)\s+\S/.test(l));
+    const changed = isNew || title !== sc.title || steps.join('\n') !== sc.steps.join('\n');
+    const msg = !title ? 'Give it a title.' : !steps.length ? 'Add its steps.' : bad ? `"${bad.slice(0, 30)}" should start with GIVEN, WHEN, THEN or AND.` : !steps.some((l) => l.startsWith('THEN')) ? 'A scenario needs a THEN: what a test can check.' : !changed ? 'No changes yet.' : '';
+    $('#editHint').textContent = msg;
+    $('#doEdit').disabled = !!msg || state.busy;
+    const id = sc?.id ?? next;
+    $('#editDiff').innerHTML = diffHtml([{ file: `${s.dir}/spec.md`, lines: [...(sc ? [`-#### Scenario: ${sc.title} {#${id}}`, ...sc.steps.map((l) => `-- ${l}`)] : []), `+#### Scenario: ${title || '…'} {#${id}}`, '+', ...steps.map((l) => `+- ${l}`)] }, ...bumpPreview(s, `${isNew ? 'added' : 'changed'} ${id}`)]);
+    return { title, steps };
+  };
+  $('#scTitle').addEventListener('input', calc); $('#scLines').addEventListener('input', calc);
+  $('#doEdit').addEventListener('click', () => { const { title, steps } = calc(); send({ op: 'scenario', story: s.id, hash: s.hashes.spec, ...(sc && { id: sc.id }), title, steps }, () => openSheet('story', s.id)); });
+  $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); $('#sheet').setAttribute('aria-hidden', 'false');
+  calc();
+  setTimeout(() => $('#scTitle').focus(), 60);
+}
+
+function changesSheet() {
+  head('git diff', 'Uncommitted changes', `Changes under <span class="mono">${esc(S.storiesDir)}/</span> that git hasn't committed yet, whoever made them. Commit them like any other change.`);
+  $('#sheetBody').innerHTML = S.changes.length ? diffHtml(S.changes) : '<div class="box dim">Nothing to commit under the stories folder.</div>';
+  $('#sheetFoot').innerHTML = `<span class="hint mono">git add ${esc(S.storiesDir)} && git commit</span><button class="btn ghost" data-close>Close</button>`;
+}
+
+// ---------- server ----------
+async function load(quiet) {
+  state.busy = true; $('#spin').classList.add('on'); if (!quiet) renderStatus();
+  try {
+    const res = await fetch('/api/state');
+    if (!res.ok) throw new Error((await res.json()).message);
+    S = await res.json();
+    if (!state.loaded && !allDecisions().some((d) => d.open)) state.chips.decisions = 'all';
+    state.loaded = true; state.error = '';
+  } catch (e) { state.error = `Couldn't read the repo: ${e.message}`; }
+  state.busy = false; $('#spin').classList.remove('on');
+  renderAll();
+  if (state.sheet && state.sheet.kind !== 'edit') openSheet(state.sheet.kind, state.sheet.key);
+}
+async function send(body, after) {
+  state.busy = true; $('#spin').classList.add('on'); renderStatus();
+  try {
+    const res = await fetch('/api/edit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const out = await res.json();
+    state.busy = false; $('#spin').classList.remove('on');
+    if (!res.ok) { toast(out.message, true); if (res.status === 409) load(true); else renderStatus(); return; }
+    S = out.state; after?.(); renderAll(); toast(out.message);
+  } catch (e) { state.busy = false; $('#spin').classList.remove('on'); toast(`The edit didn't reach storyspec ui: ${e.message}. Is it still running?`, true); renderStatus(); }
+}
+function toast(m, bad) { const t = $('#toast'); t.textContent = m; t.style.background = bad ? 'var(--bad)' : ''; t.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), bad ? 5000 : 2600); }
+
+// ---------- wiring ----------
+function renderAll() { renderTabs(); renderKpis(); renderGrid(); renderStatus(); try { localStorage.setItem('storyspec-ui-tab', state.tab); } catch {} }
+function go(t) {
+  state.tab = t.tab; state.q = ''; $('#q').value = '';
+  if (t.key && state.chips[t.tab] !== undefined) state.chips[t.tab] = 'all';
+  renderAll();
+  if (t.key) openSheet(sheetFor(t.tab), t.key);
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button,tr.row');
+  if (!t) { if (e.target === $('#scrim')) closeSheet(); return; }
+  const d = t.dataset;
+  if (d.tab) { state.tab = d.tab; state.q = ''; $('#q').value = ''; renderAll(); return; }
+  if (d.jump) { const [tab, chip] = d.jump.split(':'); state.tab = tab; state.chips[tab] = chip; renderAll(); return; }
+  if (d.chip) { state.chips[state.tab] = d.chip; renderGrid(); return; }
+  if (d.group) { state.group = d.group; state.sort.stories = null; renderGrid(); return; }
+  if (d.sort) { const cur = state.sort[state.tab]; state.sort[state.tab] = { key: d.sort, dir: cur?.key === d.sort ? -cur.dir : 1 }; renderGrid(); return; }
+  if (d.go) { go(JSON.parse(d.go)); return; }
+  if (d.answer) { go({ tab: 'decisions', key: d.answer }); return; }
+  if (d.openStory) { openSheet('story', d.openStory); return; }
+  if (d.edit) { const sc = allScenarios().find((x) => x.id === d.edit); editSheet(sc.story, sc); return; }
+  if (d.add) { editSheet(story(d.add)); return; }
+  if (d.status) { const [id, status] = d.status.split(':'); const s = story(id); send({ op: 'status', story: id, hash: s.hashes.story, status }, () => setTimeout(() => openSheet('story', id))); return; }
+  if ('close' in d || t.id === 'closeSheet') { closeSheet(); return; }
+  if (t.id === 'sChanges') { openSheet('changes', null); return; }
+  if (t.id === 'runTrace') { load(); return; }
+  if (t.matches('tr.row')) openSheet(sheetFor(state.tab), t.dataset.key);
+});
+document.addEventListener('keydown', (e) => {
+  const typing = /INPUT|TEXTAREA/.test(document.activeElement?.tagName);
+  if (e.key === 'Escape') { if ($('#sheet').classList.contains('on')) closeSheet(); else if (typing) document.activeElement.blur(); return; }
+  if (typing) return;
+  if (e.key === '/') { e.preventDefault(); $('#q').focus(); return; }
+  if (/^[1-5]$/.test(e.key) && !$('#sheet').classList.contains('on')) { state.tab = TABS[+e.key - 1]; renderAll(); return; }
+  if (e.key === 'Enter' && document.activeElement?.matches('tr.row')) document.activeElement.click();
+});
+$('#q').addEventListener('input', (e) => { state.q = e.target.value; renderGrid(); });
+// Someone may have edited the files in their editor meanwhile: read them again when the page comes back into view.
+window.addEventListener('focus', () => { if (state.loaded && !state.busy && !(state.sheet?.kind === 'edit' || $('#ans'))) load(true); });
+
+try { const t = localStorage.getItem('storyspec-ui-tab'); if (TABS.includes(t)) state.tab = t; } catch {}
+renderAll();
+load();
+</script>
+</html>

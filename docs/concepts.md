@@ -82,6 +82,16 @@ Each `## Name` is a record, and each bullet of state names joined by `→` (or `
 
 The `model` rule errors on an event for a state the record doesn't have, and warns on a state that no story moves a record into. TRACE.md gets a Model section: for each record, each state, the stories that move a record into it, the stories that entering it starts, and the states that can follow. Fields aren't modelled; they belong to the app's code.
 
+## A page for people who don't edit files
+
+`storyspec ui` serves a page on localhost (port 4400; `--port` to change it) over the same scan and trace the CLI uses. It has a tab each for decisions, stories, scenarios, the model and the trace's findings, and lets a person:
+
+- **Answer an open decision**, as pinned (its scenarios prove it) or free. The line in spec.md becomes `<question>: <answer>; pinned by …` or `<question>: <answer> (free)`, and the scenarios it blocked can be built.
+- **Approve a draft**, which sets `status: ready`.
+- **Edit or add a scenario.** A new scenario takes the next ID. Steps must start with GIVEN, WHEN, THEN or AND, and include a THEN.
+
+Every change is an edit to one story's files, shown as a diff before it is saved. An edit to a story past draft bumps its `version` and adds a Revisions line, as the rules ask of anyone. Each write carries the hash of the file the page read, and is refused if the file has changed since, so the page never overwrites an edit made in an editor. There is no database or account: the files are the only copy, the page lists what git hasn't committed yet, and committing is up to you. The server listens on localhost only and refuses writes from other sites' pages.
+
 ## Lifecycle
 
 | Status | Written by | Meaning | The trace treats gaps as |
