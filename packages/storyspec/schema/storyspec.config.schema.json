@@ -211,10 +211,18 @@
       }
     },
     "defaultProof": {
-      "description": "The tiers a scenario must be proven in, unless its story (proof: in story.md) or its tag ({#S-001.1 proof=\u2026}) says otherwise.",
+      "description": "The tiers a scenario must be proven in, unless its story (proof: in story.md) or its tag ({#S-001.1 proof=…}) says otherwise.",
       "default": [
         "local"
       ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unspecified": {
+      "description": "Path prefixes of code that no story covers on purpose (a feature listed as out of scope). The unclaimed-code rule doesn't report them.",
+      "default": [],
       "type": "array",
       "items": {
         "type": "string"

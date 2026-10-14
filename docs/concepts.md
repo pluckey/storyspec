@@ -24,6 +24,7 @@ A story's whole history is `git log stories/S-001-*`, a review of S-001 touches 
 | `version` | you | Bumped when the spec's behaviour changes, with a line under Revisions |
 | `proof` | you, optional | The tiers every scenario needs, comma-separated (`local, deployed`), unless a scenario's tag says otherwise |
 | `implementedBy` | you, optional | The files that implement the story when they aren't TypeScript in its folder, comma-separated: `implementedBy: app/usecases/publish.py, app/entry/http.py` |
+| `after` | you, optional | Stories this one is built after, comma-separated: the order the product grows in, not a change in behaviour. TRACE.md shows it, and the `after` rule checks the stories exist and the order never loops |
 
 ## Requirement and scenarios
 

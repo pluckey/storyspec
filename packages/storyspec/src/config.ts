@@ -42,6 +42,8 @@ export type Config = {
   tiers: Record<string, Tier>
   /** The tiers a scenario must be proven in, unless its story (`proof:` in story.md) or its tag (`{#S-001.1 proof=…}`) says otherwise. */
   defaultProof: string[]
+  /** Path prefixes of code that no story covers on purpose; the unclaimed-code rule doesn't report them. */
+  unspecified: string[]
 }
 
 export type Tier = { command?: string; report?: string | string[] }
@@ -77,6 +79,7 @@ export const defaults: Config = {
   rules: {},
   tiers: { local: {}, manual: {} },
   defaultProof: ['local'],
+  unspecified: [],
 }
 
 const stringList = (v: unknown) => Array.isArray(v) && v.every(x => typeof x === 'string')

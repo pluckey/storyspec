@@ -5,7 +5,7 @@ import { genStatus } from '../gen.js'
 import { slugify } from '../new-story.js'
 import { plan } from '../sync.js'
 import { exercisedAdapters, type ProofFile, scenarioStates } from '../proof.js'
-import { ids, isTypeScript, stripComments, type Repo, type SourceFile } from './scan.js'
+import { ids, isTypeScript, looksLikeTest, stripComments, type Repo, type SourceFile } from './scan.js'
 import { languageOf } from './languages.js'
 
 export type Severity = 'error' | 'warning'
@@ -109,6 +109,17 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
     }
   }
 
+  // Build order (after:) names real stories and never loops back on itself.
+  const known = new Set(stories.map(s => s.id))
+  for (const s of stories) for (const a of s.after) {
+    if (a === s.id) add('after', 'error', `${s.id}: after: names itself`, `${s.dir}/story.md`)
+    else if (!known.has(a)) add('after', 'error', `${s.id}: after: names ${a}, which isn't a story`, `${s.dir}/story.md`)
+  }
+  for (const cycle of afterCycles(stories)) add('after', 'error', `after: goes round in a circle: ${cycle.join(' → ')}`, `${config.storiesDir}`)
+
+  for (const f of unclaimed(repo))
+    add('unclaimed-code', 'warning', `no story claims it; name it in a story's implementedBy:, or list it under "unspecified" in storyspec.config.json if no story should cover it`, f)
+
   const exempt = new Set(stories.filter(s => config.exemptStatuses.includes(s.front.status ?? '')).map(s => s.id))
   for (const g of genStatus(repo.root, stories.filter(s => !exempt.has(s.id))))
     if (g.state !== 'fresh') add('gen-fresh', 'error', `${g.story}: ${g.file} is ${g.state}; run storyspec gen`, g.file)
@@ -155,6 +166,58 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
   }
 
   return out
+}
+
+/** Each loop in the stories' build order, once, as the IDs around it. */
+const afterCycles = (stories: Repo['stories']) => {
+  const next = new Map(stories.map(s => [s.id, s.after]))
+  const found = new Map<string, string[]>()
+  const visit = (id: string, path: string[]) => {
+    const at = path.indexOf(id)
+    if (at >= 0) {
+      const loop = path.slice(at)
+      const key = [...loop].sort().join(',')
+      if (!found.has(key)) found.set(key, [...loop, id])
+      return
+    }
+    for (const a of next.get(id) ?? []) if (a !== id && next.has(a)) visit(a, [...path, id])
+  }
+  for (const s of stories) visit(s.id, [])
+  return [...found.values()]
+}
+
+/** Code files no story claims. A story claims the code in its folder, the files its implementedBy: names and the file
+ * that says @implements it; and code joined to claimed code by imports, in either direction, is claimed too, so the
+ * adapters, entry points and presenters that serve stories count. What is left is code no story reaches: a feature
+ * nobody specified. Tests, build output, config files and package markers aren't code to claim; code listed under
+ * "unspecified" is left out on purpose. In a language whose imports the trace can't read, only the first three claim. */
+export const unclaimed = (repo: Repo): string[] => {
+  const { config, stories, kernel } = repo
+  const strip = (p: string) => p.replace(/\.[^./]+$/, '')
+  const files = [...kernel, ...stories.flatMap(s => [...s.code, ...s.tests])]
+  const byPath = new Map(files.map(f => [strip(f.path), f.path]))
+  // Import edges both ways, by repo path.
+  const links = new Map<string, Set<string>>()
+  const link = (a: string, b: string) => {
+    links.set(a, (links.get(a) ?? new Set()).add(b))
+    links.set(b, (links.get(b) ?? new Set()).add(a))
+  }
+  for (const f of files) for (const i of f.imports) { const to = byPath.get(i); if (to) link(f.path, to) }
+  const claimed = new Set<string>()
+  const queue: string[] = []
+  const claim = (path: string) => { if (!claimed.has(path)) { claimed.add(path); queue.push(path) } }
+  for (const s of stories) {
+    for (const f of [...s.code, ...s.tests]) claim(f.path)
+    for (const f of s.implementedBy) claim(f)
+  }
+  for (const f of kernel) if (/@implements \w+-\d+/.test(f.text)) claim(f.path)
+  for (const f of config.wiring) claim(f)
+  for (let path = queue.shift(); path !== undefined; path = queue.shift())
+    for (const next of links.get(path) ?? []) claim(next)
+  const generated = (f: string) => /(^|\/)(dist|build|\.build|out|coverage|DerivedData|vendor)\//.test(f) || /\.min\.js$/.test(f)
+  const tooling = (f: string) => /(^|\/)[^/]*\.config\.[a-z]+$/.test(f) || /(^|\/)(__init__\.py|Package\.swift|setup\.py)$/.test(f)
+  return repo.codeFiles.filter(f => !claimed.has(f) && !under(f, [config.storiesDir, ...config.unspecified])
+    && !looksLikeTest(f) && !generated(f) && !tooling(f))
 }
 
 // `exercisedIn`: per adapter, the tiers whose tests exercised it (this run's tier, and recorded tiers with their date).

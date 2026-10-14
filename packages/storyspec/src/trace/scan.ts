@@ -34,6 +34,8 @@ export type Story = {
   implementedBy: string[]
   /** Judgment calls recorded under `### Decisions` in spec.md: each pinned by scenarios, or marked free. */
   decisions: Decision[]
+  /** Stories to build first (`after:` in story.md): build order, not behaviour. */
+  after: string[]
 }
 
 /** One `- …` line under `### Decisions`. `pinnedBy`: scenario IDs it names; `free`: any choice is acceptable. */
@@ -47,6 +49,8 @@ export type Repo = {
   passedTestNames: string[]
   // Failed tests that aren't scenarios (contract suites, other tests), and test files that failed without running a test.
   otherFailures: { file: string; test?: string; message: string }[]
+  // Every code file in the repo, in any language, repo-relative: what the unclaimed-code rule checks.
+  codeFiles: string[]
 }
 
 export const ids = (prefix: string) => ({
@@ -61,6 +65,13 @@ export const ids = (prefix: string) => ({
 })
 
 const isTypeScript = (f: string) => /\.(c|m)?tsx?$/.test(f) && !f.endsWith('.d.ts')
+/** Code in any common language, whether or not the trace reads its imports. */
+const CODE = /\.((c|m)?[jt]sx?|py|swift|kt|kts|java|go|rs|rb|cs|php|scala|dart|exs?|c|cc|cpp|h|hpp|m|mm)$/
+export const isCode = (f: string) => CODE.test(f) && !f.endsWith('.d.ts')
+/** A test or test support file by the usual conventions of any language: test folders, test-named files, conftest.py. */
+export const looksLikeTest = (f: string) =>
+  /\.(test|spec)\.[a-z]+$/.test(f) || /(^|\/)(tests?|Tests|__tests__|specs?|Specs)\//.test(f) ||
+  /(Tests?|Spec|_test|_spec)\.[a-z]+$/.test(f) || /(^|\/)(test_[^/]*|conftest)\.py$/.test(f) || !!languageOf(f)?.tests.test(f)
 const isSource = (f: string) => isTypeScript(f) || !!languageOf(f)
 const isTest = (f: string) => /\.(test|spec)\.(c|m)?tsx?$/.test(f) || !!languageOf(f)?.tests.test(f)
 export { isTypeScript }
@@ -121,6 +132,7 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
         requirementTagged: spec.includes(`{#${id}}`), requirementShalls: shallCount(spec, id), scenarios, code, tests, testedIds,
         implementedBy: list(front.implementedBy) ?? [],
         decisions: decisions(spec, config.idPrefix),
+        after: list(front.after) ?? [],
       }
     })
 
@@ -166,7 +178,8 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
     s.testedIds = [...new Set([...s.testedIds, ...ran])]
   }
 
-  return { root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes, passedTestNames }
+  const codeFiles = walk(root).map(rel).filter(isCode)
+  return { root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes, passedTestNames, codeFiles }
 }
 
 // "local, deployed" → ['local', 'deployed']; absent → undefined.
