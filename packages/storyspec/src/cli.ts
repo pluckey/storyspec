@@ -9,6 +9,7 @@ import { findingsText, portTable, table } from './trace/report.js'
 import { scan } from './trace/scan.js'
 import { installedVersion, plan, sync } from './sync.js'
 import { recordManual } from './proof.js'
+import { serveUi } from './ui/server.js'
 import { execSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 
@@ -26,6 +27,9 @@ Usage:
   storyspec gen [--check]               Write scenarios.gen.ts for each story (--check: fail if stale)
   storyspec story "<title>" [--epic "<epic>"]   Create the next story folder from templates
   storyspec check                       gen --check, then trace
+  storyspec ui [--port 4400]            Open a page on localhost to manage the spec: answer open decisions, approve
+                                        stories, edit and add scenarios, see the model. Each change is an edit to a
+                                        story's files; commit them with git.
   storyspec sync [--check] [--force] [--claude]
                                         Bring AGENTS.md (and CLAUDE.md, the /story command and its hooks,
                                         when the project uses Claude Code) up to the installed storyspec version.
@@ -127,6 +131,13 @@ const main = async (): Promise<number> => {
       ? `status: done → in-progress for ${changed.join(', ')}. The trace shows each one as done when its scenarios are proven.`
       : 'Nothing to migrate.')
     return 0
+  }
+
+  if (command === 'ui') {
+    const port = Number(option('--port') ?? 4400)
+    await serveUi(root, { port })
+    console.log(`storyspec ui: http://localhost:${port}  (${root}; Ctrl-C to stop)`)
+    return new Promise<number>(() => {})
   }
 
   if (command === 'sync') {

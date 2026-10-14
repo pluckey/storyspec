@@ -38,6 +38,7 @@
     "dist",
     "agent",
     "templates",
+    "ui",
     "schema",
     "docs",
     "README.md",
