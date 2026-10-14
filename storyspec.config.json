@@ -26,5 +26,8 @@
   "rules": {
     "ids-outside-stories": "off",
     "framework-sync": "off"
-  }
+  },
+  "unspecified": [
+    "packages/storyspec/src/vitest.ts"
+  ]
 }
