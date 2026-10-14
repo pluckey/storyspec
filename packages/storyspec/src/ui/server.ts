@@ -11,8 +11,9 @@ import { addScenario, answerDecision, bumpVersion, decisionQuestion, editScenari
 import { writeGen } from '../gen.js'
 import { trace } from '../index.js'
 import { scan } from '../trace/scan.js'
+import { findProjects, projectsBase } from './projects.js'
 
-export type UiOptions = { port?: number; host?: string; now?: () => Date }
+export type UiOptions = { port?: number; host?: string; now?: () => Date; base?: string }
 
 const STATUSES = ['draft', 'ready', 'in-progress', 'superseded']
 
@@ -125,19 +126,40 @@ const readBody = (req: IncomingMessage) => new Promise<string>((resolve, reject)
   req.on('error', reject)
 })
 
-/** Starts the server on localhost. Resolves once it is listening. */
-export const serveUi = (root: string, opts: UiOptions = {}) => new Promise<Server>((resolve, reject) => {
+/** Starts the server on localhost for the projects in `start`'s folder (see projects.ts). Resolves once it is listening. */
+export const serveUi = (start: string, opts: UiOptions = {}) => new Promise<Server>((resolve, reject) => {
   const host = opts.host ?? '127.0.0.1'
+  const base = opts.base ?? projectsBase(start)
+  // A request names its project by id; only a listed project is reachable, so nothing outside the folder is.
+  const projects = () => {
+    const all = findProjects(base)
+    const first = all.find(p => p.root === start) ?? all[0]
+    return { all, first }
+  }
+  const rootFor = (id: string | null | undefined) => {
+    const { all, first } = projects()
+    return id ? all.find(p => p.id === id)?.root : first?.root
+  }
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost')
       if (req.method === 'GET' && url.pathname === '/') return send(res, 200, page(), 'text/html')
-      if (req.method === 'GET' && url.pathname === '/api/state') return send(res, 200, await uiState(root))
+      if (req.method === 'GET' && url.pathname === '/api/projects') {
+        const { all, first } = projects()
+        return send(res, 200, { folder: base, first: first?.id ?? null, projects: all.map(({ root: _, ...p }) => p) })
+      }
+      if (req.method === 'GET' && url.pathname === '/api/state') {
+        const root = rootFor(url.searchParams.get('project'))
+        return root ? send(res, 200, await uiState(root)) : send(res, 404, { message: `no storyspec project "${url.searchParams.get('project') ?? ''}" in ${base}` })
+      }
       if (req.method === 'POST' && url.pathname === '/api/edit') {
         // Only this page may write: a page on another site can't post to it from a visitor's browser.
         const origin = req.headers.origin
         if (origin && new URL(origin).host !== req.headers.host) return send(res, 403, { message: 'edits come only from the storyspec ui page' })
-        const result = applyEdit(root, JSON.parse((await readBody(req)) || '{}') as Body, opts.now?.())
+        const body = JSON.parse((await readBody(req)) || '{}') as Body & { project?: string }
+        const root = rootFor(body.project)
+        if (!root) return send(res, 404, { message: `no storyspec project "${body.project ?? ''}" in ${base}` })
+        const result = applyEdit(root, body, opts.now?.())
         return send(res, result.status, { message: result.message, ...(result.status === 200 && { state: await uiState(root) }) })
       }
       send(res, 404, { message: 'not found' })

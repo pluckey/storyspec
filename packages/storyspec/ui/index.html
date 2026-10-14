@@ -44,6 +44,10 @@ button { cursor: pointer; }
 .logo i::after { content: ""; position: absolute; left: 3px; right: 3px; top: 5px; height: 1.5px; background: var(--fg); box-shadow: 0 3px 0 var(--fg); }
 .crumb { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); font-family: var(--mono); font-size: 12px; color: var(--fg-muted); white-space: nowrap; }
 .crumb b { color: var(--fg); font-weight: 500; }
+.picker { position: relative; display: inline-flex; align-items: center; }
+.picker select { appearance: none; -webkit-appearance: none; height: 30px; padding: 0 28px 0 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--fg); font-family: var(--mono); font-size: 12px; max-width: 360px; cursor: pointer; }
+.picker select:hover { background: var(--hover); }
+.picker::after { content: "▾"; position: absolute; right: 10px; color: var(--fg-dim); pointer-events: none; font-size: 11px; }
 .tabs { display: inline-flex; gap: 2px; padding: 3px; background: var(--muted); border-radius: 8px; overflow-x: auto; max-width: 100%; }
 .tab { border: 0; background: transparent; color: var(--fg-muted); padding: 4px 12px; border-radius: 6px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .tab:hover { color: var(--fg); }
@@ -218,7 +222,7 @@ textarea.input { font-family: var(--mono); font-size: 12px; line-height: 1.6; re
 <div class="app">
   <header class="top">
     <span class="logo"><i aria-hidden="true"></i>storyspec</span>
-    <span class="crumb hide-sm" id="crumb"></span>
+    <label class="picker" title="Projects in this folder"><select id="project" aria-label="Project"></select></label>
     <nav class="tabs" role="tablist" id="tabs"></nav>
     <span class="spacer"></span>
     <button class="btn" id="runTrace" title="Read the files again and rerun the checks (uses the last test report; run storyspec trace to rerun tests)"><span class="spin" id="spin">⟳</span> Refresh</button>
@@ -258,7 +262,7 @@ const code = (html) => html.replace(/`([^`]+)`/g, '<code>$1</code>');
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const slug = (t) => t.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-const state = { tab: 'decisions', q: '', chips: { decisions: 'open', stories: 'all', scenarios: 'all', findings: 'all' }, group: 'epic', sort: {}, selected: null, busy: false, loaded: false, error: '' };
+const state = { projects: [], project: null, tab: 'decisions', q: '', chips: { decisions: 'open', stories: 'all', scenarios: 'all', findings: 'all' }, group: 'epic', sort: {}, selected: null, busy: false, loaded: false, error: '' };
 const TABS = ['decisions', 'stories', 'scenarios', 'model', 'findings'];
 const NAMES = { decisions: 'Decisions', stories: 'Stories', scenarios: 'Scenarios', model: 'Model', findings: 'Findings' };
 
@@ -346,7 +350,8 @@ function renderStatus() {
   const b = $('#sChanges');
   b.textContent = files ? `${files} file${files > 1 ? 's' : ''} changed · review` : 'no uncommitted changes';
   b.classList.toggle('has', !!files);
-  $('#crumb').innerHTML = `${esc(S.project)} · <b>${esc(S.storiesDir)}/</b>`;
+  const sel = $('#project');
+  if (document.activeElement !== sel) sel.innerHTML = state.projects.map((p) => `<option value="${esc(p.id)}" ${p.id === state.project ? 'selected' : ''}>${esc(p.name)} · ${p.stories} stor${p.stories === 1 ? 'y' : 'ies'}${p.open ? ` · ${p.open} open` : ''}</option>`).join('') || `<option>${esc(S.project || 'no projects')}</option>`;
   $('#sRoot').textContent = 'files are the source of truth · commit with git';
 }
 
@@ -622,10 +627,21 @@ function changesSheet() {
 }
 
 // ---------- server ----------
+// The projects in the folder storyspec ui started in; the page remembers the last one you picked.
+async function loadProjects() {
+  const res = await fetch('/api/projects');
+  if (!res.ok) throw new Error((await res.json()).message);
+  const out = await res.json();
+  state.projects = out.projects;
+  let saved = null; try { saved = localStorage.getItem('storyspec-ui-project'); } catch {}
+  if (!state.projects.some((p) => p.id === state.project)) state.project = state.projects.some((p) => p.id === saved) ? saved : out.first;
+}
 async function load(quiet) {
   state.busy = true; $('#spin').classList.add('on'); if (!quiet) renderStatus();
   try {
-    const res = await fetch('/api/state');
+    await loadProjects();
+    if (!state.project) throw new Error('there are no storyspec projects in this folder');
+    const res = await fetch(`/api/state?project=${encodeURIComponent(state.project)}`);
     if (!res.ok) throw new Error((await res.json()).message);
     S = await res.json();
     if (!state.loaded && !allDecisions().some((d) => d.open)) state.chips.decisions = 'all';
@@ -638,7 +654,7 @@ async function load(quiet) {
 async function send(body, after) {
   state.busy = true; $('#spin').classList.add('on'); renderStatus();
   try {
-    const res = await fetch('/api/edit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch('/api/edit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, project: state.project }) });
     const out = await res.json();
     state.busy = false; $('#spin').classList.remove('on');
     if (!res.ok) { toast(out.message, true); if (res.status === 409) load(true); else renderStatus(); return; }
@@ -683,6 +699,13 @@ document.addEventListener('keydown', (e) => {
   if (e.key === '/') { e.preventDefault(); $('#q').focus(); return; }
   if (/^[1-5]$/.test(e.key) && !$('#sheet').classList.contains('on')) { state.tab = TABS[+e.key - 1]; renderAll(); return; }
   if (e.key === 'Enter' && document.activeElement?.matches('tr.row')) document.activeElement.click();
+});
+$('#project').addEventListener('change', (e) => {
+  state.project = e.target.value; state.loaded = false; state.sort = {};
+  try { localStorage.setItem('storyspec-ui-project', state.project); } catch {}
+  if ($('#sheet').classList.contains('on')) closeSheet();
+  state.chips.decisions = 'open';
+  e.target.blur(); load();
 });
 $('#q').addEventListener('input', (e) => { state.q = e.target.value; renderGrid(); });
 // Someone may have edited the files in their editor meanwhile: read them again when the page comes back into view.

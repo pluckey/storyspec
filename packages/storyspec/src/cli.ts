@@ -10,6 +10,7 @@ import { scan } from './trace/scan.js'
 import { installedVersion, plan, sync } from './sync.js'
 import { recordManual } from './proof.js'
 import { serveUi } from './ui/server.js'
+import { findProjects, projectsBase } from './ui/projects.js'
 import { execSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 
@@ -29,7 +30,8 @@ Usage:
   storyspec check                       gen --check, then trace
   storyspec ui [--port 4400]            Open a page on localhost to manage the spec: answer open decisions, approve
                                         stories, edit and add scenarios, see the model. Each change is an edit to a
-                                        story's files; commit them with git.
+                                        story's files; commit them with git. It lists every storyspec project in this
+                                        folder (or the folder above, when run inside a project) and switches between them.
   storyspec sync [--check] [--force] [--claude]
                                         Bring AGENTS.md (and CLAUDE.md, the /story command and its hooks,
                                         when the project uses Claude Code) up to the installed storyspec version.
@@ -135,8 +137,11 @@ const main = async (): Promise<number> => {
 
   if (command === 'ui') {
     const port = Number(option('--port') ?? 4400)
-    await serveUi(root, { port })
-    console.log(`storyspec ui: http://localhost:${port}  (${root}; Ctrl-C to stop)`)
+    // Run inside a project, the root is that project; run in a folder of projects, it's the folder itself.
+    const start = existsSync(join(root, 'storyspec.config.json')) ? root : resolve(option('--root') ?? process.cwd())
+    await serveUi(start, { port })
+    const found = findProjects(projectsBase(start))
+    console.log(`storyspec ui: http://localhost:${port}  (${found.length} project${found.length === 1 ? '' : 's'} in ${projectsBase(start)}; Ctrl-C to stop)`)
     return new Promise<number>(() => {})
   }
 
