@@ -1,5 +1,22 @@
 # storyspec
 
+## 0.8.0
+
+### Minor Changes
+
+- d6c21c2: Stories say what starts them, which decisions are still open, and which records they move through which states.
+  
+  - `trigger:` in story.md: what starts the story, as `actor:<role>`, `event:<event>`, `schedule:<name>` or `external:<system>`. `emits:` lists the events a story causes. TRACE.md shows the trigger beside each story and adds a Triggers table: each trigger, the stories that emit it (for an event) and the stories it starts.
+  - New rule `trigger`: an unknown kind, a missing name or a second trigger is an error; an event no story emits is a warning.
+  - Open decisions: a decision marked `(open)` blocks the scenarios it names. They need no test yet and show as blocked in TRACE.md; a test of one is a warning, since it had to assume an answer.
+  - `stories/MODEL.md`: records and the transitions between their states. New rule `model`: an event for a state a record doesn't have is an error, and a state no story moves a record into is a warning. TRACE.md gets a Model section with each record's lifecycle.
+- ca42196: `storyspec ui`: a page on localhost for the people who decide what the product does but don't edit files. It answers open decisions, approves draft stories, edits and adds scenarios, and shows each record's lifecycle and the trace's findings. Each change is an edit to a story's files (bumping the version of a story past draft), shown as a diff and refused if the file changed since the page read it. No database: git is the history.
+- 3ea835e: Specs say what they leave out, and when stories are built.
+  
+  - New rule `unclaimed-code` (warning): code in any language that no story claims, through its folder, `implementedBy:`, `@implements`, or imports in either direction to claimed code. Tests, build output, config files and package markers don't count. List code that is out of scope on purpose under the new `unspecified` config key.
+  - `after:` in story.md: stories this one is built after. TRACE.md shows it; the new `after` rule reports a story that doesn't exist, names itself, or a loop.
+  - `gen-fresh` only asks for `scenarios.gen.ts` where TypeScript tests use it: a story with TypeScript in its folder, or a new story in a project with `tsconfig.json`. A new story in a Swift or Python project is no longer an error.
+
 ## 0.7.0
 
 ### Minor Changes
