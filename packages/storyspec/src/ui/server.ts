@@ -12,6 +12,7 @@ import { writeGen } from '../gen.js'
 import { trace } from '../index.js'
 import { scan } from '../trace/scan.js'
 import { findProjects, projectsBase } from './projects.js'
+import { followProject } from './watch.js'
 
 export type UiOptions = { port?: number; host?: string; now?: () => Date; base?: string }
 
@@ -151,6 +152,17 @@ export const serveUi = (start: string, opts: UiOptions = {}) => new Promise<Serv
       if (req.method === 'GET' && url.pathname === '/api/state') {
         const root = rootFor(url.searchParams.get('project'))
         return root ? send(res, 200, await uiState(root)) : send(res, 404, { message: `no storyspec project "${url.searchParams.get('project') ?? ''}" in ${base}` })
+      }
+      if (req.method === 'GET' && url.pathname === '/api/events') {
+        // Server-sent events: one `change` per batch of changed files, so the page reads the project again.
+        const root = rootFor(url.searchParams.get('project'))
+        if (!root) return send(res, 404, { message: `no storyspec project "${url.searchParams.get('project') ?? ''}" in ${base}` })
+        res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive' })
+        res.write('retry: 2000\n\n')
+        const stop = followProject(root, files => res.write(`event: change\ndata: ${JSON.stringify({ files })}\n\n`))
+        const beat = setInterval(() => res.write(': still here\n\n'), 25_000)
+        req.on('close', () => { stop(); clearInterval(beat) })
+        return
       }
       if (req.method === 'POST' && url.pathname === '/api/edit') {
         // Only this page may write: a page on another site can't post to it from a visitor's browser.

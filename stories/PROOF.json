@@ -1,0 +1,16 @@
+{
+  "adapters": {},
+  "scenarios": {
+    "S-014.5": {
+      "manual": {
+        "at": "2026-10-14T16:24:34.642Z",
+        "by": "Claude (headless browser)",
+        "commit": "6b60c38-dirty",
+        "hash": "53f71e16192f",
+        "note": "Checked on a copy of vendor onboarding: a half-typed answer kept its text when another spec.md changed, and the status bar offered 'files changed · refresh'",
+        "outcome": "pass",
+        "version": "1"
+      }
+    }
+  }
+}
