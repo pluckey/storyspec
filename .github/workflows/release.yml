@@ -1,6 +1,8 @@
 name: Release
 # On every push to main: while changesets are pending, opens or updates a "Version Packages" PR. Merging that PR
 # publishes to npm through trusted publishing (OIDC, no token; npm records provenance), then tags the release.
+# The packages are story-spec and create-story-spec. npm trusts this workflow per package name, so each needs
+# `npm trust github <pkg> --repo pluckey/story-spec --file release.yml --allow-publish` before its first publish.
 on:
   push:
     branches: [main]

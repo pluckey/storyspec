@@ -1,5 +1,5 @@
 import { expect } from 'vitest'
-import { story } from 'storyspec/vitest'
+import { story } from 'story-spec/vitest'
 import type { Note } from '../../src/domain/note'
 import { fakeNoteStore } from '../../test/fakes/note-store'
 import { listNotes } from './list-notes'

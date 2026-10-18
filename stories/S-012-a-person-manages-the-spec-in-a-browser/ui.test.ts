@@ -1,9 +1,9 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, expect } from 'vitest'
-import { story } from 'storyspec/vitest'
-import { textHash } from '../../packages/storyspec/src/edit.js'
-import { applyEdit, serveUi, uiState } from '../../packages/storyspec/src/ui/server.js'
+import { story } from 'story-spec/vitest'
+import { textHash } from '../../packages/story-spec/src/edit.js'
+import { applyEdit, serveUi, uiState } from '../../packages/story-spec/src/ui/server.js'
 import { edit, pythonProject, STORY } from '../../test/python-project.js'
 import { gen } from './scenarios.gen.js'
 

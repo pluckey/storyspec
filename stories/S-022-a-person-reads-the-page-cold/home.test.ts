@@ -2,10 +2,10 @@ import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect } from 'vitest'
-import { story } from 'storyspec/vitest'
-import { gridComponent } from '../../packages/storyspec/src/ui/grid.js'
-import { say } from '../../packages/storyspec/src/ui/route.js'
-import { VOCABULARY } from '../../packages/storyspec/src/ui/vocabulary.js'
+import { story } from 'story-spec/vitest'
+import { gridComponent } from '../../packages/story-spec/src/ui/grid.js'
+import { say } from '../../packages/story-spec/src/ui/route.js'
+import { VOCABULARY } from '../../packages/story-spec/src/ui/vocabulary.js'
 import { edit, pass, pythonProject, report, STORY } from '../../test/python-project.js'
 import { another, front, pageOf, personas, served, status, withDecisions } from '../../test/ui-project.js'
 import { gen } from './scenarios.gen.js'
@@ -29,7 +29,7 @@ const game = () => {
 story(gen, {
   'S-022.1': async () => {
     // Every project in the folder, including one with personas and decisions and one inside a team folder.
-    const base = mkdtempSync(join(tmpdir(), 'storyspec-cold-'))
+    const base = mkdtempSync(join(tmpdir(), 'story-spec-cold-'))
     cleanup.push(() => rmSync(base, { recursive: true, force: true }))
     cpSync(pythonProject(), join(base, 'plain'), { recursive: true })
     cpSync(game(), join(base, 'game'), { recursive: true })

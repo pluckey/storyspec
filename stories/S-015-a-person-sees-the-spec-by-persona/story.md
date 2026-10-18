@@ -4,7 +4,7 @@ title: A person sees the spec by persona
 epic: E-7 Specs for people who don't edit files
 status: in-progress
 version: 1
-implementedBy: packages/storyspec/src/trace/personas.ts, packages/storyspec/src/trace/scan.ts, packages/storyspec/src/trace/rules.ts, packages/storyspec/src/trace/report.ts, packages/storyspec/src/index.ts, packages/storyspec/src/cli.ts, packages/storyspec/src/edit.ts, packages/storyspec/src/new-story.ts, packages/storyspec/src/ui/server.ts, packages/storyspec/ui/index.html, template/stories/PERSONAS.md
+implementedBy: packages/story-spec/src/trace/personas.ts, packages/story-spec/src/trace/scan.ts, packages/story-spec/src/trace/rules.ts, packages/story-spec/src/trace/report.ts, packages/story-spec/src/index.ts, packages/story-spec/src/cli.ts, packages/story-spec/src/edit.ts, packages/story-spec/src/new-story.ts, packages/story-spec/src/ui/server.ts, packages/story-spec/ui/index.html, template/stories/PERSONAS.md
 after: S-014
 ---
 

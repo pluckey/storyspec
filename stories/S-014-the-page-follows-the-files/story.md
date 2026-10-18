@@ -4,7 +4,7 @@ title: The page follows the files
 epic: E-7 Specs for people who don't edit files
 status: in-progress
 version: 1
-implementedBy: packages/storyspec/src/ui/watch.ts, packages/storyspec/src/ui/server.ts
+implementedBy: packages/story-spec/src/ui/watch.ts, packages/story-spec/src/ui/server.ts
 after: S-013
 ---
 

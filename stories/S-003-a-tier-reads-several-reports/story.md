@@ -4,7 +4,7 @@ title: A tier reads several reports
 epic: E-1 Proof from any test runner
 status: in-progress
 version: 1
-implementedBy: packages/storyspec/src/config.ts, packages/storyspec/src/trace/scan.ts, packages/storyspec/src/index.ts
+implementedBy: packages/story-spec/src/config.ts, packages/story-spec/src/trace/scan.ts, packages/story-spec/src/index.ts
 ---
 
 As a team whose tier runs more than one test runner (pytest and a conformance suite, say),

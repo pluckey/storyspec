@@ -1,0 +1,4 @@
+{
+  "testCommand": "pytest --junitxml=.story-spec/junit.xml",
+  "testReport": ".story-spec/junit.xml"
+}

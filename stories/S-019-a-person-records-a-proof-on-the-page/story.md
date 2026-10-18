@@ -4,7 +4,7 @@ title: A person records a proof on the page
 epic: E-7 Specs for people who don't edit files
 status: in-progress
 version: 1
-implementedBy: packages/storyspec/src/ui/server.ts, packages/storyspec/src/proof.ts, packages/storyspec/src/cli.ts, packages/storyspec/src/ui/view.ts, packages/storyspec/ui/index.html
+implementedBy: packages/story-spec/src/ui/server.ts, packages/story-spec/src/proof.ts, packages/story-spec/src/cli.ts, packages/story-spec/src/ui/view.ts, packages/story-spec/ui/index.html
 after: S-018
 ---
 

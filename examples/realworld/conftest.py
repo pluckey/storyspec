@@ -1,7 +1,7 @@
 """Fixtures every story test shares.
 
 `api` is the RealWorld API under test. In the local tier it is the app in-process, on memory adapters. In the deployed
-tier (STORYSPEC_TIER=deployed, set by `storyspec trace --tier deployed`) it is the running server at REALWORLD_URL,
+tier (STORY_SPEC_TIER=deployed, set by `story-spec trace --tier deployed`) it is the running server at REALWORLD_URL,
 backed by Postgres. The same test proves a scenario in both tiers.
 """
 import os
@@ -13,7 +13,7 @@ import pytest
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "verifies(scenario, tier=None): the storyspec scenario this test proves")
+    config.addinivalue_line("markers", "verifies(scenario, tier=None): the story-spec scenario this test proves")
 
 
 def pytest_collection_modifyitems(items):
@@ -29,7 +29,7 @@ def pytest_collection_modifyitems(items):
 @pytest.fixture(scope="session")
 def api():
     url = os.environ.get("REALWORLD_URL")
-    if os.environ.get("STORYSPEC_TIER") == "deployed" and not url:
+    if os.environ.get("STORY_SPEC_TIER") == "deployed" and not url:
         pytest.exit("the deployed tier needs REALWORLD_URL (scripts/deployed.sh sets it)", returncode=2)
     if url:
         with httpx.Client(base_url=url, timeout=10) as client:

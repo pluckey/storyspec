@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect } from 'vitest'
-import { story } from 'storyspec/vitest'
-import { trace } from '../../packages/storyspec/src/index.js'
+import { story } from 'story-spec/vitest'
+import { trace } from '../../packages/story-spec/src/index.js'
 import { edit, pythonProject, STORY } from '../../test/python-project.js'
 import { gen } from './scenarios.gen.js'
 

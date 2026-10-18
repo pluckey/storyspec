@@ -1,5 +1,5 @@
 {
-  "name": "storyspec-monorepo",
+  "name": "story-spec-monorepo",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -8,15 +8,14 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build -w storyspec -w create-storyspec && npm rebuild storyspec",
-    "test": "npm run build && npm test -w storyspec && npm run check -w template && npm exec -w template -- storyspec sync --check && npm run check:self",
+    "build": "npm run build -w story-spec -w create-story-spec && npm rebuild story-spec",
+    "test": "npm run build && npm test -w story-spec && npm run check -w template && npm exec -w template -- story-spec sync --check && npm run check:self",
     "smoke": "node scripts/smoke.mjs",
     "smoke:upgrade": "node scripts/smoke-upgrade.mjs",
     "smoke:python": "node scripts/smoke-python.mjs",
-    "lint:package": "publint packages/storyspec && publint packages/create-storyspec && attw --pack packages/storyspec --profile esm-only",
-    "version": "changeset version && npm install --package-lock-only && npm run build && cd template && storyspec sync",
-    "check:self": "node scripts/self-check.mjs",
-    "checker:promote": "node scripts/promote-checker.mjs"
+    "lint:package": "publint packages/story-spec && publint packages/create-story-spec && attw --pack packages/story-spec --profile esm-only",
+    "version": "changeset version && npm install --package-lock-only && npm run build && cd template && story-spec sync",
+    "check:self": "node scripts/self-check.mjs"
   },
   "engines": {
     "node": ">=22"

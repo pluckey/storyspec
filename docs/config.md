@@ -1,6 +1,6 @@
 # Configuration
 
-`storyspec.config.json` at the repo root is optional; every key has a default. Add `"$schema": "./node_modules/storyspec/schema/storyspec.config.schema.json"` for autocomplete. Unknown keys and wrong types are rejected.
+`story-spec.config.json` at the repo root is optional; every key has a default. Add `"$schema": "./node_modules/story-spec/schema/story-spec.config.schema.json"` for autocomplete. Unknown keys and wrong types are rejected. A project made before the rename may have this file under its old name; it is read, with a warning, until `npx story-spec migrate` renames it (see the migration note in the [README](../README.md)).
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -15,13 +15,13 @@
 | `gapsOnlyWarnFor` | `["draft", "ready"]` | Statuses whose gaps are warnings |
 | `mustPassFor` | `["done"]` | Statuses that require every scenario test to pass |
 | `exemptStatuses` | `["superseded"]` | Statuses listed in the trace but exempt from every story rule |
-| `testCommand` | `"vitest run --passWithNoTests --reporter=json --outputFile=.storyspec/vitest.json"` | Runs the tests and writes a JSON report |
-| `testReport` | `".storyspec/vitest.json"` | Where the trace reads results: Vitest/Jest JSON or JUnit XML, recognised from the content. A list reads several reports (say, pytest's and a conformance suite's); one the run didn't write is skipped |
-| `tiers` | `{ "local": {}, "manual": {} }` | Where scenarios can be proven. `local` runs `testCommand` (or its own `command`) on every trace. Add a tier with `{ "command": "…", "report": "…" }` (report defaults to `testReport`, and may also be a list) and run it with `storyspec trace --tier <name>`; its results are recorded in `stories/PROOF.json`. A tier with no command is proven by hand (`storyspec prove`). The command runs with `STORYSPEC_TIER=<name>` |
+| `testCommand` | `"vitest run --passWithNoTests --reporter=json --outputFile=.story-spec/vitest.json"` | Runs the tests and writes a JSON report |
+| `testReport` | `".story-spec/vitest.json"` | Where the trace reads results: Vitest/Jest JSON or JUnit XML, recognised from the content. A list reads several reports (say, pytest's and a conformance suite's); one the run didn't write is skipped |
+| `tiers` | `{ "local": {}, "manual": {} }` | Where scenarios can be proven. `local` runs `testCommand` (or its own `command`) on every trace. Add a tier with `{ "command": "…", "report": "…" }` (report defaults to `testReport`, and may also be a list) and run it with `story-spec trace --tier <name>`; its results are recorded in `stories/PROOF.json`. A tier with no command is proven by hand (`story-spec prove`). The command runs with `STORY_SPEC_TIER=<name>` |
 | `defaultProof` | `["local"]` | The tiers a scenario must be proven in unless its story (`proof:` in story.md) or its tag (`{#S-001.1 proof=…}`) says otherwise |
 | `unspecified` | `[]` | Path prefixes of code that no story covers on purpose, such as a feature kept out of scope. The `unclaimed-code` rule doesn't report them; unlike `ignore`, the rest of the trace still reads them |
 | `storyTemplateDir` | `"templates/story"` | Your own `story.md`/`spec.md` templates; built-ins are used if absent |
-| `ignore` | `["node_modules", "dist", ".storyspec", ".git"]` | Never scanned |
+| `ignore` | `["node_modules", "dist", ".story-spec", ".git"]`, and the state folder's name before the rename | Never scanned |
 | `rules` | `{}` | Severity per rule, overriding the default: `{ "slug": "error", "port-adapter": "off" }`. Values are `"error"`, `"warning"` or `"off"` |
 
 Default `layers`:

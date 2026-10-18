@@ -4,7 +4,7 @@ title: Trace reads JUnit reports
 epic: E-1 Proof from any test runner
 status: in-progress
 version: 2
-implementedBy: packages/storyspec/src/trace/results.ts
+implementedBy: packages/story-spec/src/trace/results.ts
 ---
 
 As a team whose tests aren't Vitest (pytest, Go, Gradle),

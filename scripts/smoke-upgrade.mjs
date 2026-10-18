@@ -1,26 +1,37 @@
-// End-to-end: a consumer takes a storyspec update the way they would from npm. Apps are scaffolded with the previous
+// End-to-end: a consumer takes a story-spec update the way they would from npm. Apps are scaffolded with the previous
 // release (built from git) and changed as a team would; then this build is installed. The trace must warn that the
-// agent guidance is stale, `storyspec sync` must update it, the team's own text must survive, and the check must pass.
-// Then a simulated next release (this build with changed guidance) checks an ordinary block update the same way.
+// agent guidance is stale, `story-spec migrate` and `story-spec sync` must update it, the team's own text must survive,
+// and the check must pass. Then a simulated next release (this build with changed guidance) checks an ordinary block
+// update the same way.
+// A previous release from before the rename is named storyspec, in packages/storyspec: its app is moved to story-spec by
+// `story-spec migrate` (S-024), which is what a team upgrading across the rename runs.
 // FROM=<git ref> picks the previous release; by default it's the commit before the current version was set.
 import { execSync } from 'node:child_process'
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const repo = resolve(import.meta.dirname, '..')
-const tmp = mkdtempSync(join(tmpdir(), 'storyspec-upgrade-'))
+const tmp = mkdtempSync(join(tmpdir(), 'story-spec-upgrade-'))
 const sh = (cmd, cwd = repo) => { console.log(`$ ${cmd}`); return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8' }) }
 const pack = (workspaceRoot, name) => sh(`npm pack -w ${name} --pack-destination ${tmp}`, workspaceRoot).trim().split('\n').pop()
 const fail = (msg) => { throw new Error(msg) }
 const expectIn = (text, needle, what) => { if (!text.includes(needle)) fail(`${what}: expected to find ${JSON.stringify(needle)}`) }
 const expectNotIn = (text, needle, what) => { if (text.includes(needle)) fail(`${what}: expected not to find ${JSON.stringify(needle)}`) }
-const versionAt = (ref) => JSON.parse(execSync(`git show ${ref}:packages/storyspec/package.json`, { cwd: repo, encoding: 'utf8' })).version
+
+// The package's folder and names at a commit: the old ones before the rename.
+const NAMES = [
+  { dir: 'packages/story-spec', cli: 'story-spec', create: 'create-story-spec' },
+  { dir: 'packages/storyspec', cli: 'storyspec', create: 'create-storyspec' },
+]
+const namesAt = (ref) => NAMES.find(n => { try { execSync(`git cat-file -e ${ref}:${n.dir}/package.json`, { cwd: repo, stdio: 'ignore' }); return true } catch { return false } })
+  ?? fail(`no package at ${ref}`)
+const versionAt = (ref) => JSON.parse(execSync(`git show ${ref}:${namesAt(ref).dir}/package.json`, { cwd: repo, encoding: 'utf8' })).version
 
 // The last commit before the current version was set.
 const previousRelease = () => {
-  const current = JSON.parse(readFileSync(join(repo, 'packages/storyspec/package.json'), 'utf8')).version
-  const commits = execSync('git log --format=%H -- packages/storyspec/package.json', { cwd: repo, encoding: 'utf8' }).trim().split('\n')
+  const current = JSON.parse(readFileSync(join(repo, 'packages/story-spec/package.json'), 'utf8')).version
+  const commits = execSync(`git log --format=%H -- ${NAMES.map(n => `${n.dir}/package.json`).join(' ')}`, { cwd: repo, encoding: 'utf8' }).trim().split('\n')
   const bump = [...commits].reverse().find(c => versionAt(c) === current) ?? fail(`no commit sets version ${current}`)
   return `${bump}^`
 }
@@ -28,20 +39,21 @@ const previousRelease = () => {
 try {
   // This build.
   sh('npm run build')
-  const current = JSON.parse(readFileSync(join(repo, 'packages/storyspec/package.json'), 'utf8')).version
-  const cur = pack(repo, 'storyspec')
+  const current = JSON.parse(readFileSync(join(repo, 'packages/story-spec/package.json'), 'utf8')).version
+  const cur = pack(repo, 'story-spec')
 
   // The previous release, built from git as it was.
   const from = process.env.FROM ?? previousRelease()
-  const prevVersion = versionAt(from)
+  const prevVersion = versionAt(from), prevNames = namesAt(from)
+  const renamed = prevNames.cli !== 'story-spec'
   sh(`git worktree add --detach ${tmp}/prev ${from}`)
   const prev = join(tmp, 'prev')
   sh('npm ci --silent', prev)
   sh('npm run build', prev)
-  const prevCli = pack(prev, 'storyspec'), prevCreate = pack(prev, 'create-storyspec')
+  const prevCli = pack(prev, prevNames.cli), prevCreate = pack(prev, prevNames.create)
   sh(`npm install --silent --prefix ${tmp}/creator ${tmp}/${prevCreate}`)
-  const creator = join(tmp, 'creator/node_modules/create-storyspec/index.js')
-  console.log(`\nUpgrading apps made with storyspec ${prevVersion} (${from}) to ${current}\n`)
+  const creator = join(tmp, `creator/node_modules/${prevNames.create}/index.js`)
+  console.log(`\nUpgrading apps made with ${prevNames.cli} ${prevVersion} (${from}) to story-spec ${current}\n`)
 
   const OUR_NOTES = '## Our conventions\n\nDeploy with `make deploy`. Payments are faked in tests.\n'
   const apps = {
@@ -52,16 +64,25 @@ try {
   }
   for (const [name, change] of Object.entries(apps)) {
     const app = join(tmp, name)
-    sh(`STORYSPEC_SPEC=file:${tmp}/${prevCli} node ${creator} ${app}${name === 'plain' ? '' : ' --no-example'}`, tmp)
+    // Both variable names: a scaffolder from before the rename reads only the old one.
+    sh(`STORY_SPEC_SPEC=file:${tmp}/${prevCli} STORYSPEC_SPEC=file:${tmp}/${prevCli} node ${creator} ${app}${name === 'plain' ? '' : ' --no-example'}`, tmp)
     sh('npm run -s check', app)
     change(app)
 
     sh(`npm install --silent -D ${tmp}/${cur}`, app)
-    const before = sh('npm run -s check', app)
-    expectIn(before, 'framework-sync', `${name}: the check after installing ${current}`)
-    console.log(sh('npx storyspec sync', app))
-    sh('npx storyspec sync --check', app)
-    console.log(sh('npx storyspec migrate', app))
+    // The app's scripts may still run the old command; this build's trace says what is stale.
+    const before = sh('npx story-spec trace', app)
+    expectIn(before, 'framework-sync', `${name}: the trace after installing ${current}`)
+    const migrated = sh('npx story-spec migrate', app)
+    console.log(migrated)
+    if (renamed) {
+      for (const f of ['storyspec.config.json', 'package.json', 'AGENTS.md']) expectIn(migrated, `${f}: `, `${name}: migrate's report`)
+      if (existsSync(join(app, 'storyspec.config.json'))) fail(`${name}: migrate left storyspec.config.json`)
+      expectNotIn(readFileSync(join(app, 'package.json'), 'utf8'), '"storyspec"', `${name}: package.json after migrate`)
+    }
+    console.log(sh('npx story-spec sync', app))
+    sh('npx story-spec sync --check', app)
+    expectIn(sh('npx story-spec migrate', app), 'Nothing to migrate.', `${name}: migrate run again`)
     const after = sh('npm run -s check', app)
     expectNotIn(after, 'framework-sync', `${name}: the check after sync`)
     expectNotIn(after, 'derived-status', `${name}: the check after migrate`)
@@ -73,14 +94,15 @@ try {
       expectIn(after, 'S-001 Member saves a note | done (v1)', 'plain: S-001 after upgrading')
     }
     const agents = readFileSync(join(app, 'AGENTS.md'), 'utf8')
-    expectIn(agents, `<!-- storyspec:begin ${current} `, `${name}: AGENTS.md`)
+    expectIn(agents, `<!-- story-spec:begin ${current} `, `${name}: AGENTS.md`)
+    expectNotIn(agents, 'storyspec:', `${name}: AGENTS.md's markers`)
     if (name === 'edited') expectIn(agents, OUR_NOTES, 'edited: the team\'s notes')
     if (agents.split('## Story tests').length !== 2) fail(`${name}: the guidance appears more than once in AGENTS.md`)
   }
 
   // A next release that changes the guidance: the block is updated, the notes outside it are kept.
   const next = join(tmp, 'next')
-  cpSync(join(repo, 'packages/storyspec'), next, { recursive: true, filter: p => !p.includes('node_modules') })
+  cpSync(join(repo, 'packages/story-spec'), next, { recursive: true, filter: p => !p.includes('node_modules') })
   const nextPkg = JSON.parse(readFileSync(join(next, 'package.json'), 'utf8'))
   nextPkg.version = `${current.split('.').slice(0, 2).join('.')}.${Number(current.split('.')[2]) + 1}`
   writeFileSync(join(next, 'package.json'), JSON.stringify(nextPkg, null, 2) + '\n')
@@ -91,7 +113,7 @@ try {
   const app = join(tmp, 'edited')
   sh(`npm install --silent -D ${tmp}/${nextTgz}`, app)
   expectIn(sh('npm run -s check', app), 'framework-sync', `the check after installing ${nextPkg.version}`)
-  const synced = sh('npx storyspec sync', app)
+  const synced = sh('npx story-spec sync', app)
   expectIn(synced, `AGENTS.md: updated (${current} → ${nextPkg.version})`, 'sync to the next release')
   const agents = readFileSync(join(app, 'AGENTS.md'), 'utf8')
   expectIn(agents, NEW_GUIDANCE, 'the next release\'s guidance')

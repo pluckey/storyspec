@@ -4,7 +4,7 @@ title: A story names the files that implement it
 epic: E-1 Proof from any test runner
 status: in-progress
 version: 3
-implementedBy: packages/storyspec/src/trace/rules.ts, packages/storyspec/src/gen.ts
+implementedBy: packages/story-spec/src/trace/rules.ts, packages/story-spec/src/gen.ts
 ---
 
 As a team whose story isn't implemented by TypeScript in its folder (Python, Terraform, a policy),

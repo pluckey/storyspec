@@ -2,16 +2,16 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect } from 'vitest'
-import { story } from 'storyspec/vitest'
-import { defaults, loadConfig } from '../../packages/storyspec/src/config.js'
+import { story } from 'story-spec/vitest'
+import { defaults, loadConfig } from '../../packages/story-spec/src/config.js'
 import { gen } from './scenarios.gen.js'
 
-const schema = JSON.parse(readFileSync(join(import.meta.dirname, '../../packages/storyspec/schema/storyspec.config.schema.json'), 'utf8')) as { properties: Record<string, unknown> }
+const schema = JSON.parse(readFileSync(join(import.meta.dirname, '../../packages/story-spec/schema/story-spec.config.schema.json'), 'utf8')) as { properties: Record<string, unknown> }
 
 const load = (config: object) => {
-  const root = mkdtempSync(join(tmpdir(), 'storyspec-config-'))
+  const root = mkdtempSync(join(tmpdir(), 'story-spec-config-'))
   try {
-    writeFileSync(join(root, 'storyspec.config.json'), JSON.stringify(config))
+    writeFileSync(join(root, 'story-spec.config.json'), JSON.stringify(config))
     return () => loadConfig(root)
   } finally {
     setTimeout(() => rmSync(root, { recursive: true, force: true }), 1000)

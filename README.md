@@ -1,13 +1,13 @@
-# storyspec
+# story-spec
 
 **Story-first, spec-driven development: every story owns its spec, code and tests, and one check proves it.**
 
 ```bash
-npm create storyspec@latest my-app
+npm create story-spec@latest my-app
 cd my-app && npm run check
 ```
 
-In an existing repo: `npm i -D storyspec vitest`, then `npx storyspec sync` (see [adopting](docs/adopting.md)). To update later: `npm i -D storyspec@latest && npx storyspec sync && npx storyspec migrate` (see [updating](docs/adopting.md#updating-storyspec)).
+In an existing repo: `npm i -D story-spec vitest`, then `npx story-spec sync` (see [adopting](docs/adopting.md)). To update later: `npm i -D story-spec@latest && npx story-spec sync && npx story-spec migrate` (see [updating](docs/adopting.md#updating-story-spec)).
 
 <!-- GIF: add a scenario to spec.md → test file turns red → implement → TRACE.md turns green -->
 
@@ -24,12 +24,12 @@ stories/S-001-member-saves-a-note/
   save-note.test.ts   story(gen, { 'S-001.1': …, 'S-001.2': … })
 ```
 
-Underneath is clean architecture with ports and adapters (`src/domain`, `src/ports`, `src/adapters`, `src/presenters`, `src/entry`), and the `storyspec` CLI holds it together (the import graph comes from [dependency-cruiser](https://github.com/sverweij/dependency-cruiser)):
+Underneath is clean architecture with ports and adapters (`src/domain`, `src/ports`, `src/adapters`, `src/presenters`, `src/entry`), and the `story-spec` CLI holds it together (the import graph comes from [dependency-cruiser](https://github.com/sverweij/dependency-cruiser)):
 
-- **Tests are typed against the spec.** Add a scenario to `spec.md`, run `storyspec gen`, and the test file won't compile until that scenario has a case.
-- **`storyspec trace`** runs the tests and writes `stories/TRACE.md`, a matrix of epic → story → implementation → scenario → proof. It fails on gaps, orphans, stale generated files, failing tests, and imports that break the architecture.
+- **Tests are typed against the spec.** Add a scenario to `spec.md`, run `story-spec gen`, and the test file won't compile until that scenario has a case.
+- **`story-spec trace`** runs the tests and writes `stories/TRACE.md`, a matrix of epic → story → implementation → scenario → proof. It fails on gaps, orphans, stale generated files, failing tests, and imports that break the architecture.
 - **Done is proven, not declared.** Each scenario names the tiers that must prove it: local tests, a deployed run, or a person's check. Proof from beyond the local run is recorded in `stories/PROOF.json` with a hash of the scenario's text, and a story shows as done only when every scenario is proven at its current wording.
-- **People who don't edit files can still decide.** A decision only someone else can answer is marked `(open)` and blocks the scenarios that wait for it; `storyspec ui` lets that person answer it, approve stories and edit scenarios in a browser, and each change lands in the same files the trace checks.
+- **People who don't edit files can still decide.** A decision only someone else can answer is marked `(open)` and blocks the scenarios that wait for it; `story-spec ui` lets that person answer it, approve stories and edit scenarios in a browser, and each change lands in the same files the trace checks.
 - **Agents know the rules.** `AGENTS.md` covers any coding agent, and Claude Code gets a `/story` command plus hooks that typecheck after edits and trace before finishing.
 
 | Epic | Story | Status | v | Implementation | Scenario | Test |
@@ -42,20 +42,20 @@ Underneath is clean architecture with ports and adapters (`src/domain`, `src/por
 
 | Command | Does |
 |---|---|
-| `npm create storyspec@latest <dir>` | New app with the example notes API (`-- --no-example` for a bare structure with one draft story) |
-| `storyspec story "<title>" [--epic "<epic>"]` | Next story folder from templates |
-| `storyspec gen [--check]` | Write `scenarios.gen.ts` per story (`--check` fails if stale) |
-| `storyspec trace [--tier <name>] [--require-proven] [--by persona] [--no-run] [--json]` | Run a tier's tests (local by default), write TRACE.md, enforce every rule; another tier's results are recorded in `stories/PROOF.json`. `--by persona` writes one stories table per persona in `stories/PERSONAS.md` |
-| `storyspec prove <ID> [--tier manual] [--fail] [--note "…"]` | Record a person's proof of a scenario or a story's scenarios |
-| `storyspec ui [--port 4400]` | A page on localhost for the people who decide what the product does. It lands on Needs you, everything waiting on a person with its action, and reads in three groups: Model (what should be), Implementation (what is) and Proof (how we know). Every screen is the same grid: search, tabs with counts, sortable columns and rows that open in place. Answer decisions, approve drafts, edit scenarios, add personas, claim code and record a check by hand; every state says why, in plain words. Every change is an edit to the project's files, shown as a diff; commit them with git |
-| `storyspec migrate` | Update stories for the installed version (0.3: done is derived from proof) |
-| `storyspec sync [--check] [--force] [--claude]` | Bring the agent guidance (`AGENTS.md` block, and for Claude Code the `CLAUDE.md` block, `/story` command and hooks) up to the installed version. See [updating](docs/adopting.md#updating-storyspec) |
+| `npm create story-spec@latest <dir>` | New app with the example notes API (`-- --no-example` for a bare structure with one draft story) |
+| `story-spec story "<title>" [--epic "<epic>"]` | Next story folder from templates |
+| `story-spec gen [--check]` | Write `scenarios.gen.ts` per story (`--check` fails if stale) |
+| `story-spec trace [--tier <name>] [--require-proven] [--by persona] [--no-run] [--json]` | Run a tier's tests (local by default), write TRACE.md, enforce every rule; another tier's results are recorded in `stories/PROOF.json`. `--by persona` writes one stories table per persona in `stories/PERSONAS.md` |
+| `story-spec prove <ID> [--tier manual] [--fail] [--note "…"]` | Record a person's proof of a scenario or a story's scenarios |
+| `story-spec ui [--port 4400]` | A page on localhost for the people who decide what the product does. It lands on Needs you, everything waiting on a person with its action, and reads in three groups: Model (what should be), Implementation (what is) and Proof (how we know). Every screen is the same grid: search, tabs with counts, sortable columns and rows that open in place. Answer decisions, approve drafts, edit scenarios, add personas, claim code and record a check by hand; every state says why, in plain words. Every change is an edit to the project's files, shown as a diff; commit them with git |
+| `story-spec migrate` | Update the project for the installed version (0.9: the rename, see below; 0.3: done is derived from proof). Safe to run again |
+| `story-spec sync [--check] [--force] [--claude]` | Bring the agent guidance (`AGENTS.md` block, and for Claude Code the `CLAUDE.md` block, `/story` command and hooks) up to the installed version. See [updating](docs/adopting.md#updating-story-spec) |
 
 ## Docs
 
 - [Concepts](docs/concepts.md): stories, the lifecycle, ports and adapters, why one folder per story
 - [Rules](docs/rules.md): every rule the trace enforces, why, and how to fix a violation
-- [Configuration](docs/config.md): `storyspec.config.json`
+- [Configuration](docs/config.md): `story-spec.config.json`
 - [Adopting in an existing repo](docs/adopting.md)
 - [Roadmap](docs/roadmap.md)
 - The template's own [README](template/README.md) and [AGENTS.md](template/AGENTS.md)
@@ -64,15 +64,28 @@ Underneath is clean architecture with ports and adapters (`src/domain`, `src/por
 
 | Path | What |
 |---|---|
-| `packages/storyspec` | The CLI and library (`storyspec`, `storyspec/vitest`) |
-| `packages/create-storyspec` | The scaffolder behind `npm create storyspec` |
+| `packages/story-spec` | The CLI and library (`story-spec`, `story-spec/vitest`) |
+| `packages/create-story-spec` | The scaffolder behind `npm create story-spec` |
 | `template` | The app new projects start from (a working notes API) |
 | `examples/realworld` | The RealWorld API in Python (FastAPI, Postgres), built story by story: proof tiers, a deployed tier on docker compose, and the official RealWorld suite as part of proof |
 | `docs` | Documentation |
 
+## Moving from storyspec
+
+Up to 0.8 the packages were `storyspec` and `create-storyspec`, and the repo was `pluckey/storyspec`. From 0.9 they are `story-spec` and `create-story-spec`. A project made with `storyspec` moves with one command:
+
+```bash
+npm i -D story-spec@latest
+npx story-spec migrate   # then npm install, npm run check, and commit
+```
+
+`migrate` renames `storyspec.config.json` to `story-spec.config.json` and `.storyspec/` to `.story-spec/` (and the paths that name it, in the config and `.gitignore`), rewrites imports of `storyspec/vitest` to `story-spec/vitest`, replaces `storyspec` with `story-spec` in `package.json`'s scripts and dependencies, regenerates `scenarios.gen.ts`, and rewrites the agent guidance in `AGENTS.md`, `CLAUDE.md`, the `/story` command and its hooks, as `sync` does. It lists each file it changed; run again, it reports nothing to migrate.
+
+Until you migrate, `story-spec` still reads `storyspec.config.json` (with a warning on each run), still recognises the `storyspec:begin`/`storyspec:end` markers, and still sets and reads `STORYSPEC_TIER` beside `STORY_SPEC_TIER`. The scaffolder reads `STORY_SPEC_SPEC`, and `STORYSPEC_SPEC` too. The old name in the config file stops being read in a later release.
+
 ## Prior art
 
-storyspec borrows ideas from tools worth knowing:
+story-spec borrows ideas from tools worth knowing:
 - [OpenFastTrace](https://github.com/itsallcode/openfasttrace) for tag-based requirement tracing
 - [Serenity BDD](https://serenity-bdd.github.io/) for living documentation
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec) and [Spec Kit](https://github.com/github/spec-kit) for spec-driven development with AI agents
