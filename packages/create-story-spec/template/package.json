@@ -1,0 +1,23 @@
+{
+  "name": "story-spec-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/entry/http.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "gen": "story-spec gen",
+    "story": "story-spec story",
+    "trace": "story-spec trace",
+    "sync": "story-spec sync",
+    "check": "story-spec gen --check && tsc --noEmit && story-spec trace"
+  },
+  "devDependencies": {
+    "story-spec": "*",
+    "@types/node": "^26.6.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3"
+  }
+}
