@@ -22,7 +22,7 @@ ben = member("ben", "Dragons, mostly.")
 cleo = member("cleo", "Reads everything, comments on some of it.")
 
 posts = [
-    (ana, "Stories before code", "Why a requirement should fit in one sentence", "Write the scenario first. Then the test. Then the code.", ["storyspec", "process"]),
+    (ana, "Stories before code", "Why a requirement should fit in one sentence", "Write the scenario first. Then the test. Then the code.", ["story-spec", "process"]),
     (ana, "A proper cup of tea", "Temperature matters more than you think", "Green tea at 80°C, black at 95°C.", ["tea"]),
     (ben, "How to train your dragon", "Patience, mostly", "Start with small flames.", ["dragons", "training"]),
     (ben, "Dragons and tea", "An unlikely pairing", "Dragons prefer smoky lapsang.", ["dragons", "tea"]),

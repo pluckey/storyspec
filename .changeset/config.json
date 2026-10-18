@@ -4,14 +4,14 @@
   "commit": false,
   "fixed": [
     [
-      "storyspec",
-      "create-storyspec"
+      "story-spec",
+      "create-story-spec"
     ]
   ],
   "access": "public",
   "baseBranch": "main",
   "ignore": [
-    "storyspec-app",
-    "storyspec-realworld"
+    "story-spec-app",
+    "story-spec-realworld"
   ]
 }

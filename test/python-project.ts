@@ -1,10 +1,10 @@
-// A copy of the python fixture (packages/storyspec/test/fixtures/python): a project whose code and tests are Python,
+// A copy of the python fixture (packages/story-spec/test/fixtures/python): a project whose code and tests are Python,
 // with a canned pytest JUnit report. Each test gets its own copy and changes one thing.
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach } from 'vitest'
-import { sync, trace } from '../packages/storyspec/src/index.js'
+import { sync, trace } from '../packages/story-spec/src/index.js'
 
 const roots: string[] = []
 afterEach(() => { for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true }) })
@@ -12,8 +12,8 @@ afterEach(() => { for (const r of roots.splice(0)) rmSync(r, { recursive: true, 
 export const STORY = 'stories/S-001-greet-a-person'
 
 export const pythonProject = () => {
-  const root = mkdtempSync(join(tmpdir(), 'storyspec-py-'))
-  cpSync(join(import.meta.dirname, '../packages/storyspec/test/fixtures/python'), root, { recursive: true })
+  const root = mkdtempSync(join(tmpdir(), 'story-spec-py-'))
+  cpSync(join(import.meta.dirname, '../packages/story-spec/test/fixtures/python'), root, { recursive: true })
   sync(root)
   roots.push(root)
   return root
@@ -27,7 +27,7 @@ export const junit = (...cases: string[]) =>
 export const pass = (name: string, props = '') => `<testcase classname="tests.test_greet" name="${name}">${props}</testcase>`
 export const fail = (name: string, message: string) =>
   `<testcase classname="tests.test_greet" name="${name}"><failure message="${message}">trace</failure></testcase>`
-export const report = (root: string, ...cases: string[]) => writeFileSync(join(root, '.storyspec/junit.xml'), junit(...cases))
+export const report = (root: string, ...cases: string[]) => writeFileSync(join(root, '.story-spec/junit.xml'), junit(...cases))
 
 export const rulesOf = async (root: string, severity: 'error' | 'warning' = 'error') =>
   [...new Set((await trace(root, { write: false })).findings.filter(f => f.severity === severity).map(f => f.rule))].sort()

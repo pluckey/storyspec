@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, expect } from 'vitest'
-import { story } from 'storyspec/vitest'
-import { importGraph, trace } from '../../packages/storyspec/src/index.js'
+import { story } from 'story-spec/vitest'
+import { importGraph, trace } from '../../packages/story-spec/src/index.js'
 import { edit, pythonProject, rulesOf } from '../../test/python-project.js'
 import { gen } from './scenarios.gen.js'
 
@@ -11,7 +11,7 @@ const roots: string[] = []
 afterEach(() => { for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true }) })
 
 const project = (files: Record<string, string>) => {
-  const root = mkdtempSync(join(tmpdir(), 'storyspec-lang-'))
+  const root = mkdtempSync(join(tmpdir(), 'story-spec-lang-'))
   roots.push(root)
   for (const [path, text] of Object.entries(files)) {
     mkdirSync(dirname(join(root, path)), { recursive: true })
@@ -35,7 +35,7 @@ story(gen, {
 
   'S-005.2': async () => {
     const root = pythonProject()
-    edit(root, 'storyspec.config.json', s => JSON.stringify({ ...JSON.parse(s), layers: { 'app/domain': ['app/domain'], 'app/adapters': ['app/domain', 'app/adapters'] } }))
+    edit(root, 'story-spec.config.json', s => JSON.stringify({ ...JSON.parse(s), layers: { 'app/domain': ['app/domain'], 'app/adapters': ['app/domain', 'app/adapters'] } }))
     for (const [path, text] of Object.entries({
       'app/__init__.py': '', 'app/domain/__init__.py': '', 'app/adapters/__init__.py': '', 'app/adapters/db.py': 'from app.domain.model import Thing\n',
       'app/domain/model.py': 'from app.adapters.db import connect\n',

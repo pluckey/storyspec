@@ -4,7 +4,7 @@ title: One page for all your projects
 epic: E-7 Specs for people who don't edit files
 status: in-progress
 version: 1
-implementedBy: packages/storyspec/src/ui/server.ts, packages/storyspec/src/ui/projects.ts, packages/storyspec/src/cli.ts
+implementedBy: packages/story-spec/src/ui/server.ts, packages/story-spec/src/ui/projects.ts, packages/story-spec/src/cli.ts
 after: S-012
 ---
 

@@ -26,7 +26,7 @@ from app.usecases.tags import tags
 
 def create_app(deps: Deps | None = None) -> FastAPI:
     deps = deps or deps_from_env()
-    app = FastAPI(title="RealWorld (storyspec example)")
+    app = FastAPI(title="RealWorld (story-spec example)")
 
     @app.exception_handler(AppError)
     def app_error(_: Request, e: AppError):

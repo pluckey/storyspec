@@ -2,7 +2,7 @@
 
 ## The story is the unit
 
-Most codebases organize by technical layer (controllers, services, repositories) or by feature, and keep requirements somewhere else: a ticket, a wiki, a spec folder that drifts. storyspec makes the **story** the permanent unit. Its folder holds:
+Most codebases organize by technical layer (controllers, services, repositories) or by feature, and keep requirements somewhere else: a ticket, a wiki, a spec folder that drifts. story-spec makes the **story** the permanent unit. Its folder holds:
 
 | File | Role |
 |---|---|
@@ -53,7 +53,7 @@ Builds levels and ships the game.
 
 A persona's key is its heading lower-cased, with hyphens for spaces (`## Game Master` is `game-master`). A story names the ones it serves with `persona:`; without the field, its "As a player, I want…" line names one, matched the same way after the article, so an existing project gets the view without editing a story. An open decision can say who answers it: `(open: player)` instead of `(open)`.
 
-With PERSONAS.md present, the trace warns on a story serving a persona it doesn't describe (`unknown-persona`), a persona no story serves (`persona-without-stories`), and a story whose `persona:` and "As a…" line disagree (`persona-prose-mismatch`). They are warnings because a persona is a lens, not a contract; raise them in `rules` to make them strict. TRACE.md ends with a grid of epics down and personas across, each cell counting that epic's stories for that persona as done / in progress / draft, and `storyspec trace --by persona` makes the stories table one table per persona, in PERSONAS.md order (a story for two personas appears under both). Without PERSONAS.md, none of this happens and the trace reads as before.
+With PERSONAS.md present, the trace warns on a story serving a persona it doesn't describe (`unknown-persona`), a persona no story serves (`persona-without-stories`), and a story whose `persona:` and "As a…" line disagree (`persona-prose-mismatch`). They are warnings because a persona is a lens, not a contract; raise them in `rules` to make them strict. TRACE.md ends with a grid of epics down and personas across, each cell counting that epic's stories for that persona as done / in progress / draft, and `story-spec trace --by persona` makes the stories table one table per persona, in PERSONAS.md order (a story for two personas appears under both). Without PERSONAS.md, none of this happens and the trace reads as before.
 
 ## Requirement and scenarios
 
@@ -107,7 +107,7 @@ The `model` rule errors on an event for a state the record doesn't have, and war
 
 ## A page for people who don't edit files
 
-`storyspec ui` serves a page on localhost (port 4400; `--port` to change it) over the same scan and trace the CLI uses. A left navigation holds an inbox and three groups, one question each:
+`story-spec ui` serves a page on localhost (port 4400; `--port` to change it) over the same scan and trace the CLI uses. A left navigation holds an inbox and three groups, one question each:
 
 | | Screens |
 |---|---|
@@ -123,7 +123,7 @@ The trace's findings sit on the screen of the thing they name, as rows under its
 - **Answer an open decision**, as pinned (its scenarios prove it) or free. The line in spec.md becomes `<question>: <answer>; pinned by …` or `<question>: <answer> (free)`, and the scenarios it blocked can be built.
 - **Approve a draft**, which sets `status: ready`.
 - **Edit or add a scenario**, inside its opened story (Edit is in an opened scenario, Add a scenario heads the story's scenarios). A new scenario takes the next ID. Steps must start with GIVEN, WHEN, THEN or AND, and include a THEN.
-- **Record a check by hand** on a manual scenario: it holds or it fails, with an optional note. It is written to PROOF.json by the same function as `storyspec prove`, naming the person git names.
+- **Record a check by hand** on a manual scenario: it holds or it fails, with an optional note. It is written to PROOF.json by the same function as `story-spec prove`, naming the person git names.
 - **Claim code** no story claims, which adds the file to the chosen story's `implementedBy:`; the code isn't touched.
 - **Add a persona**, which appends its `## Name` heading and line to PERSONAS.md (creating the file if there is none), or start a story for a persona with `persona:` filled in.
 
@@ -143,7 +143,7 @@ Nobody writes `done`. A hand-written status was a second source of truth that co
 
 ## Proof
 
-A scenario is proven in **tiers**: `local` (tests that run on every check, the default), any tier a project configures with a command (for example `deployed`, tests against real infrastructure), and `manual` (a person checks it with `storyspec prove`). A scenario names the tiers it needs on its tag (`{#S-006.1 proof=local,deployed}`), or a story does in story.md (`proof: …`); `defaultProof` in config covers the rest. Its `story()` case then has one function per tier that runs tests, checked at compile time.
+A scenario is proven in **tiers**: `local` (tests that run on every check, the default), any tier a project configures with a command (for example `deployed`, tests against real infrastructure), and `manual` (a person checks it with `story-spec prove`). A scenario names the tiers it needs on its tag (`{#S-006.1 proof=local,deployed}`), or a story does in story.md (`proof: …`); `defaultProof` in config covers the rest. Its `story()` case then has one function per tier that runs tests, checked at compile time.
 
 Local results come from the run in front of you. Every other tier's results are recorded in `stories/PROOF.json`, committed with the code: outcome, date, story version, commit, and a **hash of the scenario's text**. A proof of other wording is stale, so a scenario whose meaning was rewritten under the same ID can't stay proven by a test of the old meaning. Adapters are tracked the same way: the ports table shows which tiers exercised each adapter, so an adapter over a real service is only proven by a tier that reached it.
 

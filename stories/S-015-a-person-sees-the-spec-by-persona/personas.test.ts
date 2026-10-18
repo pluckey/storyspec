@@ -3,11 +3,11 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect } from 'vitest'
-import { story } from 'storyspec/vitest'
-import { loadConfig, scan, trace } from '../../packages/storyspec/src/index.js'
-import { textHash } from '../../packages/storyspec/src/edit.js'
-import { readPersonas } from '../../packages/storyspec/src/trace/personas.js'
-import { applyEdit, serveUi, uiState } from '../../packages/storyspec/src/ui/server.js'
+import { story } from 'story-spec/vitest'
+import { loadConfig, scan, trace } from '../../packages/story-spec/src/index.js'
+import { textHash } from '../../packages/story-spec/src/edit.js'
+import { readPersonas } from '../../packages/story-spec/src/trace/personas.js'
+import { applyEdit, serveUi, uiState } from '../../packages/story-spec/src/ui/server.js'
 import { edit, pythonProject, STORY } from '../../test/python-project.js'
 import { gen } from './scenarios.gen.js'
 
@@ -217,9 +217,9 @@ story(gen, {
   },
 
   'S-015.15': () => {
-    const app = join(mkdtempSync(join(tmpdir(), 'storyspec-create-')), 'app')
+    const app = join(mkdtempSync(join(tmpdir(), 'story-spec-create-')), 'app')
     cleanup.push(() => rmSync(join(app, '..'), { recursive: true, force: true }))
-    execFileSync('node', [join(import.meta.dirname, '../../packages/create-storyspec/index.js'), app, '--no-install'], { stdio: 'ignore' })
+    execFileSync('node', [join(import.meta.dirname, '../../packages/create-story-spec/index.js'), app, '--no-install'], { stdio: 'ignore' })
     expect(existsSync(join(app, PERSONAS))).toBe(true)
     expect(readPersonas(join(app, 'stories'))!.map(p => p.name)).toEqual(['Member'])
     expect(read(app, 'stories/S-001-member-saves-a-note/story.md')).toMatch(/^persona: member$/m)

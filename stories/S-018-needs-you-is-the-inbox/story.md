@@ -4,7 +4,7 @@ title: Needs you is the inbox
 epic: E-7 Specs for people who don't edit files
 status: in-progress
 version: 1
-implementedBy: packages/storyspec/src/ui/view.ts, packages/storyspec/src/ui/vocabulary.ts, packages/storyspec/src/ui/route.ts, packages/storyspec/src/ui/server.ts, packages/storyspec/src/edit.ts, packages/storyspec/ui/index.html
+implementedBy: packages/story-spec/src/ui/view.ts, packages/story-spec/src/ui/vocabulary.ts, packages/story-spec/src/ui/route.ts, packages/story-spec/src/ui/server.ts, packages/story-spec/src/edit.ts, packages/story-spec/ui/index.html
 after: S-017
 ---
 

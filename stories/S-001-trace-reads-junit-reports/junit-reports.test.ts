@@ -1,9 +1,9 @@
 import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect } from 'vitest'
-import { story } from 'storyspec/vitest'
-import { readProof, trace } from '../../packages/storyspec/src/index.js'
-import { junitTitle } from '../../packages/storyspec/src/trace/results.js'
+import { story } from 'story-spec/vitest'
+import { readProof, trace } from '../../packages/story-spec/src/index.js'
+import { junitTitle } from '../../packages/story-spec/src/trace/results.js'
 import { edit, fail, pass, pythonProject, report, rulesOf, STORY } from '../../test/python-project.js'
 import { gen } from './scenarios.gen.js'
 
@@ -81,12 +81,12 @@ story(gen, {
 
   'S-001.11': async () => {
     const root = pythonProject()
-    edit(root, 'storyspec.config.json', () => JSON.stringify({
-      testCommand: 'true', testReport: '.storyspec/junit.xml',
-      tiers: { deployed: { command: 'true', report: '.storyspec/deployed.xml' } },
+    edit(root, 'story-spec.config.json', () => JSON.stringify({
+      testCommand: 'true', testReport: '.story-spec/junit.xml',
+      tiers: { deployed: { command: 'true', report: '.story-spec/deployed.xml' } },
       defaultProof: ['local', 'deployed'],
     }))
-    writeFileSync(join(root, '.storyspec/deployed.xml'), `<testsuite>${pass('test_S_001_1_greets_by_name')}${fail('test_S_001_2', 'no')}</testsuite>`)
+    writeFileSync(join(root, '.story-spec/deployed.xml'), `<testsuite>${pass('test_S_001_1_greets_by_name')}${fail('test_S_001_2', 'no')}</testsuite>`)
     await trace(root, { write: false, tier: 'deployed', now: '2026-10-08T19:00:00Z' })
     const proof = readProof({ root, config: { storiesDir: 'stories' } as never })
     expect(Object.fromEntries(Object.entries(proof.scenarios).map(([id, t]) => [id, t.deployed?.outcome]))).toEqual({ 'S-001.1': 'pass', 'S-001.2': 'fail' })
