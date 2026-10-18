@@ -1,15 +1,18 @@
 // `storyspec ui`: a local web page for people who manage the spec without editing files. The files stay the only
 // source of truth: the server reads the repo the way the trace does, and each write is one edit from edit.ts applied
-// to one file, refused when the file changed since the page read it. Git is the history.
+// to one file, refused when the file changed since the page read it (or, to start a story, the folder `storyspec story`
+// writes). Git is the history.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadConfig } from '../config.js'
-import { addScenario, answerDecision, bumpVersion, decisionQuestion, editScenario, requirementText, scenarioSteps, setStatus, storyText, textHash, type Edit } from '../edit.js'
+import { addPersona, addScenario, answerDecision, bumpVersion, decisionQuestion, editScenario, requirementText, scenarioSteps, setStatus, storyText, textHash, type Edit } from '../edit.js'
 import { writeGen } from '../gen.js'
 import { trace } from '../index.js'
+import { newStory } from '../new-story.js'
+import { PERSONAS_FILE, personaKey } from '../trace/personas.js'
 import { scan } from '../trace/scan.js'
 import { findProjects, projectsBase } from './projects.js'
 import { followProject } from './watch.js'
@@ -47,13 +50,22 @@ export const uiState = async (root: string) => {
   const result = await trace(root, { write: false })
   const repo = scan(root, config)
   const rows = new Map(result.rows.map(r => [r.story, r]))
+  // Each persona with the open decisions it answers and the stories it is served by (superseded ones serve no one).
+  const live = repo.stories.filter(s => !config.exemptStatuses.includes(s.front.status ?? ''))
+  const personas = repo.personas?.map(p => ({
+    ...p,
+    stories: live.filter(s => s.personas.includes(p.key)).map(s => s.id),
+    decisions: repo.stories.flatMap(s => s.decisions.map((d, index) => ({ story: s.id, index, question: decisionQuestion(d.text), pinnedBy: d.pinnedBy, open: d.open, owner: d.owner })))
+      .filter(d => d.open && d.owner === p.key),
+  })) ?? null
+  const personasFile = join(root, config.storiesDir, PERSONAS_FILE)
   const stories = repo.stories.map(s => {
     const storyMd = readFileSync(join(root, s.dir, 'story.md'), 'utf8')
     const steps = scenarioSteps(s.spec, config.idPrefix)
     const row = rows.get(s.id)
     return {
       id: s.id, dir: s.dir, title: s.front.title ?? '', epic: s.front.epic ?? '', status: row?.status ?? s.front.status ?? '',
-      written: s.front.status ?? '', version: s.front.version ?? '', trigger: s.trigger[0] ?? '', emits: s.emits, after: s.after,
+      written: s.front.status ?? '', version: s.front.version ?? '', trigger: s.trigger[0] ?? '', emits: s.emits, after: s.after, personas: s.personas,
       text: storyText(storyMd), requirement: requirementText(s.spec, s.id),
       hashes: { story: textHash(storyMd), spec: textHash(s.spec) },
       decisions: s.decisions.map(d => ({ ...d, question: decisionQuestion(d.text) })),
@@ -62,15 +74,37 @@ export const uiState = async (root: string) => {
   })
   return {
     project: basename(root), storiesDir: config.storiesDir, ok: result.ok, findings: result.findings, stories,
-    model: repo.model ?? null, changes: changes(root, config.storiesDir),
+    model: repo.model ?? null, personas, personasHash: textHash(existsSync(personasFile) ? readFileSync(personasFile, 'utf8') : ''),
+    changes: changes(root, config.storiesDir),
   }
 }
 
-type Body = { op?: string; story?: string; hash?: string; index?: number; answer?: string; kind?: string; status?: string; id?: string; title?: string; steps?: string[] }
+type Body = {
+  op?: string; story?: string; hash?: string; index?: number; answer?: string; kind?: string; status?: string; id?: string; title?: string; steps?: string[]
+  name?: string; prose?: string; epic?: string; persona?: string
+}
 
 /** Applies one edit from the page. Returns the HTTP status and a message. */
 export const applyEdit = (root: string, body: Body, now: Date = new Date()): { status: number; message: string } => {
   const config = loadConfig(root)
+  // Edits that aren't to one story: PERSONAS.md, and a new story for a persona.
+  if (body.op === 'persona') {
+    const file = join(root, config.storiesDir, PERSONAS_FILE)
+    const text = existsSync(file) ? readFileSync(file, 'utf8') : ''
+    if (body.hash !== textHash(text)) return { status: 409, message: `${config.storiesDir}/${PERSONAS_FILE} changed since the page read it; reload and try again` }
+    const edit = addPersona(text, body.name ?? '', body.prose ?? '')
+    if (!edit.ok) return { status: 400, message: edit.reason }
+    writeFileSync(file, edit.text)
+    return { status: 200, message: `Added ${body.name!.trim()} to ${PERSONAS_FILE}` }
+  }
+  if (body.op === 'story') {
+    const title = (body.title ?? '').trim().replace(/\s+/g, ' ')
+    if (!title) return { status: 400, message: 'give the story a title' }
+    const persona = body.persona?.trim() ? personaKey(body.persona) : undefined
+    const { id } = newStory(root, config, title, (body.epic ?? '').trim(), now, persona)
+    writeGen(root, scan(root, config).stories)
+    return { status: 200, message: `Started ${id}${persona ? ` for ${persona}` : ''}, a draft: write its scenarios next` }
+  }
   const story = scan(root, config).stories.find(s => s.id === body.story)
   if (!story) return { status: 404, message: `${body.story ?? 'that story'} isn't a story` }
   const storyFile = join(root, story.dir, 'story.md'), specFile = join(root, story.dir, 'spec.md')

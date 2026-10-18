@@ -4,6 +4,7 @@ title: Member saves a note
 epic: E-1 Notes
 status: in-progress
 version: 1
+persona: member
 ---
 
 As a member, I want to save a note with a title and body,

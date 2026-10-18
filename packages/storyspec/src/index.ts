@@ -8,6 +8,7 @@ import { derivedStatus, readProof, recordRun } from './proof.js'
 import { rows, traceMarkdown, type TraceRow } from './trace/report.js'
 import { scan, sourceFiles } from './trace/scan.js'
 import { importGraph } from './trace/graph.js'
+import type { Persona } from './trace/personas.js'
 
 export { defaults, loadConfig, type Config } from './config.js'
 export { genStatus, renderGen, writeGen } from './gen.js'
@@ -15,13 +16,16 @@ export { installedVersion, plan as syncPlan, sync, type SyncChange } from './syn
 export { newStory } from './new-story.js'
 export type { Finding, PortCoverage } from './trace/rules.js'
 export type { TraceRow } from './trace/report.js'
+export type { Persona } from './trace/personas.js'
 export { scan, sourceFiles } from './trace/scan.js'
 export { importGraph, type ImportGraph } from './trace/graph.js'
 
 export { currentCommit, derivedStatus, readProof, recordManual, recordRun, scenarioStates, type ProofFile } from './proof.js'
 
-export type TraceResult = { rows: TraceRow[]; ports: PortCoverage[]; findings: Finding[]; ok: boolean }
-export type TraceOptions = { runTests?: boolean; write?: boolean; tier?: string; requireProven?: boolean; now?: string }
+// `personas`: from stories/PERSONAS.md, when the project has one.
+export type TraceResult = { rows: TraceRow[]; ports: PortCoverage[]; findings: Finding[]; ok: boolean; personas?: Persona[] }
+// `by: 'persona'`: TRACE.md's stories table becomes one table per persona.
+export type TraceOptions = { runTests?: boolean; write?: boolean; tier?: string; requireProven?: boolean; now?: string; by?: 'persona' }
 
 /** The command and report of a tier that runs tests: local uses testCommand unless it sets its own. */
 export const tierRun = (config: Config, tier: string) => {
@@ -64,6 +68,6 @@ export const trace = async (root: string, opts: TraceOptions = {}): Promise<Trac
     findings.push({ rule: 'tests', severity: 'error', message: `"${tierRun(config, tier).command}" did not write ${reportPaths(config.testReport).join(' or ')}` })
   const rs = rows(repo, proof, derived)
   const ports = portCoverage(repo, proof, tier)
-  if (opts.write !== false) writeFileSync(join(root, config.storiesDir, 'TRACE.md'), traceMarkdown(rs, ports, repo.model))
-  return { rows: rs, ports, findings, ok: !findings.some(f => f.severity === 'error') }
+  if (opts.write !== false) writeFileSync(join(root, config.storiesDir, 'TRACE.md'), traceMarkdown(rs, ports, repo.model, { personas: repo.personas, by: opts.by }))
+  return { rows: rs, ports, findings, ok: !findings.some(f => f.severity === 'error'), ...(repo.personas && { personas: repo.personas }) }
 }

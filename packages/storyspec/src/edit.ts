@@ -1,6 +1,7 @@
 // Edits a person makes to a spec through the UI, as pure functions from a file's text to its new text. Each returns
 // the new text or a reason it can't be made, so the server only reads, calls one of these, and writes.
 import { createHash } from 'node:crypto'
+import { personaKey } from './trace/personas.js'
 import { isOpen } from './trace/scan.js'
 
 export type Edit = { ok: true; text: string } | { ok: false; reason: string }
@@ -49,9 +50,9 @@ const decisionLines = (spec: string) => {
   return { lines, indexes }
 }
 
-/** An open decision's question: its text without "(open)" and the scenario IDs it names. */
+/** An open decision's question: its text without "(open)" (or "(open: <persona>)") and the scenario IDs it names. */
 export const decisionQuestion = (text: string) =>
-  text.replace(/\s*(?<!["`“])\(open\)(?!["`”])/i, '').replace(/[;,]?\s*(?:[A-Z]+-\d+\.\d+(?:\s*,\s*)?)+\s*$/, '').replace(/[\s:;,]+$/, '').trim()
+  text.replace(/\s*(?<!["`“])\(open(?::[^)]*)?\)(?!["`”])/i, '').replace(/[;,]?\s*(?:[A-Z]+-\d+\.\d+(?:\s*,\s*)?)+\s*$/, '').replace(/[\s:;,]+$/, '').trim()
 
 /** Answers the `index`th decision (0-based, in spec order), which must be open. Pinned keeps the scenarios it named
  * as its pins; free records the answer as one reasonable choice. */
@@ -67,6 +68,18 @@ export const answerDecision = (spec: string, index: number, answer: string, kind
   if (kind === 'pinned' && !ids.length) return no('a pinned answer needs a scenario that proves it; this decision names none, so answer it as free or add a scenario first')
   lines[at] = `- ${decisionQuestion(text)}: ${a}${kind === 'pinned' ? `; pinned by ${ids.join(', ')}` : ' (free)'}`
   return ok(lines.join('\n'))
+}
+
+/** Appends a persona to PERSONAS.md (`text` is '' when there is none yet): its `## Name` heading, then its prose. */
+export const addPersona = (text: string, name: string, prose: string): Edit => {
+  const n = name.trim().replace(/\s+/g, ' '), p = prose.trim().replace(/\s+/g, ' ')
+  if (!n) return no('give the persona a name')
+  if (/[#\n]/.test(n)) return no('a persona\'s name can\'t contain #')
+  if (!p) return no('say in a line who this persona is and what they want')
+  const taken = [...text.matchAll(/^##\s+(.+?)\s*$/gm)].find(m => personaKey(m[1]!) === personaKey(n))
+  if (taken) return no(`PERSONAS.md already describes ${taken[1]}`)
+  const head = text.trim() ? text.replace(/\s*$/, '') : '# Personas'
+  return ok(`${head}\n\n## ${n}\n\n${p}\n`)
 }
 
 /** Sets story.md's status. */

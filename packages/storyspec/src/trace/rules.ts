@@ -8,6 +8,7 @@ import { exercisedAdapters, type ProofFile, scenarioStates } from '../proof.js'
 import { blockedScenarios, ids, isTypeScript, looksLikeTest, stripComments, type Repo, type SourceFile } from './scan.js'
 import { languageOf } from './languages.js'
 import { RECORD_EVENTS, recordOf, startStates } from './model.js'
+import { PERSONAS_FILE } from './personas.js'
 
 export type Severity = 'error' | 'warning'
 export type Finding = { rule: string; severity: Severity; file?: string; message: string }
@@ -155,6 +156,23 @@ export const evaluate = (repo: Repo, opts: EvaluateOptions = {}): Finding[] => {
     for (const r of model) for (const st of r.states)
       if (!startStates(r).includes(st) && !emitted.has(`${r.slug}.${st.slug}`))
         add('model', 'warning', `${r.name}: no story emits ${r.slug}.${st.slug}, so nothing moves a ${r.name} to ${st.name}`, `${config.storiesDir}/MODEL.md`)
+  }
+
+  // Each story serves personas PERSONAS.md describes, says the same in its field and its text, and every persona has a
+  // story. A persona is a lens, not a contract, so these only warn; superseded stories serve no one.
+  if (repo.personas) {
+    const file = `${config.storiesDir}/${PERSONAS_FILE}`
+    const described = new Set(repo.personas.map(p => p.key))
+    const live = stories.filter(s => !config.exemptStatuses.includes(s.front.status ?? ''))
+    for (const s of live) {
+      for (const p of s.personas)
+        if (!described.has(p)) add('unknown-persona', 'warning', `${s.id}: serves ${p}, which ${file} doesn't describe; add a "## " heading for it there, or name a persona it describes`, `${s.dir}/story.md`)
+      if (s.personaField.length && s.prosePersona && !s.personaField.includes(s.prosePersona))
+        add('persona-prose-mismatch', 'warning', `${s.id}: persona: ${s.personaField.join(', ')}, but its text says it is for ${s.prosePersona} ("As a…"); make them agree`, `${s.dir}/story.md`)
+    }
+    const served = new Set(live.flatMap(s => s.personas))
+    for (const p of repo.personas)
+      if (!served.has(p.key)) add('persona-without-stories', 'warning', `${p.key}: no story serves this persona; write one with persona: ${p.key}, or remove it from ${PERSONAS_FILE}`, file)
   }
 
   for (const f of unclaimed(repo))

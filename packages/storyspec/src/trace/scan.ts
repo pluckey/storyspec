@@ -7,6 +7,7 @@ import type { ImportGraph } from './graph.js'
 import { readResults } from './results.js'
 import { languageOf } from './languages.js'
 import { readModel, type ModelRecord } from './model.js'
+import { personaKey, prosePersona, readPersonas, storyPersonas, type Persona } from './personas.js'
 
 // `imports`: repo files it imports, without extension (from the import graph); `typeOnly`: those imported only for types.
 export type SourceFile = { path: string; text: string; imports: string[]; typeOnly: string[] }
@@ -42,11 +43,18 @@ export type Story = {
   trigger: string[]
   /** Events the story emits (`emits:` in story.md), which start the stories whose trigger is `event:<name>`. */
   emits: string[]
+  /** Who the story is for, as persona keys: `persona:` in story.md, or else the one its "As a…" names. */
+  personas: string[]
+  /** `persona:` as written, keyed; empty when story.md has none. */
+  personaField: string[]
+  /** The persona the "As a…" text names, if it names one. */
+  prosePersona?: string
 }
 
 /** One `- …` line under `### Decisions`. `pinnedBy`: scenario IDs it names; `free`: any choice is acceptable; `open`:
- * nobody has answered it yet, so the scenarios it names are blocked rather than pinned. */
-export type Decision = { text: string; pinnedBy: string[]; free: boolean; open: boolean }
+ * nobody has answered it yet, so the scenarios it names are blocked rather than pinned; `owner`: the persona who
+ * answers an open one, from `(open: <persona>)`. */
+export type Decision = { text: string; pinnedBy: string[]; free: boolean; open: boolean; owner?: string }
 
 export type Repo = {
   root: string; config: Config; stories: Story[]; kernel: SourceFile[]; outcomes: Map<string, 'pass' | 'fail'>; failures: Map<string, string>; hasReport: boolean; executedTests: string[]
@@ -60,6 +68,8 @@ export type Repo = {
   codeFiles: string[]
   // The records and their states from stories/MODEL.md; undefined when there is none.
   model?: ModelRecord[]
+  // The people the product serves, from stories/PERSONAS.md; undefined when there is none.
+  personas?: Persona[]
 }
 
 export const ids = (prefix: string) => ({
@@ -126,7 +136,10 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
       const dir = join(storiesRoot, name)
       const id = name.match(re.storyFolder)![1]!
       const storyMd = join(dir, 'story.md'), specMd = join(dir, 'spec.md')
-      const front = existsSync(storyMd) ? frontmatter(read(storyMd)) : {}
+      const storyText = existsSync(storyMd) ? read(storyMd) : ''
+      const front = frontmatter(storyText)
+      const personaField = (list(front.persona) ?? []).map(personaKey)
+      const prose = prosePersona(storyText)
       const spec = existsSync(specMd) ? read(specMd) : ''
       const titles = new Map([...spec.matchAll(re.scenarioHeading)].map(m => [m[2]!, m[1]!]))
       const storyProof = list(front.proof)
@@ -147,6 +160,9 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
         after: list(front.after) ?? [],
         trigger: list(front.trigger) ?? [],
         emits: list(front.emits) ?? [],
+        personas: storyPersonas(personaField, prose),
+        personaField,
+        ...(prose && { prosePersona: prose }),
       }
     })
 
@@ -193,7 +209,7 @@ export const scan = (root: string, config: Config, graph: ImportGraph = new Map(
   }
 
   const codeFiles = walk(root).map(rel).filter(isCode)
-  return { model: readModel(storiesRoot), root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes, passedTestNames, codeFiles }
+  return { model: readModel(storiesRoot), personas: readPersonas(storiesRoot), root, config, stories, kernel, outcomes, failures, hasReport, executedTests, otherFailures, tierOutcomes, passedTestNames, codeFiles }
 }
 
 // "local, deployed" → ['local', 'deployed']; absent → undefined.
@@ -211,8 +227,13 @@ export const scenarioHash = (spec: string, tagAt: number) => {
 
 // A decision's own words, without what it quotes: a decision that quotes "(open)" or `free` is about the marker.
 const unquoted = (text: string) => text.replace(/"[^"]*"|“[^”]*”|`[^`]*`/g, '')
-/** A decision is open when it says (open) itself, not when it quotes the marker. */
-export const isOpen = (text: string) => /\(open\)/i.test(unquoted(text))
+/** A decision is open when it says (open), or (open: <persona>), itself, not when it quotes the marker. */
+export const isOpen = (text: string) => /\(open(?::[^)]*)?\)/i.test(unquoted(text))
+/** Who answers an open decision: `(open: player)` → `player`. */
+export const ownerOf = (text: string) => {
+  const m = unquoted(text).match(/\(open:\s*([^)]*?)\s*\)/i)
+  return m?.[1] ? personaKey(m[1]) : undefined
+}
 
 // The bullets of spec.md's `### Decisions` section, up to the next heading of that level or higher.
 const decisions = (spec: string, prefix: string): Decision[] => {
@@ -227,6 +248,7 @@ const decisions = (spec: string, prefix: string): Decision[] => {
       pinnedBy: [...new Set([...text.matchAll(new RegExp(`\\b${prefix}-\\d+\\.\\d+\\b`, 'g'))].map(m => m[0]))],
       free: /\bfree\b/i.test(unquoted(text)),
       open: isOpen(text),
+      ...(ownerOf(text) && { owner: ownerOf(text) }),
     }
   })
 }
