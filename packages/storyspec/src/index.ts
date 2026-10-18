@@ -20,6 +20,9 @@ export type { Persona } from './trace/personas.js'
 export { scan, sourceFiles } from './trace/scan.js'
 export { importGraph, type ImportGraph } from './trace/graph.js'
 
+// The words storyspec ui speaks: state words, finding sentences, headings.
+export { VOCABULARY, type Vocabulary } from './ui/vocabulary.js'
+
 export { currentCommit, derivedStatus, readProof, recordManual, recordRun, scenarioStates, type ProofFile } from './proof.js'
 
 // `personas`: from stories/PERSONAS.md, when the project has one.

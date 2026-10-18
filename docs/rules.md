@@ -2,6 +2,8 @@
 
 `storyspec trace` reports each finding with its rule name. Errors fail the command; warnings don't. A project can change a rule's severity, or turn it off, with `rules` in `storyspec.config.json`. For stories whose status is in `gapsOnlyWarnFor` (draft and ready by default), missing code, tests or tags are warnings. Stories whose status is in `exemptStatuses` (superseded by default) appear in the trace but no story rule applies to them.
 
+`storyspec ui` shows each finding on the screen of the thing it names (Model, Implementation or Proof), as a plain sentence that names the thing and the fix, with the rule's name on the item's details line. Those sentences live in one table, `src/ui/vocabulary.ts`, one per rule below; the CLI's messages are unchanged.
+
 | Rule | Severity | Fires when | Fix |
 |---|---|---|---|
 | `story-files` | error | A story folder lacks `story.md` or `spec.md`, or `story.md`'s `id` doesn't match the folder | Add the file, or correct the `id` |

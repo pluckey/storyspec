@@ -107,15 +107,25 @@ The `model` rule errors on an event for a state the record doesn't have, and war
 
 ## A page for people who don't edit files
 
-`storyspec ui` serves a page on localhost (port 4400; `--port` to change it) over the same scan and trace the CLI uses. It has a tab each for decisions, stories, scenarios, the model, the trace's findings and personas, and lets a person:
+`storyspec ui` serves a page on localhost (port 4400; `--port` to change it) over the same scan and trace the CLI uses. A left navigation holds an inbox and three groups, one question each:
+
+| | Screens |
+|---|---|
+| **Needs you** | Everything waiting on a person, with its action: Decide (an open decision), Approve (a draft), Check again (a stale proof), Check (a manual scenario nobody has checked), Claim (code no story claims). The page lands here; at its top, each persona's "can do today" and "being built" counts, so someone new can read where the project stands in a minute. |
+| **Model**, what should be | People (the personas, each with their stories and the decisions waiting on them), Stories (one line per story with its state and a proof summary, opening into its requirement and scenarios), Decisions, Records (MODEL.md's lifecycles), Words (any other Markdown file in the stories folder, rendered) |
+| **Implementation**, what is | Code (each story's files, and code no story claims), Ports, Layers |
+| **Proof**, how we know | By tests, By a run, By a person, Stale |
+
+The trace's findings sit on the screen of the thing they name, each as a sentence that says what to do. Nothing on the page stores a state: every state (can do today, being built, planned, checked, failed a check, needs a look, waiting on you) is worked out on the server from the scan, the trace and PROOF.json, and clicking it says why, in sentences, with the action that would change it; a stale proof shows the text that was checked and the text now. IDs, versions, rule names and hashes are kept to an item's details line. Every word comes from one table, `src/ui/vocabulary.ts`. The URL names the project, the screen and the open stories, so a link or a refresh lands in the same place. The page lets a person:
 
 - **Answer an open decision**, as pinned (its scenarios prove it) or free. The line in spec.md becomes `<question>: <answer>; pinned by …` or `<question>: <answer> (free)`, and the scenarios it blocked can be built.
 - **Approve a draft**, which sets `status: ready`.
-- **Edit or add a scenario.** A new scenario takes the next ID. Steps must start with GIVEN, WHEN, THEN or AND, and include a THEN.
-- **Read one persona's journey.** The Personas tab shows a persona's prose, the open decisions waiting on them, and their stories in ID order with each scenario's proof. A persona with no story says so and offers to start one with `persona:` filled in; open decisions with no owner are listed under Unassigned.
-- **Add a persona**, which appends its `## Name` heading and line to PERSONAS.md (creating the file if there is none).
+- **Edit or add a scenario**, inside its opened story. A new scenario takes the next ID. Steps must start with GIVEN, WHEN, THEN or AND, and include a THEN.
+- **Record a check by hand** on a manual scenario: it holds or it fails, with an optional note. It is written to PROOF.json by the same function as `storyspec prove`, naming the person git names.
+- **Claim code** no story claims, which adds the file to the chosen story's `implementedBy:`; the code isn't touched.
+- **Add a persona**, which appends its `## Name` heading and line to PERSONAS.md (creating the file if there is none), or start a story for a persona with `persona:` filled in.
 
-Every change is an edit to one story's files (or PERSONAS.md, or a new story's folder), shown as a diff before it is saved. An edit to a story past draft bumps its `version` and adds a Revisions line, as the rules ask of anyone. Each write carries the hash of the file the page read, and is refused if the file has changed since, so the page never overwrites an edit made in an editor. There is no database or account: the files are the only copy, the page lists what git hasn't committed yet, and committing is up to you. The server listens on localhost only and refuses writes from other sites' pages.
+Every change is an edit to one file (a story's files, PERSONAS.md, PROOF.json, or a new story's folder), shown as a diff before it is saved. An edit to a story past draft bumps its `version` and adds a Revisions line, as the rules ask of anyone. Each write carries the hash of the file the page read, and is refused if the file has changed since, so the page never overwrites an edit made in an editor. There is no database or account: the files are the only copy, the page lists what git hasn't committed yet, and committing is up to you. The server listens on localhost only and refuses writes from other sites' pages.
 
 ## Lifecycle
 

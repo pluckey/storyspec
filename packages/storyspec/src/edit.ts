@@ -86,6 +86,20 @@ export const addPersona = (text: string, name: string, prose: string): Edit => {
 export const setStatus = (storyMd: string, status: string): Edit =>
   /^status:/m.test(storyMd) ? ok(storyMd.replace(/^status:[ \t]*.*$/m, `status: ${status}`)) : no('story.md has no status')
 
+/** Adds a file to story.md's `implementedBy:` (after `version:` when the story lists none yet): the story claims it. */
+export const addImplementedBy = (storyMd: string, file: string): Edit => {
+  const f = file.trim()
+  if (!f) return no('name the file to claim')
+  const m = storyMd.match(/^implementedBy:[ \t]*(.*)$/m)
+  if (m) {
+    const listed = m[1]!.split(',').map(x => x.trim()).filter(Boolean)
+    if (listed.includes(f)) return no(`the story already names ${f}`)
+    return ok(storyMd.replace(/^implementedBy:[ \t]*.*$/m, `implementedBy: ${[...listed, f].join(', ')}`))
+  }
+  if (!/^version:.*$/m.test(storyMd)) return no('story.md has no version')
+  return ok(storyMd.replace(/^(version:.*)$/m, `$1\nimplementedBy: ${f}`))
+}
+
 /** Bumps story.md's version and adds a line under Revisions saying why. */
 export const bumpVersion = (storyMd: string, why: string, date: string): Edit => {
   const m = storyMd.match(/^version:[ \t]*(\d+)[ \t]*$/m)

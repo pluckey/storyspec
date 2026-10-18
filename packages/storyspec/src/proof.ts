@@ -42,6 +42,11 @@ export const currentCommit = (root: string): string | undefined => {
   } catch { return undefined }
 }
 
+/** Who git says is working here (`git config user.name`): whom a proof recorded by hand names when nobody says. */
+export const gitUser = (root: string): string | undefined => {
+  try { return execSync('git config user.name', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' }).trim() || undefined } catch { return undefined }
+}
+
 const adapterFiles = (repo: Repo) =>
   repo.kernel.filter(f => f.path === repo.config.adaptersDir || f.path.startsWith(repo.config.adaptersDir + '/')).filter(f => !/\.(test|spec)\./.test(f.path))
 

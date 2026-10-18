@@ -175,11 +175,12 @@ story(gen, {
     expect(s3.status).toBe('in-progress')
     expect(s3.scenarios.map(sc => [sc.id, sc.tiers.map(t => t.state)])).toEqual([['S-003.1', ['awaiting']], ['S-003.2', ['awaiting']]])
     const html = await page(root)
-    expect(html).toContain("personas: 'Personas'")
+    // The Personas tab is People, under Model in the navigation (S-016).
+    expect(html).toContain('"people":"People"')
     // The persona view reads prose, then the decisions waiting on the persona, then its stories.
     const view = html.slice(html.indexOf('function personaView'))
-    expect(view.indexOf('p.prose')).toBeLessThan(view.indexOf('Waiting on'))
-    expect(view.indexOf('Waiting on')).toBeLessThan(view.indexOf('Stories'))
+    expect(view.indexOf('p.prose')).toBeLessThan(view.indexOf('V.decisions.waitingOn'))
+    expect(view.indexOf('V.decisions.waitingOn')).toBeLessThan(view.indexOf('V.people.stories'))
   },
 
   'S-015.13': async () => {
