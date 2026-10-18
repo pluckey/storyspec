@@ -1,4 +1,4 @@
-# story-spec
+# storyspec
 
 A starting point for apps where **the story is the unit of development**. Each story is one folder holding its spec, the code that implements it and the tests that prove it. Underneath sits clean architecture with ports and adapters, and a single check (`npm run check`) keeps the two honest.
 
@@ -26,7 +26,7 @@ Tests are typed against the spec: add a scenario to `spec.md`, run `npm run gen`
 ## Quick start
 
 ```bash
-npm create story-spec@latest my-app && cd my-app
+npm create storyspec@latest my-app && cd my-app
 npm run check          # typecheck + tests + trace
 npm run dev            # example HTTP app on :3000
 curl -X POST localhost:3000/notes -H 'x-member-id: ana' -d '{"title":"Groceries"}'
@@ -100,10 +100,10 @@ Changing behaviour means revising the story (bump `version`, add a Revisions lin
 
 ## Making it yours
 
-- **Start without the example:** `npm create story-spec@latest my-app -- --no-example` gives you the structure, the tooling and one draft story.
-- **Rename the ID prefix or move folders:** `story-spec.config.json` holds the ID prefix, the stories folder, the wiring files and each layer's allowed imports. Your editor autocompletes it from the schema.
+- **Start without the example:** `npm create storyspec@latest my-app -- --no-example` gives you the structure, the tooling and one draft story.
+- **Rename the ID prefix or move folders:** `storyspec.config.json` holds the ID prefix, the stories folder, the wiring files and each layer's allowed imports. Your editor autocompletes it from the schema.
 - **Change the story templates:** put your own `story.md` and `spec.md` in `templates/story/`; new stories are copied from there instead of the built-in ones.
-- **Upgrade the tooling:** `npm update story-spec`. Rules and fixes ship in the package, not in your copy.
+- **Upgrade the tooling:** `npm update storyspec`. Rules and fixes ship in the package, not in your copy.
 - **CI:** run `npm ci && npm run check`.
 
 ## FAQ

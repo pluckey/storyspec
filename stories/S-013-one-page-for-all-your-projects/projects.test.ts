@@ -2,9 +2,9 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect } from 'vitest'
-import { story } from 'story-spec/vitest'
-import { textHash } from '../../packages/story-spec/src/edit.js'
-import { serveUi } from '../../packages/story-spec/src/ui/server.js'
+import { story } from 'storyspec/vitest'
+import { textHash } from '../../packages/storyspec/src/edit.js'
+import { serveUi } from '../../packages/storyspec/src/ui/server.js'
 import { edit, pythonProject, STORY } from '../../test/python-project.js'
 import { gen } from './scenarios.gen.js'
 
@@ -14,7 +14,7 @@ afterEach(() => { for (const c of cleanup.splice(0)) c() })
 /** A folder with three projects (alpha with one open decision, beta with two, team/gamma nested with none), a plain
  * folder, and a project inside node_modules that must not be listed. */
 const folder = () => {
-  const base = mkdtempSync(join(tmpdir(), 'story-spec-projects-'))
+  const base = mkdtempSync(join(tmpdir(), 'storyspec-projects-'))
   cleanup.push(() => rmSync(base, { recursive: true, force: true }))
   const project = (at: string, ...decisions: string[]) => {
     const root = pythonProject()

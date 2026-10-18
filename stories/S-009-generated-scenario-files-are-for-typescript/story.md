@@ -4,7 +4,7 @@ title: Generated scenario files are for TypeScript
 epic: E-6 Projects in any language
 status: in-progress
 version: 1
-implementedBy: packages/story-spec/src/gen.ts
+implementedBy: packages/storyspec/src/gen.ts
 ---
 
 As someone using storyspec in a project that isn't TypeScript,

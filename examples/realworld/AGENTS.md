@@ -1,14 +1,14 @@
 # Working in this repo
 
-<!-- story-spec:begin 0.8.0 sha=ddec8aa72d921129 -->
-<!-- Managed by story-spec. `npx story-spec sync` rewrites this block from the installed version; put project notes outside it. -->
+<!-- storyspec:begin 0.6.0 sha=51c3d8865d313a26 -->
+<!-- Managed by storyspec. `npx storyspec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
 ## A story
 
 ```
 stories/S-001-member-saves-a-note/
-  story.md                As a… I want… so that…  (front matter: id, title, epic, status, version, optional trigger)
+  story.md                As a… I want… so that…  (front matter: id, title, epic, status, version)
   spec.md                 EARS requirement {#S-001}, GIVEN/WHEN/THEN scenarios {#S-001.1} …
   save-note.ts            the use case: one exported factory, first line // @implements S-001
   save-note.types.ts      request and response types
@@ -16,14 +16,12 @@ stories/S-001-member-saves-a-note/
   save-note.test.ts       story(gen, { 'S-001.1': …, 'S-001.2': … }): one case per scenario
 ```
 
-- **Code that isn't TypeScript in the story's folder** (Python, Terraform, a policy file) is listed in story.md under `implementedBy:` instead of tagged `@implements`, and its tests name scenarios in the JUnit report (`test_S_001_1_…`). `layers` checks Python imports too; see story-spec's docs/rules.md.
-- **Record the judgment calls the scenarios don't pin** under `### Decisions` in spec.md (token lifetime, slug clashes, case rules): `pinned by S-00x.n` when every implementation must agree (add that scenario), or `(free)` when any reasonable choice will do. A regeneration otherwise makes them again, silently. A question only someone else can answer (a client's threshold) is `(open)`, naming the scenarios that wait for it: never invent an answer, and don't write tests for those scenarios until it is answered.
-- **Records that move through states** (a vendor from Draft to Approved) are listed once in `stories/MODEL.md`: `## Vendor` then bullets like `- Draft → Review → Approved`. A story that moves a record into a state emits `<record>.<state>` (`vendor.review`); `<record>.created` and `<record>.changed` exist too.
+- **Code that isn't TypeScript in the story's folder** (Python, Terraform, a policy file) is listed in story.md under `implementedBy:` instead of tagged `@implements`, and its tests name scenarios in the JUnit report (`test_S_001_1_…`). `layers` checks Python imports too; see storyspec's docs/rules.md.
+- **Record the judgment calls the scenarios don't pin** under `### Decisions` in spec.md (token lifetime, slug clashes, case rules): `pinned by S-00x.n` when every implementation must agree (add that scenario), or `(free)` when any reasonable choice will do. A regeneration otherwise makes them again, silently.
 - **New behaviour gets a new story:** `npm run story -- "<title>" --epic "<epic>"`. Don't repurpose another story's folder.
 - **The folder is `<ID>-<slug of the title>`.** If you change a title, rename the folder to match (keep the ID) and run `npm run gen`; the trace warns when they drift.
 - **Changed behaviour revises its story:** edit spec.md, bump `version`, add a line under Revisions, update the tests. Don't open a second story for the same behaviour.
 - **Status:** draft → ready → in-progress. **Never write `done`**: the trace shows a story as done when every scenario is proven in every tier it needs (see Proof tiers). A retired story becomes `superseded`: it stays in the trace for history and is exempt from the rules.
-- **Say what starts a story** with `trigger:` in story.md: `actor:<role>`, `event:<event>`, `schedule:<name>` or `external:<system>`, one per story; it is the requirement's WHEN. A story that causes an event lists it under `emits:`. When no person starts the story, the "As a…" names whoever benefits.
 - **One requirement per story, one sentence:** `WHEN <trigger> THE SYSTEM SHALL <response>.` It says what the story does.
 - **Every condition, edge case and error is a scenario,** not another SHALL line. That way each one gets exactly one test, and nothing in the spec is untested. (The trace fails if the requirement has more than one SHALL.)
 - **Order of work:** scenarios (get them approved) → `npm run gen` → failing tests → use case → wiring → `npm run check`.
@@ -32,7 +30,7 @@ stories/S-001-member-saves-a-note/
 
 ```ts
 import { expect } from 'vitest'
-import { story } from 'story-spec/vitest'
+import { story } from 'storyspec/vitest'
 import { gen } from './scenarios.gen'
 
 story(gen, {
@@ -63,10 +61,10 @@ story(gen, {
 })
 ```
 
-- `npm run check` proves the local tier. `npx story-spec trace --tier deployed` runs the deployed tier's command (`tiers` in story-spec.config.json) and records the results in `stories/PROOF.json`; commit that file.
-- `npx story-spec prove S-010.2` records a person's check (`--fail`, `--note "…"`).
+- `npm run check` proves the local tier. `npx storyspec trace --tier deployed` runs the deployed tier's command (`tiers` in storyspec.config.json) and records the results in `stories/PROOF.json`; commit that file.
+- `npx storyspec prove S-010.2` records a person's check (`--fail`, `--note "…"`).
 - Every recorded proof carries a hash of the scenario's text. Change the text and the proof is stale: the trace warns and the story is no longer done until it is proven again.
-- `npx story-spec trace --require-proven` fails unless every story past ready is done; use it to gate a release.
+- `npx storyspec trace --require-proven` fails unless every story past ready is done; use it to gate a release.
 - Don't branch on the environment inside a case (`if (deployed) …`): give the scenario the tier and the case a function for it.
 
 ## The use case
@@ -90,7 +88,7 @@ story(gen, {
 - `src/entry/composition.ts` is the only file that imports stories and chooses adapters.
 - **Compose per entry point.** When there are several entry points (an API, a scheduled job, a webhook handler), each builds only the adapters its stories use, so one entry point's settings or permissions never become another's requirement.
 - Presenters, adapters and entry points make no business decisions. Story IDs never appear in `src/`.
-- An HTTP entry parses the request, calls a story from `compose()`, and hands the result to a presenter that maps it to a status and body (e.g. `ok` → 200/201, expected error → 4xx). The example app in the story-spec repo (`template/src/entry/http.ts`) shows the shape.
+- An HTTP entry parses the request, calls a story from `compose()`, and hands the result to a presenter that maps it to a status and body (e.g. `ok` → 200/201, expected error → 4xx). The example app in the storyspec repo (`template/src/entry/http.ts`) shows the shape.
 
 ## Ports, fakes and contract suites
 
@@ -124,7 +122,7 @@ Adapter tests live in `test/`, not beside the adapter in `src/adapters` (adapter
 ## Checks
 
 - `npm run check`: generated files are fresh, typecheck, then trace.
-- `npm run trace`: runs the tests and writes `stories/TRACE.md` with two tables: stories (epic → story → implementation → scenario → result) and ports (port → adapters → contract tests that ran). It fails on gaps, orphans, stale generated files, untested adapters or layer violations, and prints warnings (like a port with no adapter yet, or a folder that doesn't match its title) above the result. Each finding names its rule; `node_modules/story-spec/docs/rules.md` explains every rule and its fix. Paths and prefixes are in `story-spec.config.json`.
+- `npm run trace`: runs the tests and writes `stories/TRACE.md` with two tables: stories (epic → story → implementation → scenario → result) and ports (port → adapters → contract tests that ran). It fails on gaps, orphans, stale generated files, untested adapters or layer violations, and prints warnings (like a port with no adapter yet, or a folder that doesn't match its title) above the result. Each finding names its rule; `node_modules/storyspec/docs/rules.md` explains every rule and its fix. Paths and prefixes are in `storyspec.config.json`.
 - Drafts and ready stories only warn about missing code, tests or failing tests. Every other story fails on them.
 
 ## Before designing on a platform
@@ -139,29 +137,29 @@ Adapter tests live in `test/`, not beside the adapter in `src/adapters` (adapter
 - When several cases need the same slow setup (a deployment change, a log that takes a minute to show up), do it once in a shared run the cases read from, instead of each case paying for it.
 - A marker in text that a scanner reads must not look like a secret or an identifier, or the scanner may mask it.
 
-## Updating story-spec
+## Updating storyspec
 
-This guidance and the `/story` command come from the installed story-spec version. To update both:
+This guidance and the `/story` command come from the installed storyspec version. To update both:
 
 ```bash
-npm i -D story-spec@latest
-npx story-spec sync    # rewrites the story-spec blocks in AGENTS.md and CLAUDE.md, the /story command and its hooks
-npx story-spec migrate # updates stories for the new version, if it changed their format
+npm i -D storyspec@latest
+npx storyspec sync    # rewrites the storyspec blocks in AGENTS.md and CLAUDE.md, the /story command and its hooks
+npx storyspec migrate # updates stories for the new version, if it changed their format
 npm run check
 ```
 
 `sync` never touches text outside its blocks. If you edited inside a block it stops and says where; move your notes below the block, then run it again.
-<!-- story-spec:end -->
+<!-- storyspec:end -->
 
 ## This project
 
-Notes for agents about this repo go here, outside the story-spec block, so updates keep them.
+Notes for agents about this repo go here, outside the storyspec block, so updates keep them.
 
 ## This project
 
-The RealWorld (Conduit) API in Python, built story by story. It's story-spec's public example of a project that isn't TypeScript.
+The RealWorld (Conduit) API in Python, built story by story. It's storyspec's public example of a project that isn't TypeScript.
 
-- **Code:** `app/` is hexagonal, and `layers` in story-spec.config.json enforces it (story-spec reads Python imports with ast-grep): `domain/` holds pure rules, `ports/` holds protocols, and `usecases/` has one module per story, whose first line says `# @implements S-00x`. `adapters/` has `memory/`, `postgres/` and `system.py`, and `entry/` has FastAPI, the views and composition. Each story lists its use case under `implementedBy:`.
+- **Code:** `app/` is hexagonal, and `layers` in storyspec.config.json enforces it (storyspec reads Python imports with ast-grep): `domain/` holds pure rules, `ports/` holds protocols, and `usecases/` has one module per story, whose first line says `# @implements S-00x`. `adapters/` has `memory/`, `postgres/` and `system.py`, and `entry/` has FastAPI, the views and composition. Each story lists its use case under `implementedBy:`.
 - **Tests:** a story's tests sit in its folder (`stories/S-00x-…/test_*.py`) and name their scenario with `@pytest.mark.verifies("S-00x.n")`. Each test uses the `api` fixture (`conftest.py`), so the same test proves the local tier (the app in-process, on memory adapters) and the deployed tier (the running server on Postgres).
 - **Storage contracts:** `tests/contracts/` holds the storage ports' contract. Every adapter must pass it, and Postgres runs when `DATABASE_URL` is set.
 - **Checks:**

@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, expect } from 'vitest'
-import { story } from 'story-spec/vitest'
-import { serveUi } from '../../packages/story-spec/src/ui/server.js'
+import { story } from 'storyspec/vitest'
+import { serveUi } from '../../packages/storyspec/src/ui/server.js'
 import { edit, pythonProject, STORY } from '../../test/python-project.js'
 import { gen } from './scenarios.gen.js'
 
@@ -52,9 +52,9 @@ story(gen, {
   'S-014.2': async () => {
     const root = pythonProject()
     const { events, settle } = await follow(root)
-    edit(root, '.story-spec/junit.xml', s => s.replace('time="0.01"', 'time="0.02"'))
+    edit(root, '.storyspec/junit.xml', s => s.replace('time="0.01"', 'time="0.02"'))
     await settle()
-    expect(events.flatMap(e => e.files)).toContain('.story-spec/junit.xml')
+    expect(events.flatMap(e => e.files)).toContain('.storyspec/junit.xml')
   },
 
   'S-014.3': async () => {

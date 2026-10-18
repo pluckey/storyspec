@@ -4,7 +4,7 @@ title: A spec records its decisions
 epic: E-4 Specs that survive regeneration
 status: in-progress
 version: 2
-implementedBy: packages/story-spec/src/trace/scan.ts, packages/story-spec/src/trace/rules.ts, packages/story-spec/src/trace/report.ts
+implementedBy: packages/storyspec/src/trace/scan.ts, packages/storyspec/src/trace/rules.ts, packages/storyspec/src/trace/report.ts
 ---
 
 As someone who regenerates a product from its specs,

@@ -52,7 +52,7 @@ jobs:
         env:
           SMOKE_VITEST: '2'
 
-  # The RealWorld example: Python, checked by this build of story-spec on both tiers (the deployed tier on docker compose).
+  # The RealWorld example: Python, checked by this build of storyspec on both tiers (the deployed tier on docker compose).
   realworld:
     runs-on: ubuntu-latest
     steps:

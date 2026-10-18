@@ -4,7 +4,7 @@ title: Every screen is one grid
 epic: E-7 Specs for people who don't edit files
 status: in-progress
 version: 1
-implementedBy: packages/story-spec/src/ui/screens.ts, packages/story-spec/src/ui/grid.ts, packages/story-spec/src/ui/view.ts, packages/story-spec/src/ui/route.ts, packages/story-spec/src/ui/server.ts, packages/story-spec/src/ui/vocabulary.ts, packages/story-spec/ui/index.html
+implementedBy: packages/storyspec/src/ui/screens.ts, packages/storyspec/src/ui/grid.ts, packages/storyspec/src/ui/view.ts, packages/storyspec/src/ui/route.ts, packages/storyspec/src/ui/server.ts, packages/storyspec/src/ui/vocabulary.ts, packages/storyspec/ui/index.html
 after: S-022
 ---
 

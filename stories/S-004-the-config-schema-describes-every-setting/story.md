@@ -4,7 +4,7 @@ title: The config schema describes every setting
 epic: E-2 Configuration
 status: in-progress
 version: 1
-implementedBy: packages/story-spec/schema/story-spec.config.schema.json
+implementedBy: packages/storyspec/schema/storyspec.config.schema.json
 ---
 
 As a developer editing storyspec.config.json,

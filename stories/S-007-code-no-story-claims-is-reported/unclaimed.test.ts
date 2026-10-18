@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { expect } from 'vitest'
-import { story } from 'story-spec/vitest'
-import { trace } from '../../packages/story-spec/src/index.js'
+import { story } from 'storyspec/vitest'
+import { trace } from '../../packages/storyspec/src/index.js'
 import { edit, pythonProject, STORY } from '../../test/python-project.js'
 import { gen } from './scenarios.gen.js'
 
@@ -31,7 +31,7 @@ story(gen, {
   'S-007.3': async () => {
     const root = pythonProject()
     write(root, 'app/extra.py', 'def extra():\n    return 1\n')
-    edit(root, 'story-spec.config.json', s => JSON.stringify({ ...JSON.parse(s), unspecified: ['app/extra.py'] }))
+    edit(root, 'storyspec.config.json', s => JSON.stringify({ ...JSON.parse(s), unspecified: ['app/extra.py'] }))
     expect(await unclaimed(root)).toEqual([])
   },
 

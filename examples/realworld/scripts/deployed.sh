@@ -4,8 +4,8 @@
 # stack in compose.yaml and stops it afterwards. Writes two JUnit reports, which the deployed tier lists.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-mkdir -p .story-spec
-rm -f .story-spec/hurl.xml .story-spec/pytest.xml
+mkdir -p .storyspec
+rm -f .storyspec/hurl.xml .storyspec/pytest.xml
 
 if [ -z "${REALWORLD_URL:-}" ]; then
   trap 'docker compose down -v >/dev/null 2>&1' EXIT
@@ -16,6 +16,6 @@ fi
 
 status=0
 hurl --test --jobs 1 --variable "host=$REALWORLD_URL" --variable "uid=$(date +%s)$$" \
-  --report-junit .story-spec/hurl.xml hurl/*.hurl || status=1
-python3 -m pytest -q -p no:cacheprovider --junitxml=.story-spec/pytest.xml || status=1
+  --report-junit .storyspec/hurl.xml hurl/*.hurl || status=1
+python3 -m pytest -q -p no:cacheprovider --junitxml=.storyspec/pytest.xml || status=1
 exit $status

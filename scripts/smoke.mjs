@@ -5,27 +5,27 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 const repo = resolve(import.meta.dirname, '..')
-const tmp = mkdtempSync(join(tmpdir(), 'story-spec-smoke-'))
+const tmp = mkdtempSync(join(tmpdir(), 'storyspec-smoke-'))
 const sh = (cmd, cwd = repo) => { console.log(`$ ${cmd}`); return execSync(cmd, { cwd, stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8' }) }
 
 try {
   sh('npm run build')
-  const cli = sh(`npm pack -w story-spec --pack-destination ${tmp}`).trim().split('\n').pop()
-  const create = sh(`npm pack -w create-story-spec --pack-destination ${tmp}`).trim().split('\n').pop()
+  const cli = sh(`npm pack -w storyspec --pack-destination ${tmp}`).trim().split('\n').pop()
+  const create = sh(`npm pack -w create-storyspec --pack-destination ${tmp}`).trim().split('\n').pop()
   sh(`npm install --prefix ${tmp}/creator ${tmp}/${create}`)
-  const creator = join(tmp, 'creator/node_modules/create-story-spec/index.js')
-  const env = `STORY_SPEC_SPEC=file:${tmp}/${cli}`
+  const creator = join(tmp, 'creator/node_modules/create-storyspec/index.js')
+  const env = `STORYSPEC_SPEC=file:${tmp}/${cli}`
 
   // Full example app.
   sh(`${env} node ${creator} ${tmp}/app`, tmp)
   const app = join(tmp, 'app')
-  // The oldest vitest story-spec supports (peerDependencies), when CI asks for it.
+  // The oldest vitest storyspec supports (peerDependencies), when CI asks for it.
   if (process.env.SMOKE_VITEST) { sh(`npm install --no-audit --no-fund -D vitest@${process.env.SMOKE_VITEST}`, app); console.log(sh("npx vitest --version", app)) }
   console.log(sh('npm run -s check', app))
   // A new app's agent guidance is the installed version's.
-  sh('npx story-spec sync --check', app)
+  sh('npx storyspec sync --check', app)
   // S-002.3 needs a person's check; once proven, S-002 is done.
-  sh('npx story-spec prove S-002.3 --by smoke --note "checked on a phone"', app)
+  sh('npx storyspec prove S-002.3 --by smoke --note "checked on a phone"', app)
   const proven = sh('npm run -s check', app)
   if (!/S-002 Member lists their notes \| done \(v1\)/.test(proven)) throw new Error('S-002 should be done once S-002.3 is proven')
   sh('npm run -s story -- "Member deletes a note" --epic "E-1 Notes"', app)

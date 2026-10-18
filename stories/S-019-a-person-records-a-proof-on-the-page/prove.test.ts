@@ -3,9 +3,9 @@ import { cpSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect } from 'vitest'
-import { story } from 'story-spec/vitest'
-import { trace } from '../../packages/story-spec/src/index.js'
-import { uiState } from '../../packages/story-spec/src/ui/server.js'
+import { story } from 'storyspec/vitest'
+import { trace } from '../../packages/storyspec/src/index.js'
+import { uiState } from '../../packages/storyspec/src/ui/server.js'
 import { edit, pythonProject, STORY } from '../../test/python-project.js'
 import { gitRepo, NOW, pageOf, prove, read, scenario, served } from '../../test/ui-project.js'
 import { gen } from './scenarios.gen.js'
@@ -73,11 +73,11 @@ story(gen, {
 
   'S-019.4': async () => {
     const page = project()
-    const cli = join(mkdtempSync(join(tmpdir(), 'story-spec-cli-')), 'app')
+    const cli = join(mkdtempSync(join(tmpdir(), 'storyspec-cli-')), 'app')
     cleanup.push(() => rmSync(join(cli, '..'), { recursive: true, force: true }))
     cpSync(page, cli, { recursive: true })
     expect((await prove(page, 'S-001.3', 'pass', 'looked fine')).status).toBe(200)
-    execFileSync('node', [join(import.meta.dirname, '../../packages/story-spec/dist/cli.js'), 'prove', 'S-001.3', '--note', 'looked fine', '--root', cli], { stdio: 'ignore' })
+    execFileSync('node', [join(import.meta.dirname, '../../packages/storyspec/dist/cli.js'), 'prove', 'S-001.3', '--note', 'looked fine', '--root', cli], { stdio: 'ignore' })
     // The same entry, but for the moment it was made.
     const { at: _a, ...fromPage } = proofOf(page, 'S-001.3').manual
     const { at: _b, ...fromCli } = proofOf(cli, 'S-001.3').manual

@@ -1,11 +1,7 @@
 node_modules/
 dist/
-.story-spec/
+.storyspec/
 *.tgz
-packages/create-story-spec/template/
-!packages/story-spec/test/fixtures/**/.story-spec/
-!packages/story-spec/test/fixtures/**/.storyspec/
-packages/story-spec/docs/
-# Links scripts/self-check.mjs makes for a checker released before the rename, if a run is interrupted.
-/storyspec.config.json
-/.storyspec
+packages/create-storyspec/template/
+!packages/storyspec/test/fixtures/**/.storyspec/
+packages/storyspec/docs/

@@ -1,12 +1,12 @@
 {
-  "name": "story-spec-realworld",
+  "name": "storyspec-realworld",
   "private": true,
-  "description": "The RealWorld (Conduit) API in Python, built story by story with story-spec",
+  "description": "The RealWorld (Conduit) API in Python, built story by story with storyspec",
   "scripts": {
-    "check": "story-spec check",
-    "deployed": "story-spec trace --tier deployed"
+    "check": "storyspec check",
+    "deployed": "storyspec trace --tier deployed"
   },
   "devDependencies": {
-    "story-spec": "*"
+    "storyspec": "*"
   }
 }

@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { expect } from 'vitest'
-import { story } from 'story-spec/vitest'
-import { formatRoute, parseRoute } from '../../packages/story-spec/src/ui/route.js'
+import { story } from 'storyspec/vitest'
+import { formatRoute, parseRoute } from '../../packages/storyspec/src/ui/route.js'
 import { edit, pythonProject, STORY } from '../../test/python-project.js'
 import { gitRepo, pageOf, personas, prove, scenario, served } from '../../test/ui-project.js'
 import { gen } from './scenarios.gen.js'
@@ -58,7 +58,7 @@ story(gen, {
     const root = pythonProject()
     // A requirement with two SHALLs, a domain file that uses the app, and a check whose text changed since.
     edit(root, `${STORY}/spec.md`, s => s.replace('greet them by it.', 'greet them by it. THE SYSTEM SHALL wave.'))
-    edit(root, 'story-spec.config.json', s => JSON.stringify({ ...JSON.parse(s), layers: { 'app/domain': ['app/domain'] } }))
+    edit(root, 'storyspec.config.json', s => JSON.stringify({ ...JSON.parse(s), layers: { 'app/domain': ['app/domain'] } }))
     files(root, { 'app/__init__.py': '', 'app/domain/__init__.py': '', 'app/domain/rules.py': 'from app.greet import greet\n' })
     edit(root, `${STORY}/story.md`, s => s.replace('implementedBy: app/greet.py', 'implementedBy: app/greet.py, app/domain/rules.py'))
     scenario(root, STORY, 'S-001.3', 'Greets in a large font', ['WHEN a person reads the greeting', 'THEN it is easy to read'], 'manual')

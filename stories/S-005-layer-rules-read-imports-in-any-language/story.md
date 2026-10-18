@@ -4,7 +4,7 @@ title: Layer rules read imports in any language
 epic: E-3 Architecture in any language
 status: in-progress
 version: 1
-implementedBy: packages/story-spec/src/trace/languages.ts, packages/story-spec/src/trace/graph.ts
+implementedBy: packages/storyspec/src/trace/languages.ts, packages/storyspec/src/trace/graph.ts
 ---
 
 As a team building in Python,

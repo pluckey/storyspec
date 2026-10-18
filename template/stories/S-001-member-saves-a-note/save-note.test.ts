@@ -1,5 +1,5 @@
 import { expect } from 'vitest'
-import { story } from 'story-spec/vitest'
+import { story } from 'storyspec/vitest'
 import { fixedClock } from '../../test/fakes/clock'
 import { fakeNoteStore } from '../../test/fakes/note-store'
 import { saveNote } from './save-note'

@@ -1,17 +1,17 @@
 import { readFileSync, utimesSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect } from 'vitest'
-import { story } from 'story-spec/vitest'
-import { gridComponent, type GridView } from '../../packages/story-spec/src/ui/grid.js'
-import { formatRoute, parseRoute, say } from '../../packages/story-spec/src/ui/route.js'
-import type { GridRow } from '../../packages/story-spec/src/ui/screens.js'
-import { VOCABULARY } from '../../packages/story-spec/src/ui/vocabulary.js'
+import { story } from 'storyspec/vitest'
+import { gridComponent, type GridView } from '../../packages/storyspec/src/ui/grid.js'
+import { formatRoute, parseRoute, say } from '../../packages/storyspec/src/ui/route.js'
+import type { GridRow } from '../../packages/storyspec/src/ui/screens.js'
+import { VOCABULARY } from '../../packages/storyspec/src/ui/vocabulary.js'
 import { edit, pass, pythonProject, report, STORY } from '../../test/python-project.js'
 import { another, front, gitRepo, pageOf, personas, prove, scenario, served, status, withDecisions } from '../../test/ui-project.js'
 import { gen } from './scenarios.gen.js'
 
 const G = gridComponent(VOCABULARY, say)
-const template = readFileSync(join(import.meta.dirname, '../../packages/story-spec/ui/index.html'), 'utf8')
+const template = readFileSync(join(import.meta.dirname, '../../packages/storyspec/ui/index.html'), 'utf8')
 type Page = Awaited<ReturnType<typeof pageOf>>
 const def = (page: Page, id: string) => page.definitions.find(d => d.id === id)!
 /** A screen drawn as the page draws it: its definition, its rows and a view. */

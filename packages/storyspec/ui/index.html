@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>storyspec ui</title>
+<style>
+/* Layout: a left navigation (the inbox, then the three groups), a thin top bar with the project and the
+   live indicator, one screen, and a status bar; forms open in a right sheet. Dark only, by request. */
+:root {
+  --bg: #09090b;
+  --card: #0e0e11;
+  --muted: #18181b;
+  --hover: #1b1b1f;
+  --border: #27272a;
+  --fg: #fafafa;
+  --fg-muted: #a1a1aa;
+  --fg-dim: #71717a;
+  --primary: #fafafa;
+  --primary-fg: #09090b;
+  --primary-hover: #e4e4e7;
+  --ring: #d4d4d8;
+  --ok: #34d399;   --ok-bg: rgba(52, 211, 153, 0.12);
+  --bad: #f87171;  --bad-bg: rgba(248, 113, 113, 0.12);
+  --warn: #fbbf24; --warn-bg: rgba(251, 191, 36, 0.12); --warn-line: rgba(251, 191, 36, 0.4);
+  --info: #a5b4fc; --info-bg: rgba(165, 180, 252, 0.12); --info-line: rgba(165, 180, 252, 0.35);
+  --add-bg: rgba(52, 211, 153, 0.1); --del-bg: rgba(248, 113, 113, 0.1);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 13px; line-height: 1.45; overflow: hidden; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.app { height: 100%; display: grid; grid-template-columns: 236px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
+
+.side { grid-row: 1 / 3; border-right: 1px solid var(--border); padding: 12px 10px; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: -0.01em; font-family: var(--mono); font-size: 13px; padding: 4px 8px; }
+.logo i { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--fg); position: relative; display: inline-block; }
+.logo i::after { content: ""; position: absolute; left: 3px; right: 3px; top: 5px; height: 1.5px; background: var(--fg); box-shadow: 0 3px 0 var(--fg); }
+.nl { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 6px; color: var(--fg-muted); text-decoration: none; }
+.nl:hover { background: var(--hover); color: var(--fg); }
+.nl[aria-current="page"] { background: var(--muted); color: var(--fg); }
+.nl.inbox { font-weight: 600; color: var(--fg); border: 1px solid var(--border); }
+.nl .n { font-family: var(--mono); font-size: 11px; color: var(--warn); }
+.grp { display: flex; flex-direction: column; gap: 1px; }
+.gh { display: flex; align-items: baseline; gap: 6px; padding: 2px 10px 4px; }
+.gh b { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-muted); }
+.gh span { font-size: 11.5px; color: var(--fg-dim); font-style: italic; }
+.gh .n { margin-left: auto; font-style: normal; font-family: var(--mono); color: var(--warn); }
+
+.top { display: flex; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid var(--border); }
+.picker { position: relative; display: inline-flex; align-items: center; }
+.picker select { appearance: none; -webkit-appearance: none; height: 30px; padding: 0 28px 0 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--fg); font-family: var(--mono); font-size: 12px; max-width: 420px; cursor: pointer; }
+.picker select:hover { background: var(--hover); }
+.picker::after { content: "▾"; position: absolute; right: 10px; color: var(--fg-dim); pointer-events: none; font-size: 11px; }
+.live { color: var(--fg-dim); font-family: var(--mono); font-size: 11.5px; }
+.live.on { color: var(--ok); }
+.live.on::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); margin-right: 6px; vertical-align: middle; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+.main { overflow: auto; padding: 18px 24px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.main > * { flex-shrink: 0; }
+.main h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.main h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.main h3 { margin: 0; font-size: 11px; font-weight: 500; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.intro { margin: 2px 0 0; color: var(--fg-muted); max-width: 75ch; }
+.empty { border: 1px dashed var(--border); border-radius: 10px; padding: 18px; color: var(--fg-muted); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.spacer { flex: 1; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.dim { color: var(--fg-dim); }
+
+/* The one grid (grid.ts): a header, the tools, then rows of one line each; an opened row shows beneath itself,
+   indented behind a left bar, and its nested grids are the same grid again. */
+.screen { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.screen-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tabs { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 7px; flex-wrap: wrap; }
+.tab { border: 0; background: transparent; color: var(--fg-muted); height: 24px; padding: 0 9px; border-radius: 5px; font-size: 12px; white-space: nowrap; }
+.tab:hover:not(:disabled) { color: var(--fg); background: var(--hover); }
+.tab[aria-pressed="true"] { background: var(--muted); color: var(--fg); }
+.tab:disabled { opacity: 0.4; cursor: default; }
+.tab .n, .sub-head .n { font-family: var(--mono); font-size: 11px; color: var(--fg-dim); }
+.count { color: var(--fg-dim); font-family: var(--mono); font-size: 11.5px; }
+details.cols { position: relative; margin-left: auto; }
+details.cols summary { list-style: none; cursor: pointer; height: 30px; display: inline-flex; align-items: center; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; color: var(--fg-muted); }
+details.cols summary::-webkit-details-marker { display: none; }
+details.cols .menu { position: absolute; right: 0; top: 34px; z-index: 5; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; white-space: nowrap; }
+.fold { border: 0; background: none; color: var(--fg-dim); width: 16px; padding: 0; flex-shrink: 0; }
+.fold:hover { color: var(--fg); }
+.cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.title, .clip { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title { font-weight: 500; flex: 1; }
+.clip { max-width: 200px; color: var(--fg-muted); }
+td.c-since .clip, td.c-event .clip { font-family: var(--mono); font-size: 12px; }
+/* An opened row takes no width of its own (width 0, at least the row's), so it never widens the columns above it. */
+table.grid tr.exp > td { white-space: normal; padding: 0 12px 12px calc((var(--depth) - 1) * 14px + 19px); }
+.nest { box-sizing: border-box; width: 0; min-width: 100%; border-left: 2px solid var(--info-line); padding: 8px 0 4px 14px; display: flex; flex-direction: column; gap: 8px; }
+.nest table.grid { background: var(--bg); }
+.sub { display: flex; flex-direction: column; gap: 6px; }
+.sub-head { display: flex; align-items: center; gap: 10px; }
+.none { color: var(--fg-dim); font-size: 12px; }
+.full { margin: 0; color: var(--fg); }
+.text { margin: 0; color: var(--fg-muted); max-width: 80ch; }
+
+.state { border: 0; height: 20px; padding: 0 8px; border-radius: 99px; font-size: 11px; font-weight: 500; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+.state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+button.state::after { content: "?"; font-size: 10px; opacity: 0.6; }
+.state.can-do-today, .state.checked { color: var(--ok); background: var(--ok-bg); }
+.state.being-built { color: var(--warn); background: var(--warn-bg); }
+.state.planned { color: var(--fg-muted); background: var(--muted); }
+.state.needs-a-look { color: var(--info); background: var(--info-bg); }
+.state.waiting-on-you { color: var(--warn); background: var(--warn-bg); }
+.state.failed-a-check { color: var(--bad); background: var(--bad-bg); }
+.why { border-left: 2px solid var(--info-line); padding: 4px 0 4px 12px; display: flex; flex-direction: column; gap: 6px; color: var(--fg-muted); }
+.why p { margin: 0; color: var(--fg); }
+.thennow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.thennow pre { margin: 4px 0 0; white-space: pre-wrap; font-family: var(--mono); font-size: 11.5px; background: var(--muted); border-radius: 6px; padding: 8px 10px; }
+details.dl { color: var(--fg-dim); font-size: 11px; }
+details.dl summary { cursor: pointer; list-style: none; display: inline; }
+details.dl summary::-webkit-details-marker { display: none; }
+details.dl summary::before { content: "··· "; }
+details.dl span { font-family: var(--mono); margin-left: 4px; }
+.hint { color: var(--fg-dim); font-size: 12px; }
+
+/* The summary cards above the home: one row that never wraps, so the grid's first rows stay in view. */
+.home { display: flex; flex-wrap: nowrap; gap: 10px; overflow-x: auto; }
+.card { flex: 1 0 200px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); padding: 11px 14px; display: flex; flex-direction: column; gap: 4px; }
+.card b { font-size: 15px; font-weight: 600; }
+.card span { color: var(--fg-muted); }
+.card .cap { font-style: italic; color: var(--fg-dim); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); font-weight: 500; white-space: nowrap; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn.primary:hover { background: var(--primary-hover); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--fg-muted); }
+.btn.ghost:hover { color: var(--fg); background: var(--hover); }
+.btn.sm { height: 26px; padding: 0 9px; font-size: 12px; }
+.btn.warn { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
+.btn.bad { color: var(--bad); border-color: rgba(248, 113, 113, 0.4); background: var(--bad-bg); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.search { display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); width: 320px; max-width: 100%; }
+.search input { border: 0; background: transparent; outline: none; width: 100%; }
+.search input::placeholder { color: var(--fg-dim); }
+.kbd { font-family: var(--mono); font-size: 10.5px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; color: var(--fg-dim); }
+.spin { display: inline-block; }
+.spin.on { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+table.grid { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+table.grid th { text-align: left; font-weight: 500; color: var(--fg-muted); font-size: 12px; height: 32px; padding: 0 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+table.grid th button { border: 0; background: none; padding: 0; color: inherit; font: inherit; display: inline-flex; gap: 4px; }
+table.grid th button:hover { color: var(--fg); }
+table.grid td { padding: 6px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+table.grid td.c-first { max-width: 0; width: 100%; }
+table.grid td.c-action { text-align: right; }
+table.grid tbody tr:last-child > td { border-bottom: 0; }
+table.grid tr.open > td { border-bottom-color: transparent; }
+.lines { display: flex; flex-direction: column; gap: 2px; }
+.lines > div { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.kw { font-family: var(--mono); font-size: 11px; color: var(--info); }
+.req { font-family: var(--mono); font-size: 12px; line-height: 1.65; border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 8px 12px; }
+.req b { color: var(--info); font-weight: 500; }
+code { font-family: var(--mono); font-size: 0.92em; padding: 0 4px; border-radius: 4px; background: var(--muted); color: var(--fg); }
+.prose { max-width: 80ch; color: var(--fg-muted); }
+.prose h1, .prose h2, .prose h3 { color: var(--fg); text-transform: none; letter-spacing: -0.01em; font-size: 14px; margin: 14px 0 4px; }
+.prose h1 { font-size: 16px; }
+.prose table { border-collapse: collapse; margin: 8px 0; }
+.prose td, .prose th { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+
+.model svg { width: 100%; height: auto; display: block; }
+.model .node rect { fill: var(--muted); stroke: var(--border); }
+.model .node.start rect { stroke: var(--fg-dim); }
+.model .node.end rect { stroke: var(--warn-line); stroke-dasharray: 4 3; }
+.model .node text { fill: var(--fg); font-family: var(--sans); font-size: 13px; font-weight: 500; }
+.model .node .note { fill: var(--warn); font-family: var(--sans); font-size: 10.5px; font-weight: 400; }
+.model .edge path { fill: none; stroke: var(--fg-dim); stroke-width: 1.4; }
+.model .edge.gap path { stroke: var(--bad); stroke-dasharray: 5 4; }
+.model .edge text { fill: var(--info); font-family: var(--sans); font-size: 11px; }
+.model .edge.gap text { fill: var(--bad); }
+.model .edge .bg { fill: var(--card); stroke: none; }
+
+.status { grid-column: 1 / 3; display: flex; align-items: center; gap: 18px; padding: 8px 20px; border-top: 1px solid var(--border); color: var(--fg-dim); font-family: var(--mono); font-size: 11.5px; flex-wrap: wrap; }
+.status button { border: 0; background: none; padding: 0; font: inherit; color: var(--fg-dim); }
+.status button:hover { color: var(--fg); }
+.status button.has, .status #sStale { color: var(--warn); }
+.status .ok { color: var(--ok); }
+
+.scrim { position: fixed; inset: 0; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; }
+.scrim.on { opacity: 1; pointer-events: auto; }
+.sheet { position: fixed; top: 0; right: 0; bottom: 0; width: min(540px, 100%); background: var(--bg); border-left: 1px solid var(--border); z-index: 11; transform: translateX(100%); transition: transform 0.25s ease; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet.on { transform: none; }
+.sheet-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.sheet-head .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet-head h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.sheet-head p { margin: 0; color: var(--fg-muted); }
+.sheet-body { overflow: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 18px; }
+.sheet-body > *, .section > * { flex-shrink: 0; }
+.sheet-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.sheet-foot .hint { margin-right: auto; }
+.x { width: 28px; height: 28px; border-radius: 6px; border: 0; background: transparent; color: var(--fg-muted); font-size: 16px; line-height: 1; }
+.x:hover { background: var(--hover); color: var(--fg); }
+.section { display: flex; flex-direction: column; gap: 8px; }
+.section > h3 { margin: 0; font-size: 11px; font-weight: 500; color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.box { border: 1px solid var(--border); border-radius: 8px; background: var(--card); padding: 10px 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; color: var(--fg-muted); }
+.input, textarea.input, select.input { width: 100%; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); padding: 7px 10px; outline: none; }
+.input:focus { border-color: var(--ring); }
+textarea.input { font-family: var(--mono); font-size: 12px; line-height: 1.6; resize: vertical; min-height: 110px; }
+.radio { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.radio:has(input:checked) { border-color: var(--ring); background: var(--muted); }
+.radio:has(input:disabled) { opacity: 0.5; cursor: default; }
+.radio input { margin-top: 3px; accent-color: var(--fg); }
+.radio small { display: block; color: var(--fg-dim); }
+.diff { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; }
+.diff .file { padding: 6px 10px; background: var(--muted); color: var(--fg-muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 8px; word-break: break-all; }
+.diff .file > span:last-child { flex-shrink: 0; word-break: normal; }
+.diff pre { margin: 0; padding: 6px 0; overflow-x: auto; }
+.diff span { display: block; padding: 0 10px; white-space: pre-wrap; word-break: break-word; }
+.diff .add { background: var(--add-bg); color: var(--ok); }
+.diff .del { background: var(--del-bg); color: var(--bad); }
+.diff .ctx { color: var(--fg-dim); }
+details.diff > summary { list-style: none; cursor: pointer; }
+details.diff > summary::-webkit-details-marker { display: none; }
+details.diff > summary .file::before { content: "▸ "; color: var(--fg-dim); }
+details.diff[open] > summary .file::before { content: "▾ "; }
+
+.toast { position: fixed; bottom: calc(52px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translate(-50%, 12px); background: var(--fg); color: var(--primary-fg); padding: 8px 14px; border-radius: 8px; font-weight: 500; opacity: 0; pointer-events: none; transition: all 0.2s; z-index: 20; max-width: calc(100% - 32px); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; }
+  .side { grid-row: auto; border-right: 0; border-bottom: 1px solid var(--border); flex-direction: row; overflow-x: auto; gap: 10px; }
+  .grp { flex-direction: row; }
+  .status { grid-column: auto; }
+  table.grid td.c-first { width: auto; }
+}
+</style>
+
+<div class="app">
+  <nav class="side" id="nav" aria-label="Screens"></nav>
+  <header class="top">
+    <label class="picker" id="projectLabel"><select id="project"></select></label>
+    <span class="live" id="live"></span>
+  </header>
+  <main class="main" id="main"></main>
+  <footer class="status">
+    <span id="sTrace"></span>
+    <button id="sStale" hidden></button>
+    <button id="sChanges"></button>
+    <span class="spacer"></span>
+    <button id="runTrace"><span class="spin" id="spin">⟳</span> <span id="refreshLabel"></span></button>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" aria-hidden="true">
+  <div class="sheet-head"><div class="row"><span class="dim mono" id="sheetEyebrow"></span><button class="x" id="closeSheet" aria-label="Close">✕</button></div><h2 id="sheetTitle"></h2><p id="sheetSub"></p></div>
+  <div class="sheet-body" id="sheetBody"></div>
+  <div class="sheet-foot" id="sheetFoot"></div>
+</aside>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// storyspec ui. Reads /api/state (the repo as the trace sees it, and `page`: every screen in plain words, worked out
+// on the server) and sends each change to /api/edit, which edits one file. The page derives no state of its own: it
+// shows the server's. Nothing is stored here: reload and the page shows the files again.
+/* storyspec:shared */
+const V = VOCABULARY;
+const t = (template, vars) => say(template, vars, V.nouns);
+let S = null;
+const $ = (s) => document.querySelector(s);
+const esc = (x) => String(x ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const slug = (x) => x.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+const G = gridComponent(V, say);
+const SCREENS = ['needs-you', ...V.nav.groups.flatMap((g) => g.screens)];
+const groupOf = (screen) => V.nav.groups.find((g) => g.screens.includes(screen))?.key;
+const state = { projects: [], route: parseRoute(location.hash, SCREENS), live: false, stale: false, quietUntil: 0, followed: null, sheet: null, busy: false, loaded: false, error: '', columnsOpen: false };
+const P = () => S?.page;
+let store = null; try { store = localStorage; } catch {}
+
+// ---------- the repo, as the server read it (for the forms) ----------
+const story = (id) => S.stories.find((s) => s.id === id);
+const allDecisions = () => S.stories.flatMap((s) => s.decisions.map((d, i) => ({ ...d, story: s, i, key: `${s.id}#${i}` })));
+const allScenarios = () => S.stories.flatMap((s) => s.scenarios.map((sc) => ({ ...sc, story: s })));
+const scenarioRows = () => P().grids.stories.rows.flatMap((r) => r.children?.scenarios ?? []);
+
+// ---------- routes ----------
+// The URL hash names the project and the screen, the open rows, the search, the tab and the sort, so a refresh or a
+// shared link lands on the same place (parseRoute and formatRoute come from the server's route.ts).
+function go(change, replace) {
+  const next = { ...state.route, ...change };
+  const hash = formatRoute(next, groupOf(next.screen));
+  if (replace) { history.replaceState(null, '', hash); state.route = parseRoute(hash, SCREENS); render(); }
+  else location.hash = hash;
+}
+window.addEventListener('hashchange', () => {
+  const before = state.route.project;
+  state.route = parseRoute(location.hash, SCREENS);
+  if (state.route.project !== before) { state.loaded = false; load(); } else render();
+});
+
+// ---------- screens ----------
+// Every screen is its definition (screens.ts) drawn by the one grid (G, from grid.ts) with the server's rows. The only
+// thing off the grid is the row of summary cards above the home (S-022.2), with the three groups' summaries when
+// nothing is waiting (S-018.2).
+function homeHtml() {
+  const ib = P().inbox, h = ib.home;
+  const summaries = ib.empty ? ib.summaries.map((g) => `<a class="card" href="${formatRoute({ project: state.route.project, screen: V.nav.groups.find((x) => x.key === g.key).screens[0] }, g.key)}" style="text-decoration:none"><b>${esc(g.label)}</b><span class="cap">${esc(g.caption)}</span><span>${esc(g.text)}</span></a>`) : [];
+  return `<div class="home"><div class="card"><b>${esc(h.stories)}</b><span>${esc(h.beingBuilt)}</span><span>${esc(h.decisions)}</span></div>${h.personas.map((p) => `<div class="card"><span>${esc(p)}</span></div>`).join('')}${summaries.join('')}</div>`;
+}
+const screenHtml = (def) => G.html(def, P().grids[def.id], state.route, G.columns.hidden(store, def.id), { lead: def.id === 'needs-you' ? homeHtml() : '', columnsOpen: state.columnsOpen });
+
+// ---------- chrome ----------
+function renderNav() {
+  const counts = P()?.nav;
+  const n = (c) => c ? `<span class="n">${c}</span>` : '';
+  const link = (screen, label, c, cls = '') => `<a class="nl ${cls}" href="${formatRoute({ project: state.route.project, screen }, groupOf(screen))}" aria-current="${state.route.screen === screen ? 'page' : 'false'}"><span>${esc(label)}</span>${n(c)}</a>`;
+  $('#nav').innerHTML = `<span class="logo"><i aria-hidden="true"></i>storyspec</span>${link('needs-you', V.nav.inbox, counts?.inbox.count, 'inbox')}`
+    + V.nav.groups.map((g) => { const c = counts?.groups.find((x) => x.key === g.key); return `<div class="grp"><div class="gh"><b>${esc(g.label)}</b><span>${esc(g.caption)}</span>${n(c?.count)}</div>${g.screens.map((s) => link(s, V.nav.screens[s], c?.screens.find((x) => x.key === s)?.count)).join('')}</div>`; }).join('');
+}
+function renderMain() {
+  const main = $('#main');
+  if (!state.loaded || !S) { main.innerHTML = `<div class="empty">${esc(state.error || V.page.loading)}</div>`; return; }
+  const focused = document.activeElement?.id === 'q', at = focused ? document.activeElement.selectionStart : 0, scroll = main.scrollTop;
+  // The router: one screen per definition, each drawn the same way.
+  const SCREEN = Object.fromEntries(P().definitions.map((def) => [def.id, () => screenHtml(def)]));
+  main.innerHTML = (SCREEN[state.route.screen] ?? SCREEN['needs-you'])();
+  main.scrollTop = scroll;
+  if (focused && $('#q')) { $('#q').focus(); $('#q').setSelectionRange(at, at); }
+}
+function renderStatus() {
+  const el = $('#sTrace');
+  const errors = S ? S.findings.filter((f) => f.severity === 'error').length : 0, warnings = S ? S.findings.length - errors : 0;
+  el.className = state.error ? '' : S?.ok ? 'ok' : '';
+  el.textContent = state.error ? state.error : state.busy || !S ? V.page.reading : t(S.ok ? V.page.pass : V.page.fail, { errors, warnings });
+  const files = S?.changes.length ?? 0;
+  const b = $('#sChanges');
+  b.textContent = files ? t(V.page.changes, { n: files }) : V.page.noChanges;
+  b.classList.toggle('has', !!files);
+  const sel = $('#project');
+  sel.setAttribute('aria-label', V.page.project); $('#projectLabel').title = V.page.projects;
+  if (document.activeElement !== sel) sel.innerHTML = state.projects.map((p) => `<option value="${esc(p.id)}" ${p.id === state.route.project ? 'selected' : ''}>${esc(t(p.open ? V.page.projectOpen : V.page.projectOption, { name: p.name, stories: p.stories, open: p.open }))}</option>`).join('') || `<option>${esc(V.page.noProjects)}</option>`;
+  $('#live').textContent = state.live ? V.live : V.offline;
+  $('#live').className = `live ${state.live ? 'on' : ''}`;
+  $('#sStale').hidden = !state.stale; $('#sStale').textContent = V.page.changed;
+  $('#refreshLabel').textContent = V.page.refresh;
+}
+function render() { renderNav(); renderMain(); renderStatus(); }
+
+// ---------- sheets ----------
+function openSheet() { $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); $('#sheet').setAttribute('aria-hidden', 'false'); }
+function closeSheet() { $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); $('#sheet').setAttribute('aria-hidden', 'true'); state.sheet = null; }
+function head(eyebrow, title, sub) { $('#sheetEyebrow').textContent = eyebrow; $('#sheetTitle').textContent = title; $('#sheetSub').innerHTML = sub; }
+const focusLater = (sel) => setTimeout(() => ($(sel) ?? $('#closeSheet')).focus(), 60);
+// A diff per file; one longer than a screen starts folded, so a new test file doesn't bury the edits around it.
+const diffHtml = (diffs) => diffs.map((d) => `<details class="diff" ${d.lines.length <= 40 ? 'open' : ''}><summary><div class="file"><span>${esc(d.file)}</span><span>${d.lines.filter((l) => l[0] === '+').length}+ ${d.lines.filter((l) => l[0] === '-').length}−</span></div></summary><pre>${d.lines.map((l) => `<span class="${l[0] === '+' ? 'add' : l[0] === '-' ? 'del' : 'ctx'}">${l[0] === '+' || l[0] === '-' ? l[0] + ' ' : '  '}${esc(l.slice(1))}</span>`).join('')}</pre></details>`).join('');
+const revisionNote = (s) => s.written === 'draft' ? V.sheets.draftNote : V.sheets.revisionNote;
+const bumpPreview = (s, why) => s.written === 'draft' ? [] : [{ file: `${s.dir}/story.md`, lines: [`-version: ${s.version}`, `+version: ${+s.version + 1}`, ' …', ' ## Revisions', `+- v${+s.version + 1} (today): ${why}`] }];
+
+function decisionSheet(key) {
+  const d = allDecisions().find((x) => x.key === key), item = P().screens.decisions.items.find((x) => x.key === key);
+  if (!d || !item) return;
+  state.sheet = { kind: 'decision', key };
+  head(item.details, item.title, esc(item.sentence));
+  const scs = d.pinnedBy.map((id) => scenarioRows().find((x) => x.key === id)).filter(Boolean);
+  const columns = ['scenario', 'state'].map((key) => ({ key, label: V.columns[key], sort: false }));
+  let body = `<div class="section"><h3>${esc(t(V.sheets.inFile, { file: `${d.story.dir}/spec.md` }))}</h3><div class="box mono" style="font-size:12px">- ${esc(d.text)}</div></div>`;
+  if (scs.length) body += G.list({ part: 'grid', source: 'scenarios', title: d.open ? V.sheets.waitingOnThis : V.sheets.pinnedBy, columns, expand: [{ part: 'steps' }] }, scs);
+  if (d.open) body += `<form class="section" id="answerForm"><h3>${esc(V.actions.answer)}</h3>
+      <div class="field"><label for="ans">${esc(V.sheets.answerLabel)}</label><input class="input" id="ans" autocomplete="off"></div>
+      <label class="radio"><input type="radio" name="kind" value="pinned" ${d.pinnedBy.length ? 'checked' : 'disabled'}><span>${esc(V.sheets.pinned)}<small>${esc(d.pinnedBy.length ? t(V.sheets.pinnedHelp, { n: d.pinnedBy.length }) : V.sheets.pinNeedsScenario)}</small></span></label>
+      <label class="radio"><input type="radio" name="kind" value="free" ${d.pinnedBy.length ? '' : 'checked'}><span>${esc(V.sheets.free)}<small>${esc(V.sheets.freeHelp)}</small></span></label>
+      <div class="section"><h3>${esc(V.page.change)}</h3><div id="answerDiff"></div></div></form>`;
+  $('#sheetBody').innerHTML = body;
+  $('#sheetFoot').innerHTML = d.open ? `<span class="hint">${esc(revisionNote(d.story))}</span><button class="btn ghost" data-close>${esc(V.page.cancel)}</button><button class="btn primary" id="doAnswer" disabled>${esc(V.actions.answer)}</button>` : `<button class="btn ghost" data-close>${esc(V.page.close)}</button>`;
+  openSheet();
+  if (!d.open) return focusLater('#closeSheet');
+  const kind = () => document.querySelector('input[name=kind]:checked').value;
+  const upd = () => {
+    const a = $('#ans').value.trim().replace(/\s+/g, ' ');
+    $('#doAnswer').disabled = !a || state.busy;
+    const after = `${d.question}: ${a || '…'}${kind() === 'pinned' ? `; pinned by ${d.pinnedBy.join(', ')}` : ' (free)'}`;
+    $('#answerDiff').innerHTML = diffHtml([{ file: `${d.story.dir}/spec.md`, lines: [' ### Decisions', `-- ${d.text}`, `+- ${after}`] }, ...bumpPreview(d.story, `answered "${d.question}"`)]);
+  };
+  $('#ans').addEventListener('input', upd);
+  document.querySelectorAll('input[name=kind]').forEach((r) => r.addEventListener('change', upd));
+  $('#answerForm').addEventListener('submit', (e) => { e.preventDefault(); if (!$('#doAnswer').disabled) $('#doAnswer').click(); });
+  $('#doAnswer').addEventListener('click', () => send({ op: 'answer', story: d.story.id, hash: d.story.hashes.spec, index: d.i, answer: $('#ans').value, kind: kind() }, closeSheet));
+  upd(); focusLater('#ans');
+}
+
+function editSheet(s, sc) {
+  const isNew = !sc;
+  state.sheet = { kind: 'edit', key: s.id };
+  head(sc?.id ?? s.id, isNew ? V.sheets.addScenario : t(V.sheets.editScenario, { title: sc.title }), `${esc(t(V.sheets.writes, { file: `${s.dir}/spec.md` }))} ${esc(revisionNote(s))}`);
+  $('#sheetBody').innerHTML = `
+    <div class="field"><label for="scTitle">${esc(V.sheets.scenarioTitle)}</label><input class="input" id="scTitle" value="${esc(sc?.title ?? '')}" autocomplete="off"></div>
+    <div class="field"><label for="scLines">${esc(V.sheets.scenarioSteps)}</label><textarea class="input" id="scLines" rows="7">${esc(sc?.steps.join('\n') ?? '')}</textarea></div>
+    <div class="section"><h3>${esc(V.page.change)}</h3><div id="editDiff"></div></div>`;
+  $('#sheetFoot').innerHTML = `<span class="hint" id="editHint"></span><button class="btn ghost" data-close>${esc(V.page.cancel)}</button><button class="btn primary" id="doEdit" disabled>${esc(isNew ? V.sheets.add : V.page.save)}</button>`;
+  const next = `${s.id}.${Math.max(0, ...s.scenarios.map((x) => +x.id.split('.').pop())) + 1}`;
+  const calc = () => {
+    const title = $('#scTitle').value.trim(), steps = $('#scLines').value.split('\n').map((l) => l.trim().replace(/^[-*]\s+/, '')).filter(Boolean);
+    const bad = steps.find((l) => !/^(GIVEN|WHEN|THEN|AND|BUT)\s+\S/.test(l));
+    const changed = isNew || title !== sc.title || steps.join('\n') !== sc.steps.join('\n');
+    const msg = !title ? V.sheets.giveTitle : !steps.length ? V.sheets.addSteps : bad ? t(V.sheets.badStep, { step: bad.slice(0, 30) }) : !steps.some((l) => l.startsWith('THEN')) ? V.sheets.needsThen : !changed ? V.sheets.noChange : '';
+    $('#editHint').textContent = msg;
+    $('#doEdit').disabled = !!msg || state.busy;
+    const id = sc?.id ?? next;
+    $('#editDiff').innerHTML = diffHtml([{ file: `${s.dir}/spec.md`, lines: [...(sc ? [`-#### Scenario: ${sc.title} {#${id}}`, ...sc.steps.map((l) => `-- ${l}`)] : []), `+#### Scenario: ${title || '…'} {#${id}}`, '+', ...steps.map((l) => `+- ${l}`)] }, ...bumpPreview(s, `${isNew ? 'added' : 'changed'} ${id}`)]);
+    return { title, steps };
+  };
+  $('#scTitle').addEventListener('input', calc); $('#scLines').addEventListener('input', calc);
+  $('#doEdit').addEventListener('click', () => { const { title, steps } = calc(); send({ op: 'scenario', story: s.id, hash: s.hashes.spec, ...(sc && { id: sc.id }), title, steps }, closeSheet); });
+  openSheet(); calc(); focusLater('#scTitle');
+}
+
+function personaSheet() {
+  const file = `${S.storiesDir}/PERSONAS.md`;
+  state.sheet = { kind: 'edit', key: 'persona' };
+  head('', V.sheets.personaHeading, esc(t(S.personas ? V.sheets.personaIntro : V.sheets.personaIntroNew, { file })));
+  $('#sheetBody').innerHTML = `
+    <div class="field"><label for="pName">${esc(V.sheets.personaName)}</label><input class="input" id="pName" autocomplete="off"></div>
+    <div class="field"><label for="pProse">${esc(V.sheets.personaProse)}</label><textarea class="input" id="pProse" rows="3" style="min-height:70px"></textarea></div>
+    <div class="section"><h3>${esc(V.page.change)}</h3><div id="personaDiff"></div></div>`;
+  $('#sheetFoot').innerHTML = `<span class="hint" id="personaHint"></span><button class="btn ghost" data-close>${esc(V.page.cancel)}</button><button class="btn primary" id="doPersona" disabled>${esc(V.sheets.add)}</button>`;
+  const calc = () => {
+    const name = $('#pName').value.trim().replace(/\s+/g, ' '), prose = $('#pProse').value.trim().replace(/\s+/g, ' ');
+    const taken = (S.personas ?? []).find((p) => p.key === slug(name));
+    const msg = !name ? V.sheets.personaNoName : name.includes('#') ? V.sheets.personaHash : taken ? t(V.sheets.personaTaken, { name: taken.name }) : !prose ? V.sheets.personaNoProse : '';
+    $('#personaHint').textContent = msg;
+    $('#doPersona').disabled = !!msg || state.busy;
+    $('#personaDiff').innerHTML = diffHtml([{ file, lines: [...(S.personas ? [' …'] : ['+# Personas']), '+', `+## ${name || '…'}`, '+', `+${prose || '…'}`] }]);
+    return { name, prose };
+  };
+  $('#pName').addEventListener('input', calc); $('#pProse').addEventListener('input', calc);
+  $('#doPersona').addEventListener('click', () => { const { name, prose } = calc(); send({ op: 'persona', name, prose, hash: S.personasHash }, () => { closeSheet(); go({ screen: 'people', open: [...state.route.open, slug(name)] }); }); });
+  openSheet(); calc(); focusLater('#pName');
+}
+
+function startSheet(key) {
+  const p = (S.personas ?? []).find((x) => x.key === key);
+  if (!p) return;
+  const prefix = S.stories[0]?.id.split('-')[0] ?? 'S';
+  const id = `${prefix}-${String(Math.max(0, ...S.stories.map((s) => +s.id.split('-')[1])) + 1).padStart(3, '0')}`;
+  const epics = [...new Set(S.stories.map((s) => s.epic).filter(Boolean))];
+  state.sheet = { kind: 'edit', key: 'start' };
+  head(id, t(V.sheets.startHeading, { name: p.name }), esc(t(V.sheets.startIntro, { name: p.name })));
+  $('#sheetBody').innerHTML = `
+    <div class="field"><label for="stTitle">${esc(t(V.sheets.startTitle, { name: p.name }))}</label><input class="input" id="stTitle" autocomplete="off"></div>
+    <div class="field"><label for="stEpic">${esc(V.sheets.epic)}</label><input class="input" id="stEpic" list="epics" autocomplete="off" value="${esc(epics[0] ?? '')}"><datalist id="epics">${epics.map((e) => `<option value="${esc(e)}">`).join('')}</datalist></div>
+    <div class="section"><h3>${esc(V.page.change)}</h3><div id="startDiff"></div></div>`;
+  $('#sheetFoot').innerHTML = `<span class="hint" id="startHint"></span><button class="btn ghost" data-close>${esc(V.page.cancel)}</button><button class="btn primary" id="doStart" disabled>${esc(V.sheets.start)}</button>`;
+  const calc = () => {
+    const title = $('#stTitle').value.trim().replace(/\s+/g, ' '), epic = $('#stEpic').value.trim();
+    $('#startHint').textContent = title ? '' : V.sheets.giveTitle;
+    $('#doStart').disabled = !title || state.busy;
+    $('#startDiff').innerHTML = diffHtml([{ file: `${S.storiesDir}/${id}-${slug(title) || '…'}/story.md`, lines: ['+---', `+id: ${id}`, `+title: ${title || '…'}`, `+epic: ${epic}`, '+status: draft', '+version: 1', `+persona: ${key}`, '+---', '+ …'] }]);
+    return { title, epic };
+  };
+  $('#stTitle').addEventListener('input', calc); $('#stEpic').addEventListener('input', calc);
+  $('#doStart').addEventListener('click', () => { const { title, epic } = calc(); send({ op: 'story', title, epic, persona: key }, () => { closeSheet(); go({ screen: 'stories', open: [...state.route.open, id] }); }); });
+  openSheet(); calc(); focusLater('#stTitle');
+}
+
+// Recording a check by hand: the same entry storyspec prove writes to PROOF.json, previewed before it is saved.
+function checkSheet(id) {
+  const sc = allScenarios().find((x) => x.id === id);
+  const item = P().screens.stories.lines.flatMap((l) => l.scenarios).find((x) => x.id === id);
+  if (!sc || !item) return;
+  state.sheet = { kind: 'edit', key: `check:${id}` };
+  const file = `${S.storiesDir}/PROOF.json`;
+  head(item.details, t(V.check.heading, { title: item.title }), esc(V.check.intro));
+  const w = item.state.why;
+  $('#sheetBody').innerHTML = `<div class="box">${G.steps(item.steps)}</div>
+    ${w.then ? G.thenNow(w) : ''}
+    <div class="field"><label for="ckNote">${esc(V.check.note)}</label><textarea class="input" id="ckNote" rows="3" style="min-height:70px"></textarea></div>
+    <span class="hint">${esc(S.you ? t(V.check.by, { by: S.you }) : V.check.byNobody)}</span>
+    <div class="section"><h3>${esc(V.page.change)}</h3><div id="ckDiff"></div></div>`;
+  $('#sheetFoot').innerHTML = `<button class="btn ghost" data-close>${esc(V.page.cancel)}</button><button class="btn bad" id="doFail">${esc(V.actions.fails)}</button><button class="btn primary" id="doHold">${esc(V.actions.holds)}</button>`;
+  const upd = () => {
+    const note = $('#ckNote').value.trim();
+    $('#ckDiff').innerHTML = diffHtml([{ file, lines: [`   "${id}": {`, '     "manual": {', '+      "at": "…",', ...(S.you ? [`+      "by": ${JSON.stringify(S.you)},`] : []), `+      "hash": "${sc.hash}",`, ...(note ? [`+      "note": ${JSON.stringify(note)},`] : []), '+      "outcome": "pass | fail",', `+      "version": "${sc.story.version}"`] }]);
+  };
+  $('#ckNote').addEventListener('input', upd);
+  const prove = (outcome) => send({ op: 'prove', id, hash: sc.hash, outcome, note: $('#ckNote').value }, closeSheet);
+  $('#doHold').addEventListener('click', () => prove('pass')); $('#doFail').addEventListener('click', () => prove('fail'));
+  openSheet(); upd(); focusLater('#ckNote');
+}
+
+// Claiming code names the file in a story's implementedBy:; the code itself is left as it is.
+function claimSheet(file) {
+  state.sheet = { kind: 'edit', key: `claim:${file}` };
+  const live = S.stories.filter((s) => s.status !== 'superseded');
+  head('', t(V.claim.heading, { file }), esc(V.claim.intro));
+  $('#sheetBody').innerHTML = `<div class="field"><label for="clStory">${esc(V.claim.story)}</label><select class="input" id="clStory"><option value=""></option>${live.map((s) => `<option value="${esc(s.id)}">${esc(s.title)}</option>`).join('')}</select></div>
+    <div class="section"><h3>${esc(V.page.change)}</h3><div id="clDiff"></div></div>`;
+  $('#sheetFoot').innerHTML = `<span class="hint" id="clHint"></span><button class="btn ghost" data-close>${esc(V.page.cancel)}</button><button class="btn primary" id="doClaim" disabled>${esc(V.actions.claim)}</button>`;
+  const upd = () => {
+    const s = story($('#clStory').value);
+    $('#doClaim').disabled = !s || state.busy;
+    $('#clHint').textContent = s ? '' : V.claim.pick;
+    $('#clDiff').innerHTML = s ? diffHtml([{ file: `${s.dir}/story.md`, lines: [' ---', ` version: ${s.version}`, ...(s.implementedBy?.length ? [`-implementedBy: ${s.implementedBy.join(', ')}`, `+implementedBy: ${[...s.implementedBy, file].join(', ')}`] : [`+implementedBy: ${file}`])] }]) : '';
+  };
+  $('#clStory').addEventListener('change', upd);
+  $('#doClaim').addEventListener('click', () => { const s = story($('#clStory').value); send({ op: 'claim', story: s.id, hash: s.hashes.story, file }, closeSheet); });
+  openSheet(); upd(); focusLater('#clStory');
+}
+
+function changesSheet() {
+  state.sheet = { kind: 'changes' };
+  head('git diff', V.page.changesHeading, esc(V.page.changesIntro));
+  $('#sheetBody').innerHTML = S.changes.length ? diffHtml(S.changes) : `<div class="box dim">${esc(V.page.noChanges)}</div>`;
+  $('#sheetFoot').innerHTML = `<span class="hint mono">${esc(t(V.page.commit, { dir: S.storiesDir }))}</span><button class="btn ghost" data-close>${esc(V.page.close)}</button>`;
+  openSheet();
+}
+
+// ---------- server ----------
+// The projects in the folder storyspec ui started in; the URL names the open one, else the last one picked.
+async function loadProjects() {
+  const res = await fetch('/api/projects');
+  if (!res.ok) throw new Error((await res.json()).message);
+  const out = await res.json();
+  state.projects = out.projects;
+  let saved = null; try { saved = localStorage.getItem('storyspec-ui-project'); } catch {}
+  if (!state.projects.some((p) => p.id === state.route.project)) {
+    state.route.project = state.projects.some((p) => p.id === saved) ? saved : out.first ?? '';
+    history.replaceState(null, '', formatRoute(state.route, groupOf(state.route.screen)));
+  }
+}
+// Follows the open project's files: the server sends a change whenever they do (see S-014).
+let stream = null;
+function follow() {
+  stream?.close();
+  state.followed = state.route.project; state.live = false;
+  stream = new EventSource(`/api/events?project=${encodeURIComponent(state.route.project)}`);
+  stream.onopen = () => { state.live = true; renderStatus(); };
+  stream.onerror = () => { state.live = false; renderStatus(); };
+  stream.addEventListener('change', () => {
+    if (Date.now() < state.quietUntil) return; // the page's own edit, already shown
+    // Someone typing an answer or editing a scenario keeps their form; the page offers to refresh instead.
+    const typing = state.sheet?.kind === 'edit' || ($('#ans') && $('#ans').value.trim());
+    if (typing) { state.stale = true; renderStatus(); } else load(true);
+  });
+}
+async function load(quiet) {
+  state.busy = true; $('#spin').classList.add('on'); if (!quiet) renderStatus();
+  try {
+    await loadProjects();
+    if (!state.route.project) throw new Error(V.page.noProjects);
+    if (state.followed !== state.route.project) follow();
+    const res = await fetch(`/api/state?project=${encodeURIComponent(state.route.project)}`);
+    if (!res.ok) throw new Error((await res.json()).message);
+    S = await res.json(); state.stale = false;
+    state.loaded = true; state.error = '';
+  } catch (e) { state.error = t(V.page.unreadable, { message: e.message }); }
+  state.busy = false; $('#spin').classList.remove('on');
+  render();
+  if (state.sheet?.kind === 'decision') decisionSheet(state.sheet.key);
+}
+async function send(body, after) {
+  state.busy = true; $('#spin').classList.add('on'); renderStatus();
+  try {
+    const res = await fetch('/api/edit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, project: state.route.project }) });
+    const out = await res.json();
+    state.busy = false; $('#spin').classList.remove('on');
+    if (!res.ok) { toast(out.message, true); if (res.status === 409) load(true); else renderStatus(); return; }
+    state.quietUntil = Date.now() + 1500;
+    S = out.state; after?.(); render(); toast(out.message);
+  } catch (e) { state.busy = false; $('#spin').classList.remove('on'); toast(e.message, true); renderStatus(); }
+}
+function toast(m, bad) { const x = $('#toast'); x.textContent = m; x.style.background = bad ? 'var(--bad)' : ''; x.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => x.classList.remove('on'), bad ? 5000 : 2600); }
+
+// ---------- wiring ----------
+const OPS = {
+  decide: (x) => decisionSheet(x),
+  approve: (x) => { const s = story(x); send({ op: 'status', story: x, hash: s.hashes.story, status: 'ready' }); },
+  start: (x) => { const s = story(x); send({ op: 'status', story: x, hash: s.hashes.story, status: 'in-progress' }); },
+  check: (x) => checkSheet(x),
+  'check-again': (x) => checkSheet(x),
+  claim: (x) => claimSheet(x),
+  'add-persona': () => personaSheet(),
+  'start-story': (x) => startSheet(x),
+  'add-scenario': (x) => editSheet(story(x)),
+};
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('button,a.nl');
+  if (!el) { if (e.target === $('#scrim')) closeSheet(); return; }
+  const d = el.dataset;
+  if (d.op) { if (S) OPS[d.op]?.(d.target); return; }
+  // A row opens in place; a column header sorts up, then down; a tab filters. All three live in the URL hash.
+  if (d.fold) { const open = state.route.open.includes(d.fold) ? state.route.open.filter((x) => x !== d.fold) : [...state.route.open, d.fold]; go({ open }, true); return; }
+  if (d.sort) { go({ sort: state.route.sort === d.sort ? `-${d.sort}` : d.sort }, true); return; }
+  if (d.tab) { go({ tab: d.tab }, true); return; }
+  if (d.edit) { const sc = allScenarios().find((x) => x.id === d.edit); if (sc) editSheet(sc.story, sc); return; }
+  if ('close' in d || el.id === 'closeSheet') { closeSheet(); return; }
+  if (el.id === 'sChanges' && S) { changesSheet(); return; }
+  if (el.id === 'runTrace' || el.id === 'sStale') { if (state.sheet?.kind === 'edit') closeSheet(); load(); return; }
+});
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'q') return;
+  history.replaceState(null, '', formatRoute({ ...state.route, q: e.target.value }, groupOf(state.route.screen)));
+  state.route = parseRoute(location.hash, SCREENS);
+  renderMain();
+});
+// Column choice is the browser's, per screen: kept in its local storage, not the URL.
+document.addEventListener('change', (e) => {
+  if (!e.target.dataset?.col) return;
+  G.columns.toggle(store, state.route.screen, e.target.dataset.col);
+  state.columnsOpen = true; renderMain(); state.columnsOpen = false;
+});
+document.addEventListener('keydown', (e) => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
+  if (e.key === 'Escape') { if ($('#sheet').classList.contains('on')) closeSheet(); else if (typing) document.activeElement.blur(); return; }
+  if (typing) return;
+  if (e.key === '/' && $('#q')) { e.preventDefault(); $('#q').focus(); }
+});
+$('#project').addEventListener('change', (e) => {
+  try { localStorage.setItem('storyspec-ui-project', e.target.value); } catch {}
+  if ($('#sheet').classList.contains('on')) closeSheet();
+  e.target.blur(); go({ project: e.target.value, screen: 'needs-you', open: [], q: '', tab: '', sort: '' });
+});
+// Someone may have edited the files in their editor meanwhile: read them again when the page comes back into view.
+window.addEventListener('focus', () => { if (state.loaded && !state.busy && !state.live && !(state.sheet?.kind === 'edit' || $('#ans'))) load(true); });
+
+render();
+load();
+</script>
+</html>

@@ -4,7 +4,7 @@ title: A person manages the spec in a browser
 epic: E-7 Specs for people who don't edit files
 status: in-progress
 version: 1
-implementedBy: packages/story-spec/src/ui/server.ts, packages/story-spec/src/edit.ts, packages/story-spec/src/cli.ts
+implementedBy: packages/storyspec/src/ui/server.ts, packages/storyspec/src/edit.ts, packages/storyspec/src/cli.ts
 after: S-006, S-010, S-011
 ---
 

@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect } from 'vitest'
-import { story } from 'story-spec/vitest'
-import { loadConfig, readProof, scan, trace } from '../../packages/story-spec/src/index.js'
-import type { Finding } from '../../packages/story-spec/src/trace/rules.js'
-import { pageHtml, uiState } from '../../packages/story-spec/src/ui/server.js'
-import { buildPage } from '../../packages/story-spec/src/ui/view.js'
-import { VOCABULARY, type Vocabulary } from '../../packages/story-spec/src/ui/vocabulary.js'
+import { story } from 'storyspec/vitest'
+import { loadConfig, readProof, scan, trace } from '../../packages/storyspec/src/index.js'
+import type { Finding } from '../../packages/storyspec/src/trace/rules.js'
+import { pageHtml, uiState } from '../../packages/storyspec/src/ui/server.js'
+import { buildPage } from '../../packages/storyspec/src/ui/view.js'
+import { VOCABULARY, type Vocabulary } from '../../packages/storyspec/src/ui/vocabulary.js'
 import { edit, fail, pass, pythonProject, report, STORY } from '../../test/python-project.js'
 import { another, gitRepo, pageOf, prove, scenario, status, withDecisions } from '../../test/ui-project.js'
 import { gen } from './scenarios.gen.js'
@@ -60,7 +60,7 @@ const SAMPLES: Record<string, [Partial<Finding>, string]> = {
   'derived-status': [{ message: 'S-001: "done" is worked out from proof now, not written' }, '“Greet a person”'],
   unproven: [{ message: 'S-001: not done; still to prove: S-001.2 manual (awaiting)' }, '“Greet a person”'],
   'adapter-untested': [{ message: 'src/adapters/memory/greeter.ts (Greeter) isn\'t exercised by any test in any tier', file: 'src/adapters/memory/greeter.ts' }, 'src/adapters/memory/greeter.ts'],
-  'gen-fresh': [{ message: 'S-001: stories/S-001-greet-a-person/scenarios.gen.ts is stale; run story-spec gen', file: `${STORY}/scenarios.gen.ts` }, '“Greet a person”'],
+  'gen-fresh': [{ message: 'S-001: stories/S-001-greet-a-person/scenarios.gen.ts is stale; run storyspec gen', file: `${STORY}/scenarios.gen.ts` }, '“Greet a person”'],
   'story-imports': [{ message: 'imports app/db; stories may import only their own folder', file: `${STORY}/greet.ts` }, '“Greet a person”'],
   'ids-outside-stories': [{ message: 'mentions S-001; story logic belongs in stories/', file: 'app/greet.py' }, 'app/greet.py'],
   wiring: [{ message: 'imports stories/S-001-greet-a-person/greet; only src/entry/composition.ts may import stories', file: 'app/main.py' }, 'app/main.py'],
@@ -71,8 +71,8 @@ const SAMPLES: Record<string, [Partial<Finding>, string]> = {
   'unclaimed-code': [{ message: 'no story claims it', file: 'app/farewell.py' }, 'app/farewell.py'],
   slug: [{ message: 'S-001: folder doesn\'t match the title "Greet a person"', file: STORY }, '“Greet a person”'],
   'port-adapter': [{ message: 'Greeter has no adapter yet', file: 'src/ports/greeter.ts' }, 'Greeter'],
-  'framework-sync': [{ message: 'AGENTS.md is missing the story-spec guidance; run story-spec sync', file: 'AGENTS.md' }, 'AGENTS.md'],
-  tests: [{ message: '"pytest" did not write .story-spec/junit.xml' }, 'this project'],
+  'framework-sync': [{ message: 'AGENTS.md is missing the storyspec guidance; run storyspec sync', file: 'AGENTS.md' }, 'AGENTS.md'],
+  tests: [{ message: '"pytest" did not write .storyspec/junit.xml' }, 'this project'],
 }
 
 story(gen, {
@@ -172,7 +172,7 @@ story(gen, {
     const phrases = [...STATE_WORDS.filter(w => w.includes(' ') && w !== 'being built'), 'what we mean', 'what is', 'how we know', 'Needs you']
     const table = JSON.stringify(words)
     for (const w of phrases) expect(html.split(w).length, w).toBe(table.split(w).length)
-    const template = readFileSync(join(repoRoot, 'packages/story-spec/ui/index.html'), 'utf8')
+    const template = readFileSync(join(repoRoot, 'packages/storyspec/ui/index.html'), 'utf8')
     for (const w of [...phrases, 'being built', 'what should be']) expect(template, w).not.toContain(w)
   },
 })

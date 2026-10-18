@@ -1,10 +1,10 @@
-// Moves on a copy of the python fixture (python-project.ts) that the story-spec ui stories share: more stories, manual
+// Moves on a copy of the python fixture (python-project.ts) that the storyspec ui stories share: more stories, manual
 // scenarios, personas, decisions, a git history, and the page the server builds from them.
 import { execFileSync } from 'node:child_process'
 import { cpSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach } from 'vitest'
-import { applyEdit, serveUi, uiState } from '../packages/story-spec/src/ui/server.js'
+import { applyEdit, serveUi, uiState } from '../packages/storyspec/src/ui/server.js'
 import { edit, STORY } from './python-project.js'
 
 export const NOW = new Date('2026-10-18T12:00:00Z')
@@ -63,7 +63,7 @@ export const pageOf = async (root: string) => (await uiState(root)).page
 const servers: { close: () => void }[] = []
 afterEach(() => { for (const s of servers.splice(0)) s.close() })
 
-/** Serves the project as story-spec ui does; `html` is the page as the browser gets it. */
+/** Serves the project as storyspec ui does; `html` is the page as the browser gets it. */
 export const served = async (root: string) => {
   const server = await serveUi(root, { port: 0, now: () => NOW })
   servers.push(server)
