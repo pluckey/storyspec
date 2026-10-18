@@ -1,6 +1,6 @@
 # Working in this repo
 
-<!-- story-spec:begin 0.8.0 sha=ddec8aa72d921129 -->
+<!-- story-spec:begin 0.10.0 sha=ddec8aa72d921129 -->
 <!-- Managed by story-spec. `npx story-spec sync` rewrites this block from the installed version; put project notes outside it. -->
 This repo is organized around **stories**. A story owns its spec, its implementation and its tests, in one folder. The shared code in `src/` is plumbing that stories plug into through ports. `npm run check` enforces all of it.
 
