@@ -13,17 +13,25 @@ import type { Finding, PortCoverage } from '../trace/rules.js'
 import type { Persona } from '../trace/personas.js'
 import { scenarioHash, type Repo, type Story } from '../trace/scan.js'
 import { say } from './route.js'
+import { gridsOf, screenDefinitions } from './screens.js'
 import { VOCABULARY, type ActionOp, type FindingWords, type Module, type ScreenKey, type StateKey, type TraceStatus, type Vocabulary } from './vocabulary.js'
 
 export type Action = { label: string; op?: ActionOp; target?: string }
 export type Why = { sentence: string; items: { title: string; word?: string; action?: Action }[]; note?: string; then?: string; now?: string; action?: Action; details: string }
 export type State = { key: StateKey; word: string; why: Why }
-export type ScenarioItem = { id: string; storyId: string; title: string; story: string; state: State; steps: string[]; details: string; entry?: { by: string; date: string; note?: string } }
-export type StoryLine = { id: string; title: string; personas: string[]; state: State; summary: string; requirement: string; scenarios: ScenarioItem[]; details: string }
+/** `since` is the day an item last changed: its file's last change, or a later proof. */
+export type ScenarioItem = { id: string; storyId: string; title: string; story: string; state: State; steps: string[]; since: string; details: string; entry?: { by: string; date: string; note?: string } }
+export type StoryLine = { id: string; title: string; personas: string[]; state: State; summary: string; requirement: string; scenarios: ScenarioItem[]; since: string; details: string }
 export type FindingItem = { sentence: string; severity: 'error' | 'warning'; module: Module; screen: ScreenKey; action: Action; details: string }
 export type InboxKind = 'decide' | 'approve' | 'check-again' | 'check' | 'claim'
-export type InboxItem = { kind: InboxKind; title: string; sentence: string; owner?: string; screen: ScreenKey; action: Action; details: string }
-export type DecisionItem = { key: string; storyId: string; title: string; open: boolean; sentence: string; owner?: string; action?: Action; details: string }
+/** `who` is whom an item waits on (a decision's owner) or concerns (its story's personas); a scenario's carries its state. */
+export type InboxItem = { kind: InboxKind; title: string; sentence: string; owner?: string; who: string; since: string; state?: State; screen: ScreenKey; action: Action; details: string }
+export type DecisionItem = { key: string; storyId: string; story: string; title: string; open: boolean; sentence: string; owner?: string; who: string; since: string; action?: Action; details: string }
+/** A record of MODEL.md: each state with its event and the stories around it, by title. */
+export type RecordView = {
+  name: string; transitions: [string, string][]
+  states: { name: string; event: string; start: boolean; quiet: boolean; movedBy: string[]; createdBy: string[]; starts: string[]; next: string[] }[]
+}
 
 export type ViewInput = {
   root: string; config: Config; repo: Repo; rows: TraceRow[]; findings: Finding[]; ports: PortCoverage[]; proof: ProofFile
@@ -51,8 +59,15 @@ export const stateOf = (status: TraceStatus, words: Vocabulary = VOCABULARY): St
 
 const byId = (a: string, b: string) => a.localeCompare(b, 'en', { numeric: true })
 
-/** Builds the page. `words` is the vocabulary; every word below comes from it. */
+/** The page: what each screen holds (the model), the screens' definitions, and each screen's rows as the grid draws
+ * them (screens.ts). `words` is the vocabulary; every word comes from it. */
 export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
+  const model = buildModel(input, words)
+  return { ...model, definitions: screenDefinitions(words), grids: gridsOf(model, words) }
+}
+
+/** What each screen holds, in the vocabulary's words. */
+const buildModel = (input: ViewInput, words: Vocabulary) => {
   const { root, config, repo, rows, proof } = input
   const t = (template: string, vars: Record<string, unknown> = {}) => say(template, vars, words.nouns)
   const prefix = config.idPrefix
@@ -80,6 +95,10 @@ export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
     ({ label: t(words.actions[key], vars), ...(op && { op }), ...(target && { target }) })
   const details = (...parts: (string | undefined)[]) => parts.filter(Boolean).join(' · ')
   const state = (status: TraceStatus, why: Why): State => { const key = stateOf(status, words); return { key, word: words.states[key].word, why } }
+  const unclaimedFiles = input.findings.filter(f => f.rule === 'unclaimed-code' && f.file).map(f => f.file!)
+  const day = changedOn(root, [config.storiesDir, ...unclaimedFiles])
+  const latest = (...days: (string | undefined)[]) => days.filter((d): d is string => !!d).sort().at(-1) ?? ''
+  const specDay = (s: Story) => day(`${s.dir}/spec.md`)
 
   // ---------- scenarios ----------
   const scenarioItem = (s: Story, sc: TraceRow['scenarios'][number]): ScenarioItem => {
@@ -128,6 +147,7 @@ export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
     const recorded = sc.tiers.find(x => x.tier === 'manual')?.entry
     return {
       id: sc.id, storyId: s.id, title: sc.title, story: s.front.title ?? '', state: state(status, why), steps: steps.get(s.id)?.[sc.id] ?? [],
+      since: latest(specDay(s), ...sc.tiers.map(x => x.entry?.at.slice(0, 10))),
       details: why.details, ...(recorded && { entry: { ...when(recorded), ...(recorded.note && { note: recorded.note }) } }),
     }
   }
@@ -162,7 +182,7 @@ export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
     }
     return {
       id: s.id, title: s.front.title ?? '', personas: s.personas.map(personaName), state: state(status === 'done' || status === 'draft' || status === 'ready' ? status : 'in-progress', why),
-      summary: summary(items, r), requirement: requirementText(s.spec, s.id), scenarios: items, details: why.details,
+      summary: summary(items, r), requirement: requirementText(s.spec, s.id), scenarios: items, since: latest(day(`${s.dir}/story.md`), specDay(s)), details: why.details,
     }
   }
   const lines = live.map(storyLine)
@@ -217,27 +237,32 @@ export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
   const findingsOn = (screen: ScreenKey) => findings.filter(f => f.screen === screen)
 
   // ---------- Needs you ----------
+  const personasOf = (id: string) => lineOf.get(id)?.personas.join(', ') ?? ''
   const decide: InboxItem[] = openDecisions.map(d => ({
-    kind: 'decide', title: plain(d.question), screen: 'decisions', action: action('decide', 'decide', d.key),
+    kind: 'decide', title: plain(d.question), screen: 'decisions', action: action('answer', 'decide', d.key),
     sentence: [d.owner ? t(words.inbox.decide, { owner: personaName(d.owner) }) : words.inbox['decide-nobody'], d.pinnedBy.length ? t(words.inbox.blocks, { n: d.pinnedBy.length }) : ''].filter(Boolean).join(' '),
-    ...(d.owner && { owner: personaName(d.owner) }), details: details(d.story.id, ...d.pinnedBy, 'decisions'),
+    ...(d.owner && { owner: personaName(d.owner) }), who: d.owner ? personaName(d.owner) : words.decisions.unassigned, since: specDay(d.story),
+    details: details(d.story.id, ...d.pinnedBy, 'decisions'),
   }))
   const approve: InboxItem[] = live.filter(s => s.front.status === 'draft').map(s => ({
-    kind: 'approve', title: s.front.title ?? '', sentence: words.inbox.approve, screen: 'stories', action: action('approve', 'approve', s.id), details: details(s.id, `v${s.front.version}`),
+    kind: 'approve', title: s.front.title ?? '', sentence: words.inbox.approve, screen: 'stories', action: action('approve', 'approve', s.id),
+    who: personasOf(s.id), since: lineOf.get(s.id)?.since ?? '', details: details(s.id, `v${s.front.version}`),
   }))
   const allItems = [...scenarioItems.values()].flat().sort((a, b) => byId(a.id, b.id))
   const stale = allItems.filter(x => (row.get(x.storyId)?.scenarios.find(sc => sc.id === x.id)?.tiers ?? []).some(tr => tr.state === 'stale'))
   const checkAgain: InboxItem[] = stale.map(x => ({
-    kind: 'check-again', title: x.title, sentence: `${words.inbox['check-again']} ${x.state.why.sentence}`, screen: 'stale',
-    action: x.state.why.action ?? action('check-again', 'check-again', x.id), details: x.details,
+    kind: 'check-again', title: x.title, sentence: words.inbox['check-again'], screen: 'stale', state: x.state,
+    action: x.state.why.action ?? action('check-again', 'check-again', x.id), who: personasOf(x.storyId), since: x.since, details: x.details,
   }))
   // A check is due once a story is being built: a draft's or a ready story's scenarios aren't built to check yet.
   const building = new Set(live.filter(s => !config.gapsOnlyWarnFor.includes(s.front.status ?? '')).map(s => s.id))
   const check: InboxItem[] = allItems.filter(x => building.has(x.storyId) && x.state.why.action?.op === 'check').map(x => ({
-    kind: 'check', title: x.title, sentence: words.inbox.check, screen: 'by-a-person', action: action('check', 'check', x.id), details: x.details,
+    kind: 'check', title: x.title, sentence: words.inbox.check, screen: 'by-a-person', state: x.state, action: action('check', 'check', x.id),
+    who: personasOf(x.storyId), since: x.since, details: x.details,
   }))
-  const unclaimed = input.findings.filter(f => f.rule === 'unclaimed-code' && f.file)
-  const claim: InboxItem[] = unclaimed.map(f => ({ kind: 'claim', title: f.file!, sentence: words.inbox.claim, screen: 'code', action: action('claim', 'claim', f.file), details: details('unclaimed-code') }))
+  const claim: InboxItem[] = unclaimedFiles.map(file => ({
+    kind: 'claim', title: file, sentence: words.inbox.claim, screen: 'code', action: action('claim', 'claim', file), who: '', since: day(file), details: details('unclaimed-code'),
+  }))
   const inbox = [...decide, ...approve, ...checkAgain, ...check, ...claim]
 
   // ---------- navigation ----------
@@ -252,10 +277,14 @@ export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
   }
 
   // ---------- screens ----------
-  const decisionItems: DecisionItem[] = live.flatMap(decisionsOf).map(d => d.open
-    ? { key: d.key, storyId: d.story.id, title: plain(d.question), open: true, sentence: decide.find(i => i.action.target === d.key)!.sentence, ...(d.owner && { owner: d.owner }), action: action('answer', 'decide', d.key), details: details(d.story.id, ...d.pinnedBy) }
-    : { key: d.key, storyId: d.story.id, title: plain(d.text.replace(/\s*\((?:free)\)\s*$/i, '').replace(new RegExp(`[;,]?\\s*pinned by\\s+(?:${prefix}-\\d+\\.\\d+(?:\\s*,\\s*)?)+\\s*$`, 'i'), '')), open: false,
-      sentence: d.pinnedBy.length ? t(words.decisions.pinned, { n: d.pinnedBy.length }) : d.free ? words.decisions.free : '', details: details(d.story.id, ...d.pinnedBy) })
+  const decisionItems: DecisionItem[] = live.flatMap(decisionsOf).map(d => {
+    const about = { key: d.key, storyId: d.story.id, story: d.story.front.title ?? '', since: specDay(d.story), details: details(d.story.id, ...d.pinnedBy) }
+    return d.open
+      ? { ...about, title: plain(d.question), open: true, sentence: decide.find(i => i.action.target === d.key)!.sentence, ...(d.owner && { owner: d.owner }),
+        who: d.owner ? personaName(d.owner) : words.decisions.unassigned, action: action('answer', 'decide', d.key) }
+      : { ...about, title: plain(d.text.replace(/\s*\((?:free)\)\s*$/i, '').replace(new RegExp(`[;,]?\\s*pinned by\\s+(?:${prefix}-\\d+\\.\\d+(?:\\s*,\\s*)?)+\\s*$`, 'i'), '')), open: false,
+        sentence: d.pinnedBy.length ? t(words.decisions.pinned, { n: d.pinnedBy.length }) : d.free ? words.decisions.free : '', who: '' }
+  })
   const sorted = (xs: DecisionItem[]) => [...xs.filter(d => d.open), ...xs.filter(d => !d.open)]
   const personaCounts = (ids: string[]) => {
     const mine = ids.map(id => lineOf.get(id)).filter((l): l is StoryLine => !!l)
@@ -279,6 +308,20 @@ export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
     details: s.id,
   }))
   const checkedCount = allItems.filter(x => x.state.key === 'checked').length
+  // Each record's states with the event a story emits to move a record into it (`<record>.<state>`), the stories that
+  // do, and the stories entering it starts.
+  const emitting = (e: string) => stories.filter(s => s.emits.includes(e)).map(s => s.front.title ?? s.id)
+  const startedBy = (e: string) => stories.filter(s => s.trigger[0] === `event:${e}`).map(s => s.front.title ?? s.id)
+  const records: RecordView[] = (repo.model ?? []).map(r => ({
+    name: r.name, transitions: r.transitions,
+    states: r.states.map(st => {
+      const event = `${r.slug}.${st.slug}`, next = r.transitions.filter(([from]) => from === st.name).map(([, to]) => to)
+      return {
+        name: st.name, event, start: !r.transitions.some(([, to]) => to === st.name), quiet: !next.length && !startedBy(event).length,
+        movedBy: emitting(event), createdBy: emitting(`${r.slug}.created`), starts: startedBy(event), next,
+      }
+    }),
+  }))
 
   const screens = {
     people: { ...words.screens.people, empty: input.personas ? undefined : words.screens.people.empty, action: action('add-persona', 'add-persona'), personas: people,
@@ -286,7 +329,7 @@ export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
     stories: { ...words.screens.stories, lines, retired: stories.length - live.length ? t(words.screens.stories.retired, { n: stories.length - live.length }) : undefined,
       empty: lines.length ? undefined : words.screens.stories.empty, findings: findingsOn('stories') },
     decisions: { ...words.screens.decisions, items: sorted(decisionItems), empty: decisionItems.length ? undefined : words.screens.decisions.empty, findings: findingsOn('decisions') },
-    records: { ...words.screens.records, empty: repo.model?.length ? undefined : words.screens.records.empty, findings: findingsOn('records') },
+    records: { ...words.screens.records, records, empty: repo.model?.length ? undefined : words.screens.records.empty, findings: findingsOn('records') },
     words: (() => { const files = vocabularyFiles(root, config.storiesDir); return { ...words.screens.words, files, empty: files.length ? undefined : words.screens.words.empty } })(),
     code: { ...words.screens.code, stories: implementing.filter(s => s.files.length), claims: claim, empty: implementing.some(s => s.files.length) ? undefined : words.screens.code.empty, findings: findingsOn('code') },
     ports: { ...words.screens.ports, ports: input.ports.map(p => ({ name: p.port, file: p.file, adapters: p.adapters.map(a => ({ file: a, tiers: p.exercisedIn[a] ?? [] })), tests: p.contractTests })),
@@ -320,9 +363,27 @@ export const buildPage = (input: ViewInput, words: Vocabulary = VOCABULARY) => {
   }
 }
 
+export type Model = ReturnType<typeof buildModel>
 export type Page = ReturnType<typeof buildPage>
 
 // ---------- helpers that read files ----------
+
+/** The day each file under `paths` last changed (YYYY-MM-DD): its last commit, read in one `git log`; or, for a file git
+ * hasn't committed as it is (new, edited, or no git at all), the day it was saved. */
+const changedOn = (root: string, paths: string[]) => {
+  const git = (...args: string[]) => {
+    try { return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 1 << 26 }) } catch { return undefined }
+  }
+  const committed = new Map<string, string>()
+  let day = ''
+  for (const line of (git('log', '--format=@%cs', '--name-only', '--relative', '--', ...paths) ?? '').split('\n')) {
+    if (line.startsWith('@')) day = line.slice(1)
+    else if (line && !committed.has(line)) committed.set(line, day)
+  }
+  const uncommitted = new Set((git('ls-files', '-m', '-o', '--exclude-standard', '--', ...paths) ?? '').split('\n').filter(Boolean))
+  const saved = (file: string) => { try { return statSync(join(root, file)).mtime.toISOString().slice(0, 10) } catch { return '' } }
+  return (file: string) => uncommitted.has(file) || !committed.has(file) ? saved(file) : committed.get(file)!
+}
 
 /** The scenario's title and steps as they were when a proof with `hash` was recorded, from git: the commit the proof
  * names first, then the spec's recent history. Undefined when git doesn't have that text. */

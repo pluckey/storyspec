@@ -3,6 +3,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect } from 'vitest'
 import { story } from 'storyspec/vitest'
+import { gridComponent } from '../../packages/storyspec/src/ui/grid.js'
+import { say } from '../../packages/storyspec/src/ui/route.js'
+import { VOCABULARY } from '../../packages/storyspec/src/ui/vocabulary.js'
 import { edit, pass, pythonProject, report, STORY } from '../../test/python-project.js'
 import { another, front, pageOf, personas, served, status, withDecisions } from '../../test/ui-project.js'
 import { gen } from './scenarios.gen.js'
@@ -51,11 +54,14 @@ story(gen, {
     expect(home.beingBuilt).toBe('1 story being built')
     // The decision is the first thing on the list, saying whom it waits on.
     expect(page.inbox.items[0]).toMatchObject({ kind: 'decide', title: 'The target frame rate on low-end machines', sentence: 'Waits on Player. It holds up 1 scenario.' })
-    // Needs you draws the home cards first, then the list, so all three answers sit at the top of the screen.
+    // Needs you draws the home cards above its grid (S-023.12), so all three answers sit at the top of the screen.
     const html = await (await served(game())).html()
-    const inbox = html.slice(html.indexOf("'needs-you'() {"), html.indexOf('people() {'))
-    expect(inbox.indexOf('h.personas')).toBeGreaterThan(-1)
-    expect(inbox.indexOf('${home}')).toBeLessThan(inbox.indexOf('${items}'))
+    const home$ = html.slice(html.indexOf('function homeHtml()'), html.indexOf('const screenHtml'))
+    expect(home$).toContain('h.personas')
+    expect(html).toContain("lead: def.id === 'needs-you' ? homeHtml() : ''")
+    const drawn = gridComponent(VOCABULARY, say).html(page.definitions[0]!, page.grids['needs-you'], { open: [], q: '' }, [], { lead: '<div class="home"></div>' })
+    expect(drawn.indexOf('<div class="home">')).toBeGreaterThan(-1)
+    expect(drawn.indexOf('<div class="home">')).toBeLessThan(drawn.indexOf('<table'))
     // One card for the counts and one per persona, before the first item.
     expect(home.personas.length + 1).toBeLessThanOrEqual(4)
   },

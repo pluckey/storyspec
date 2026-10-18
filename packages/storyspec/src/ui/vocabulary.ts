@@ -97,16 +97,16 @@ export const VOCABULARY = {
   screens: {
     inbox: { heading: 'Needs you', empty: 'Nothing is waiting on you.', intro: 'Everything waiting on a person, with its action.' },
     people: { heading: 'People', empty: 'This project has no personas yet.', intro: 'The people this product serves, and what each can do.' },
-    stories: { heading: 'Stories', empty: 'This project has no stories yet.', intro: 'What the product does, one line per story. Open one to read its scenarios.', retired: '{n|retired story} not shown.', filter: 'Filter stories and scenarios' },
+    stories: { heading: 'Stories', empty: 'This project has no stories yet.', intro: 'What the product does, one line per story. Open one to read its scenarios.', retired: '{n|retired story} not shown.' },
     decisions: { heading: 'Decisions', empty: 'This project records no decisions.', intro: 'The judgement calls the scenarios don\'t pin, and the ones still waiting on an answer.' },
     records: { heading: 'Records', empty: 'This project names no records yet.', intro: 'Things that move through states, and the stories that move them.' },
     words: { heading: 'Words', empty: 'This project has no shared vocabulary yet.', intro: 'The words this project uses, as its stories folder writes them down.' },
     code: { heading: 'Code', empty: 'No story names its code yet.', intro: 'Which code each story is built in, and code no story claims.', unclaimed: 'Code no story claims' },
     ports: { heading: 'Ports', empty: 'This project has no ports.', intro: 'The outside things stories depend on, their adapters, and the tests that exercise them.', noAdapter: 'no adapter yet', noTests: 'no test exercises it' },
-    layers: { heading: 'Layers', empty: 'This project sets no layer rules.', intro: 'Which code may use which, and where it doesn\'t hold.', may: 'may use', wiring: 'Only these files may call stories' },
+    layers: { heading: 'Layers', empty: 'This project sets no layer rules.', intro: 'Which code may use which, and where it doesn\'t hold.', wiring: 'Only these files may call stories' },
     'by-tests': { heading: 'By tests', empty: 'No scenario is proven by tests.', intro: 'Scenarios a test checks on every run.' },
     'by-a-run': { heading: 'By a run', empty: 'No scenario needs a run against real infrastructure.', intro: 'Scenarios a run against real infrastructure proves, recorded when it ran.' },
-    'by-a-person': { heading: 'By a person', empty: 'No scenario needs a person to check it.', intro: 'Scenarios a person checks by hand. Recording a check here is the same as storyspec prove.', pending: 'Still to check', done: 'Checked', who: '{by} on {date}' },
+    'by-a-person': { heading: 'By a person', empty: 'No scenario needs a person to check it.', intro: 'Scenarios a person checks by hand. Recording a check here is the same as storyspec prove.', pending: 'Still to check', done: 'Checked' },
     stale: { heading: 'Stale', empty: 'No proof is stale.', intro: 'Proofs of text that has changed since, which no longer count.' },
   },
 
@@ -196,16 +196,30 @@ export const VOCABULARY = {
   },
   people: {
     noStories: 'no stories yet',
-    noStoriesFor: 'Nothing in the spec serves {name} yet.',
     noProse: 'The people list says nothing about them yet.',
-    stories: 'Stories',
-    startFor: 'Start a story for {name}',
     waiting: '{n} waiting',
+    waitingOnThem: 'Waiting on them',
   },
   records: {
-    state: 'State', event: 'Event', enteredBy: 'Entered by', starts: 'Starts', next: 'Next', start: 'start',
-    createdBy: 'created by {stories}', noStory: 'no story moves it here', startsNothing: 'starts nothing', nothing: 'nothing',
+    start: 'start', createdBy: 'created by {stories}', noStory: 'no story moves it here', startsNothing: 'starts nothing', nothing: 'nothing',
     arrows: 'Each arrow is a transition, labelled with the stories that move a record into its target state.',
+  },
+
+  // The grid every screen is drawn with (screens.ts): its column headings, and what it says around its rows.
+  columns: {
+    kind: 'Kind', what: 'What', who: 'Who', since: 'Since', state: 'State', action: 'Action',
+    persona: 'Persona', story: 'Story', scenario: 'Scenario', decision: 'Decision', record: 'Record', file: 'File', port: 'Port', layer: 'Layer',
+    summary: 'Proof', files: 'Files', adapters: 'Adapters', tests: 'Tests', exercised: 'Exercised in', may: 'May use', states: 'States',
+    recordState: 'State', event: 'Event', enteredBy: 'Entered by', starts: 'Starts', next: 'Next',
+  },
+  grid: {
+    all: 'All',
+    toFix: 'To fix',
+    search: 'Search this screen',
+    count: '{shown} of {n}',
+    columns: 'Columns',
+    none: 'None yet.',
+    noMatch: 'Nothing here matches “{q}”.',
   },
   page: {
     loading: 'Reading the stories…',

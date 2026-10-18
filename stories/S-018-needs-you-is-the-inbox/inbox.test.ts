@@ -29,8 +29,9 @@ story(gen, {
   'S-018.1': async () => {
     const root = await busy()
     const items = (await pageOf(root)).inbox.items
+    // Each kind with its action. A Decide item's button says Answer, the verb S-023.6 gives it; its kind says Decide.
     expect(items.map(i => [i.kind, i.title, i.action.label, i.action.op])).toEqual([
-      ['decide', 'Token lifetime', 'Decide', 'decide'],
+      ['decide', 'Token lifetime', 'Answer', 'decide'],
       ['approve', 'Greet a team', 'Approve', 'approve'],
       ['check-again', 'The greeting is friendly', 'Check again', 'check-again'],
       ['check', 'The greeting is easy to read', 'Check', 'check'],
