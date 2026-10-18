@@ -11,6 +11,17 @@
         "outcome": "pass",
         "version": "1"
       }
+    },
+    "S-015.16": {
+      "manual": {
+        "at": "2026-10-18T20:15:03.873Z",
+        "by": "Paul Luckey",
+        "commit": "aad1065",
+        "hash": "a7d904a76071",
+        "note": "Fable 2026-10-18: storyspec ui on cleanroom-horde with PERSONAS.md (player, developer, friend): Player shows prose, 11 can do today / 2 in progress, stories with proof per scenario; Friend listed with no stories yet and an offer to start one",
+        "outcome": "pass",
+        "version": "1"
+      }
     }
   }
 }
