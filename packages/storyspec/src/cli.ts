@@ -5,7 +5,7 @@ import { loadConfig } from './config.js'
 import { genStatus, writeGen } from './gen.js'
 import { newStory } from './new-story.js'
 import { trace } from './index.js'
-import { findingsText, portTable, table } from './trace/report.js'
+import { findingsText, portTable, storiesTables } from './trace/report.js'
 import { scan } from './trace/scan.js'
 import { installedVersion, plan, sync } from './sync.js'
 import { recordManual } from './proof.js'
@@ -17,10 +17,11 @@ import { readFileSync, writeFileSync } from 'node:fs'
 const HELP = `storyspec: story-first, spec-driven development
 
 Usage:
-  storyspec trace [--tier <name>] [--require-proven] [--no-run] [--json]
+  storyspec trace [--tier <name>] [--require-proven] [--by persona] [--no-run] [--json]
                                         Run a tier's tests (default local), write stories/TRACE.md, check every rule.
                                         A tier other than local is recorded in stories/PROOF.json.
                                         --require-proven: fail unless every story past ready is done.
+                                        --by persona: one stories table per persona in stories/PERSONAS.md.
   storyspec prove <ID> [--tier manual] [--fail] [--note "<text>"] [--by "<name>"]
                                         Record a proof by hand of a scenario (S-001.2) or of a story's scenarios (S-001)
   storyspec migrate                     Update stories for this version (0.3: status: done becomes in-progress,
@@ -29,7 +30,8 @@ Usage:
   storyspec story "<title>" [--epic "<epic>"]   Create the next story folder from templates
   storyspec check                       gen --check, then trace
   storyspec ui [--port 4400]            Open a page on localhost to manage the spec: answer open decisions, approve
-                                        stories, edit and add scenarios, see the model. Each change is an edit to a
+                                        stories, edit and add scenarios, see the model, read one persona's journey and
+                                        add personas. Each change is an edit to a
                                         story's files; commit them with git. It lists every storyspec project in this
                                         folder (or the folder above, when run inside a project) and switches between them.
   storyspec sync [--check] [--force] [--claude]
@@ -97,10 +99,12 @@ const main = async (): Promise<number> => {
     const run = !flag('--no-run')
     const requireProven = flag('--require-proven')
     const tier = option('--tier')
-    const result = await trace(root, { runTests: run, tier, requireProven })
+    const by = option('--by')
+    if (by !== undefined && by !== 'persona') { console.error(`--by takes "persona" (got "${by}")`); return 1 }
+    const result = await trace(root, { runTests: run, tier, requireProven, by })
     if (json) console.log(JSON.stringify(result, null, 2))
     else {
-      console.log(table(result.rows))
+      console.log(storiesTables(result.rows, result.personas, by))
       if (result.ports.length) console.log('\n' + portTable(result.ports))
       const text = findingsText(result.findings)
       if (text) (result.ok ? console.log : console.error)(text)

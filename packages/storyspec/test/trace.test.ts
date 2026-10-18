@@ -264,6 +264,32 @@ describe('trace', () => {
     expect((await run(root)).findings.filter(f => f.rule === 'framework-sync').map(f => f.message)).toEqual(['AGENTS.md is missing the storyspec guidance; run storyspec sync'])
   })
 
+  test('unknown-persona: a story serves a persona PERSONAS.md doesn\'t describe (a warning)', async () => {
+    const root = fixture()
+    writeFileSync(join(root, 'stories/PERSONAS.md'), '# Personas\n\n## User\n\nUses the thing.\n')
+    expect(await rulesOf(root, 'warning')).toEqual([])
+    edit(root, `${S}/story.md`, s => s.replace('As a user', 'As a guest'))
+    expect(await rulesOf(root)).toEqual([])
+    expect(await rulesOf(root, 'warning')).toEqual(['persona-without-stories', 'unknown-persona'])
+  })
+
+  test('persona-without-stories: a described persona no story serves (a warning)', async () => {
+    const root = fixture()
+    writeFileSync(join(root, 'stories/PERSONAS.md'), '# Personas\n\n## User\n\nUses the thing.\n\n## Admin\n\nRuns the thing.\n')
+    expect(await rulesOf(root)).toEqual([])
+    expect((await run(root)).findings.map(f => [f.rule, f.message])).toEqual([['persona-without-stories', 'admin: no story serves this persona; write one with persona: admin, or remove it from PERSONAS.md']])
+  })
+
+  test('persona-prose-mismatch: persona: and the "As a…" text disagree (a warning)', async () => {
+    const root = fixture()
+    writeFileSync(join(root, 'stories/PERSONAS.md'), '# Personas\n\n## User\n\nUses the thing.\n\n## Admin\n\nRuns the thing.\n')
+    edit(root, `${S}/story.md`, s => s.replace('version: 1', 'version: 1\npersona: user, admin'))
+    expect(await rulesOf(root, 'warning')).toEqual([])
+    edit(root, `${S}/story.md`, s => s.replace('persona: user, admin', 'persona: admin'))
+    expect(await rulesOf(root)).toEqual([])
+    expect(await rulesOf(root, 'warning')).toEqual(['persona-prose-mismatch', 'persona-without-stories'])
+  })
+
   test('layers: an import through a tsconfig path alias is still an import (#17)', async () => {
     const root = fixture()
     writeFileSync(join(root, 'tsconfig.json'), JSON.stringify({ compilerOptions: { baseUrl: '.', paths: { '@/*': ['src/*'] } } }))

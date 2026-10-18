@@ -17,7 +17,8 @@ export const nextId = (root: string, config: Config) => {
   return `${config.idPrefix}-${String(Math.max(0, ...used) + 1).padStart(3, '0')}`
 }
 
-export const newStory = (root: string, config: Config, title: string, epic = '', today = new Date()) => {
+/** `persona`: written into story.md's front matter as `persona:`, after `version:`. */
+export const newStory = (root: string, config: Config, title: string, epic = '', today = new Date(), persona?: string) => {
   const id = nextId(root, config)
   const folder = `${config.storiesDir}/${id}-${slugify(title)}`
   const dir = join(root, folder)
@@ -25,11 +26,12 @@ export const newStory = (root: string, config: Config, title: string, epic = '',
   const custom = join(root, config.storyTemplateDir)
   const templates = existsSync(custom) ? custom : builtinTemplates
   for (const f of readdirSync(templates)) {
-    const text = readFileSync(join(templates, f), 'utf8')
+    let text = readFileSync(join(templates, f), 'utf8')
       .replaceAll('{{id}}', id)
       .replaceAll('{{title}}', title)
       .replaceAll('{{epic}}', epic)
       .replaceAll('{{date}}', today.toISOString().slice(0, 10))
+    if (persona && f === 'story.md') text = text.replace(/^(version:.*)$/m, `$1\npersona: ${persona}`)
     writeFileSync(join(dir, f), text)
   }
   return { id, folder }

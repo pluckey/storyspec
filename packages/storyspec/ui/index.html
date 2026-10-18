@@ -154,6 +154,24 @@ td.wrap { white-space: normal; min-width: 260px; padding-block: 8px; }
 .model .edge .bg { fill: var(--card); stroke: none; }
 .model .legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--fg-dim); font-size: 12px; }
 
+.personas { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100%; }
+.plist { border-right: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.pitem { text-align: left; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+.pitem:hover { background: var(--hover); }
+.pitem[aria-pressed="true"] { background: var(--muted); border-color: var(--border); }
+.pitem b { font-weight: 500; }
+.pitem span { font-size: 12px; color: var(--fg-dim); }
+.pitem .warn { color: var(--warn); }
+.pdetail { padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.pdetail > * { flex-shrink: 0; }
+.pdetail h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.pdetail p { margin: 0; color: var(--fg-muted); max-width: 70ch; }
+.journey { display: flex; gap: 8px; flex-wrap: wrap; }
+.sclist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.sclist li { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 12px; }
+.sc.link { cursor: pointer; }
+.sc.link:hover { background: var(--hover); }
+
 .scrim { position: fixed; inset: 0; background: var(--scrim); opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10; }
 .scrim.on { opacity: 1; pointer-events: auto; }
 .sheet { position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100%); background: var(--bg); border-left: 1px solid var(--border); z-index: 11; transform: translateX(100%); transition: transform 0.25s ease; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -219,6 +237,8 @@ textarea.input { font-family: var(--mono); font-size: 12px; line-height: 1.6; re
   .top, .toolbar, .kpis { padding-left: 16px; padding-right: 16px; }
   .gridwrap { margin: 0 16px; }
   .hide-sm { display: none !important; }
+  .personas { grid-template-columns: minmax(0, 1fr); }
+  .plist { border-right: 0; border-bottom: 1px solid var(--border); flex-direction: row; overflow-x: auto; }
 }
 </style>
 
@@ -260,15 +280,15 @@ textarea.input { font-family: var(--mono); font-size: 12px; line-height: 1.6; re
 <script>
 // storyspec ui. Reads /api/state (the repo as the trace sees it) and sends each change to /api/edit, which edits one
 // story's files. Nothing is stored here: reload and the page shows the files again.
-let S = { stories: [], findings: [], model: null, changes: [], project: '', storiesDir: 'stories', ok: true };
+let S = { stories: [], findings: [], model: null, personas: null, personasHash: '', changes: [], project: '', storiesDir: 'stories', ok: true };
 const $ = (s) => document.querySelector(s);
 const code = (html) => html.replace(/`([^`]+)`/g, '<code>$1</code>');
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const slug = (t) => t.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-const state = { projects: [], project: null, live: false, stale: false, quietUntil: 0, followed: null, tab: 'decisions', q: '', chips: { decisions: 'open', stories: 'all', scenarios: 'all', findings: 'all' }, group: 'epic', sort: {}, selected: null, busy: false, loaded: false, error: '' };
-const TABS = ['decisions', 'stories', 'scenarios', 'model', 'findings'];
-const NAMES = { decisions: 'Decisions', stories: 'Stories', scenarios: 'Scenarios', model: 'Model', findings: 'Findings' };
+const state = { projects: [], project: null, live: false, stale: false, quietUntil: 0, followed: null, tab: 'decisions', q: '', chips: { decisions: 'open', stories: 'all', scenarios: 'all', findings: 'all' }, group: 'epic', sort: {}, selected: null, persona: null, busy: false, loaded: false, error: '' };
+const TABS = ['decisions', 'stories', 'scenarios', 'model', 'findings', 'personas'];
+const NAMES = { decisions: 'Decisions', stories: 'Stories', scenarios: 'Scenarios', model: 'Model', findings: 'Findings', personas: 'Personas' };
 
 // ---------- the repo, as the server read it ----------
 const story = (id) => S.stories.find((s) => s.id === id);
@@ -294,6 +314,9 @@ const evOf = (r, st) => `${r.slug}.${slug(st)}`;
 const emitters = (e) => S.stories.filter((s) => s.emits.includes(e)).map((s) => s.id);
 const listeners = (e) => S.stories.filter((s) => s.trigger === `event:${e}`).map((s) => s.id);
 const startStates = (r) => r.states.filter((st) => !r.transitions.some(([, to]) => to === st.name)).map((st) => st.name);
+const personas = () => S.personas ?? [];
+// Open decisions that don't say who answers them: `(open)` rather than `(open: <persona>)`.
+const unassigned = () => allDecisions().filter((d) => d.open && !d.owner);
 
 // Where a finding is fixed: the decision, scenario or story it names.
 function findingTarget(f) {
@@ -306,13 +329,14 @@ function findingTarget(f) {
   const st = (f.message.match(/^([A-Z]+-\d+)\b/) ?? f.file?.match(/\/([A-Z]+-\d+)-/))?.[1];
   if (st && story(st)) return { tab: 'stories', key: st, act: 'Open' };
   if (f.rule === 'model') return { tab: 'model', act: 'Open' };
+  if (f.rule === 'persona-without-stories') return { tab: 'personas', persona: f.message.match(/^([a-z0-9-]+):/)?.[1], act: 'Open' };
   return null;
 }
 
 // ---------- chrome ----------
 function renderTabs() {
   const open = allDecisions().filter((d) => d.open).length;
-  const counts = { decisions: allDecisions().length, stories: S.stories.length, scenarios: allScenarios().length, model: records().length, findings: S.findings.length };
+  const counts = { decisions: allDecisions().length, stories: S.stories.length, scenarios: allScenarios().length, model: records().length, findings: S.findings.length, personas: personas().length };
   $('#tabs').innerHTML = TABS.map((t, i) => `<button class="tab" role="tab" aria-selected="${state.tab === t}" data-tab="${t}" title="${NAMES[t]} (${i + 1})">${NAMES[t]} <span class="n">${counts[t]}</span>${t === 'decisions' && open ? `<span class="n warn">· ${open} open</span>` : ''}</button>`).join('');
 }
 
@@ -391,7 +415,7 @@ const squares = (s) => `<span class="sq">${s.scenarios.map((x) => `<i class="${S
 const COLS = {
   decisions: [
     { key: 'id', label: 'Decision', sort: (d) => d.key, cell: (d) => `<span class="id">${esc(decLabel(d))}</span>` },
-    { key: 'q', label: 'Question or answer', cls: 'wrap', sort: (d) => d.question, cell: (d) => esc(decTitle(d)) },
+    { key: 'q', label: 'Question or answer', cls: 'wrap', sort: (d) => d.question, cell: (d) => `${esc(decTitle(d))}${d.open && d.owner ? ` <span class="tag warn">for ${esc(d.owner)}</span>` : ''}` },
     { key: 'story', label: 'Story', sort: (d) => d.story.id, cell: (d) => `<span class="id">${d.story.id}</span> <span class="dim hide-sm">${esc(d.story.title)}</span>` },
     { key: 'state', label: 'State', sort: (d) => ['open', 'neither', 'pinned', 'free'].indexOf(decState(d)), cell: (d) => stateBadge(decState(d)) },
     { key: 'scen', label: 'Blocks or pins', sort: (d) => d.pinnedBy.length, cell: (d) => d.pinnedBy.length ? d.pinnedBy.map((x) => `<span class="tag ${d.open ? 'warn' : ''}">${esc(x)}</span>`).join('') : '<span class="dim">—</span>' },
@@ -434,6 +458,7 @@ function renderGrid() {
   renderChips();
   if (!state.loaded) { $('#gridwrap').innerHTML = `<table><tbody><tr class="empty-row"><td>${state.error ? esc(state.error) : 'Reading the stories…'}</td></tr></tbody></table>`; return; }
   if (tab === 'model') { $('#gridwrap').innerHTML = modelHtml(); $('#rowCount').textContent = records().length ? `${records().length} record${records().length > 1 ? 's' : ''}` : ''; return; }
+  if (tab === 'personas') { $('#gridwrap').innerHTML = personasHtml(); $('#rowCount').textContent = personas().length ? `${personas().length} persona${personas().length > 1 ? 's' : ''}` : ''; return; }
   const rows = sortRows(tab, rowsFor(tab));
   $('#rowCount').textContent = `${rows.length} row${rows.length === 1 ? '' : 's'}`;
   const cols = COLS[tab].filter((c) => !(c.key === 'trigger' && !S.stories.some((x) => x.trigger))), s = state.sort[tab];
@@ -513,6 +538,39 @@ function modelHtml() {
   <div class="legend"><span><span class="tag">S-00n</span> moves a record into the state</span><span><span class="tag warn">⚠ starts nothing</span> an end state no story reacts to</span><span style="color:var(--bad)">✗ no story: no story emits the event for that state</span></div></div>`;
 }
 
+// ---------- personas ----------
+// One persona's journey: who they are, what waits on them, and every story for them with its proof, in ID order.
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+function personasHtml() {
+  if (!S.personas) return `<div class="model"><div class="section"><h3 style="font-size:14px;text-transform:none;letter-spacing:-0.01em;color:var(--fg)">No personas yet</h3><p>The people this product serves go in <span class="mono">${esc(S.storiesDir)}/PERSONAS.md</span>: a <span class="mono">## Player</span> heading, then a line about them. A story names the ones it serves with <span class="mono">persona: player</span> (or its "As a player…" line does), and this tab shows each persona's stories and the decisions waiting on them.</p><div><button class="btn sm" data-add-persona>+ Add persona</button></div></div></div>`;
+  const keys = [...personas().map((p) => p.key), ...(unassigned().length ? ['unassigned'] : [])];
+  if (!keys.includes(state.persona)) state.persona = keys[0] ?? null;
+  const item = (key, name, sub) => `<button class="pitem" aria-pressed="${state.persona === key}" data-persona="${esc(key)}"><b>${esc(name)}</b><span>${sub}</span></button>`;
+  const list = personas().map((p) => item(p.key, p.name, `${p.stories.length ? plural(p.stories.length, 'story', 'stories') : 'no stories yet'}${p.decisions.length ? ` · <span class="warn">${p.decisions.length} waiting</span>` : ''}`)).join('')
+    + (unassigned().length ? item('unassigned', 'Unassigned', `<span class="warn">${plural(unassigned().length, 'open decision', 'open decisions')}</span> with no owner`) : '')
+    + '<div style="padding:6px 4px"><button class="btn sm ghost" data-add-persona>+ Add persona</button></div>';
+  const p = personas().find((x) => x.key === state.persona);
+  return `<div class="personas"><nav class="plist" aria-label="Personas">${list}</nav><div class="pdetail">${state.persona === 'unassigned' ? unassignedView() : p ? personaView(p) : '<p>Add the first persona to PERSONAS.md.</p>'}</div></div>`;
+}
+const decisionNote = (d) => `<div class="note warn"><span><span class="mono">${esc(decLabel(d))}</span> ${esc(decTitle(d))}${d.pinnedBy.length ? ` <span class="dim">· blocks ${esc(d.pinnedBy.join(', '))}</span>` : ''}</span><button class="btn sm warn" data-answer="${esc(d.key)}">Answer</button></div>`;
+function personaView(p) {
+  const mine = p.stories.map(story).filter(Boolean);
+  const count = (...st) => mine.filter((s) => st.includes(s.status)).length;
+  const waiting = p.decisions.map((d) => allDecisions().find((x) => x.story.id === d.story && x.i === d.index)).filter(Boolean);
+  const storyCard = (s) => `<div class="sc link" data-open-story="${esc(s.id)}"><div class="sc-top"><span><span class="id">${esc(s.id)}</span> <strong>${esc(s.title)}</strong></span>${statusBadge(s.status)}</div>
+    <ul class="sclist">${s.scenarios.map((x) => `<li><span><span class="id">${esc(x.id)}</span> ${esc(x.title)}</span>${scBadge(scState(x))}</li>`).join('') || '<li class="dim">No scenarios yet.</li>'}</ul></div>`;
+  return `
+    <div class="section"><h2>${esc(p.name)}</h2><p>${p.prose ? esc(p.prose) : '<span class="dim">PERSONAS.md says nothing about them yet.</span>'}</p>
+      <div class="journey"><span class="badge ok">can do today: ${count('done')}</span><span class="badge warn">in progress: ${count('in-progress')}</span><span class="badge none">planned: ${count('draft', 'ready')}</span></div></div>
+    <div class="section"><h3>Waiting on ${esc(p.name)} <span>${waiting.length}</span></h3>${waiting.map(decisionNote).join('') || `<div class="box dim">No open decision waits on them. Write <span class="mono">(open: ${esc(p.key)})</span> in a decision to ask them.</div>`}</div>
+    <div class="section"><h3>Stories <span>${mine.length}</span></h3>${mine.map(storyCard).join('') || `<div class="box dim">No stories yet: nothing in the spec serves ${esc(p.name)}.</div>`}
+      <div><button class="btn sm" data-start="${esc(p.key)}">+ Start a story for ${esc(p.name)}</button></div></div>`;
+}
+function unassignedView() {
+  return `<div class="section"><h2>Unassigned</h2><p>Open decisions that don't say who answers them. Write <span class="mono">(open: &lt;persona&gt;)</span> instead of <span class="mono">(open)</span> to put one on a persona's list.</p></div>
+    <div class="section"><h3>Open decisions <span>${unassigned().length}</span></h3>${unassigned().map(decisionNote).join('')}</div>`;
+}
+
 // ---------- sheet ----------
 function openSheet(kind, key) {
   if (kind !== 'changes' && kind !== 'edit' && !(kind === 'decision' ? allDecisions().some((d) => d.key === key) : kind === 'story' ? story(key) : allScenarios().some((x) => x.id === key))) { closeSheet(); return; }
@@ -579,7 +637,7 @@ function storySheet(id) {
   const blockedN = s.scenarios.filter((x) => scState(x) === 'blocked').length;
   const req = code(esc(s.requirement)).replace(/^WHEN/, '<b>WHEN</b>').replace(/THE SYSTEM SHALL/, '<br><b>THE SYSTEM SHALL</b>');
   $('#sheetBody').innerHTML = `
-    ${s.trigger || s.emits.length || s.after.length ? `<div class="meta">${s.trigger ? `<span class="dim">on</span> ${trig(s.trigger)}` : ''}${s.emits.length ? ` <span class="dim">emits</span> ${s.emits.map((e) => `<span class="tag event">${esc(e)}</span>`).join('')}` : ''}${s.after.length ? ` <span class="dim">after</span> ${s.after.map((a) => `<span class="tag">${esc(a)}</span>`).join('')}` : ''}</div>` : ''}
+    ${s.trigger || s.emits.length || s.after.length || s.personas?.length ? `<div class="meta">${s.personas?.length ? `<span class="dim">for</span> ${s.personas.map((p) => `<span class="tag">${esc(p)}</span>`).join('')} ` : ''}${s.trigger ? `<span class="dim">on</span> ${trig(s.trigger)}` : ''}${s.emits.length ? ` <span class="dim">emits</span> ${s.emits.map((e) => `<span class="tag event">${esc(e)}</span>`).join('')}` : ''}${s.after.length ? ` <span class="dim">after</span> ${s.after.map((a) => `<span class="tag">${esc(a)}</span>`).join('')}` : ''}</div>` : ''}
     <div class="section"><h3>Requirement</h3><div class="box req">${req || '<span class="dim">No requirement written yet.</span>'}</div></div>
     <div class="section"><h3>Scenarios <span>${s.scenarios.length}</span></h3>${s.scenarios.map((x) => scenarioCard({ ...x, story: s })).join('')}<div><button class="btn sm" data-add="${esc(s.id)}">+ Add scenario</button></div></div>
     ${s.decisions.length ? `<div class="section"><h3>Decisions</h3>${s.decisions.map((d, i) => { const dd = { ...d, story: s, i, key: `${s.id}#${i}` }; return `<div class="note ${d.open ? 'warn' : 'info'}"><span>${esc(d.open ? d.question : d.text)}</span>${d.open ? `<button class="btn sm warn" data-answer="${esc(dd.key)}">Answer</button>` : stateBadge(decState(dd))}</div>`; }).join('')}</div>` : ''}`;
@@ -624,6 +682,59 @@ function editSheet(s, sc) {
   $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); $('#sheet').setAttribute('aria-hidden', 'false');
   calc();
   setTimeout(() => $('#scTitle').focus(), 60);
+}
+
+// A sheet for an edit that isn't to one story's spec: PERSONAS.md, or a new story.
+function showSheet(focus) {
+  $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); $('#sheet').setAttribute('aria-hidden', 'false');
+  setTimeout(() => $(focus).focus(), 60);
+}
+
+function personaSheet() {
+  const file = `${S.storiesDir}/PERSONAS.md`;
+  state.sheet = { kind: 'edit', key: 'persona' };
+  head('new persona', 'Add a persona', `Appends to <span class="mono">${esc(file)}</span>${S.personas ? '' : ', which this creates'}.`);
+  $('#sheetBody').innerHTML = `
+    <div class="field"><label for="pName">Name, as the heading reads (stories name it lower-cased, with hyphens)</label><input class="input" id="pName" autocomplete="off" placeholder="Friend"></div>
+    <div class="field"><label for="pProse">Who they are and what they want, in a line</label><textarea class="input" id="pProse" rows="3" style="min-height:70px"></textarea></div>
+    <div class="section"><h3>Change</h3><div id="personaDiff"></div></div>`;
+  $('#sheetFoot').innerHTML = `<span class="hint" id="personaHint"></span><button class="btn ghost" data-close>Cancel</button><button class="btn primary" id="doPersona" disabled>Add</button>`;
+  const calc = () => {
+    const name = $('#pName').value.trim().replace(/\s+/g, ' '), prose = $('#pProse').value.trim().replace(/\s+/g, ' ');
+    const taken = personas().find((p) => p.key === slug(name));
+    const msg = !name ? 'Give it a name.' : name.includes('#') ? 'A name can\'t contain #.' : taken ? `PERSONAS.md already describes ${taken.name}.` : !prose ? 'Say in a line who they are.' : '';
+    $('#personaHint').textContent = msg;
+    $('#doPersona').disabled = !!msg || state.busy;
+    $('#personaDiff').innerHTML = diffHtml([{ file, lines: [...(S.personas ? [' …'] : ['+# Personas']), '+', `+## ${name || '…'}`, '+', `+${prose || '…'}`] }]);
+    return { name, prose };
+  };
+  $('#pName').addEventListener('input', calc); $('#pProse').addEventListener('input', calc);
+  $('#doPersona').addEventListener('click', () => { const { name, prose } = calc(); send({ op: 'persona', name, prose, hash: S.personasHash }, () => { state.persona = slug(name); closeSheet(); }); });
+  calc(); showSheet('#pName');
+}
+
+function startSheet(key) {
+  const p = personas().find((x) => x.key === key);
+  const prefix = S.stories[0]?.id.split('-')[0] ?? 'S';
+  const id = `${prefix}-${String(Math.max(0, ...S.stories.map((s) => +s.id.split('-')[1])) + 1).padStart(3, '0')}`;
+  const epics = [...new Set(S.stories.map((s) => s.epic).filter(Boolean))];
+  state.sheet = { kind: 'edit', key: 'start' };
+  head(`${id} · new story`, `Start a story for ${p.name}`, `Creates a draft story with <span class="mono">persona: ${esc(key)}</span> filled in; write its scenarios next.`);
+  $('#sheetBody').innerHTML = `
+    <div class="field"><label for="stTitle">Title: what ${esc(p.name)} can do</label><input class="input" id="stTitle" autocomplete="off"></div>
+    <div class="field"><label for="stEpic">Epic</label><input class="input" id="stEpic" list="epics" autocomplete="off" value="${esc(epics[0] ?? '')}"><datalist id="epics">${epics.map((e) => `<option value="${esc(e)}">`).join('')}</datalist></div>
+    <div class="section"><h3>Change</h3><div id="startDiff"></div></div>`;
+  $('#sheetFoot').innerHTML = `<span class="hint" id="startHint"></span><button class="btn ghost" data-close>Cancel</button><button class="btn primary" id="doStart" disabled>Start story</button>`;
+  const calc = () => {
+    const title = $('#stTitle').value.trim().replace(/\s+/g, ' '), epic = $('#stEpic').value.trim();
+    $('#startHint').textContent = title ? '' : 'Give it a title.';
+    $('#doStart').disabled = !title || state.busy;
+    $('#startDiff').innerHTML = diffHtml([{ file: `${S.storiesDir}/${id}-${slug(title) || '…'}/story.md`, lines: ['+---', `+id: ${id}`, `+title: ${title || '…'}`, `+epic: ${epic}`, '+status: draft', '+version: 1', `+persona: ${key}`, '+---', '+ …'] }]);
+    return { title, epic };
+  };
+  $('#stTitle').addEventListener('input', calc); $('#stEpic').addEventListener('input', calc);
+  $('#doStart').addEventListener('click', () => { const { title, epic } = calc(); send({ op: 'story', title, epic, persona: key }, () => setTimeout(() => (story(id) ? openSheet('story', id) : closeSheet()))); });
+  calc(); showSheet('#stTitle');
 }
 
 function changesSheet() {
@@ -690,13 +801,14 @@ function toast(m, bad) { const t = $('#toast'); t.textContent = m; t.style.backg
 function renderAll() { renderTabs(); renderKpis(); renderGrid(); renderStatus(); try { localStorage.setItem('storyspec-ui-tab', state.tab); } catch {} }
 function go(t) {
   state.tab = t.tab; state.q = ''; $('#q').value = '';
+  if (t.persona) state.persona = t.persona;
   if (t.key && state.chips[t.tab] !== undefined) state.chips[t.tab] = 'all';
   renderAll();
   if (t.key) openSheet(sheetFor(t.tab), t.key);
 }
 
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('button,tr.row');
+  const t = e.target.closest('button,tr.row,[data-open-story]');
   if (!t) { if (e.target === $('#scrim')) closeSheet(); return; }
   const d = t.dataset;
   if (d.tab) { state.tab = d.tab; state.q = ''; $('#q').value = ''; renderAll(); return; }
@@ -709,6 +821,9 @@ document.addEventListener('click', (e) => {
   if (d.openStory) { openSheet('story', d.openStory); return; }
   if (d.edit) { const sc = allScenarios().find((x) => x.id === d.edit); editSheet(sc.story, sc); return; }
   if (d.add) { editSheet(story(d.add)); return; }
+  if (d.persona) { state.persona = d.persona; renderGrid(); return; }
+  if ('addPersona' in d) { personaSheet(); return; }
+  if (d.start) { startSheet(d.start); return; }
   if (d.status) { const [id, status] = d.status.split(':'); const s = story(id); send({ op: 'status', story: id, hash: s.hashes.story, status }, () => setTimeout(() => openSheet('story', id))); return; }
   if ('close' in d || t.id === 'closeSheet') { closeSheet(); return; }
   if (t.id === 'sChanges') { openSheet('changes', null); return; }
@@ -720,7 +835,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { if ($('#sheet').classList.contains('on')) closeSheet(); else if (typing) document.activeElement.blur(); return; }
   if (typing) return;
   if (e.key === '/') { e.preventDefault(); $('#q').focus(); return; }
-  if (/^[1-5]$/.test(e.key) && !$('#sheet').classList.contains('on')) { state.tab = TABS[+e.key - 1]; renderAll(); return; }
+  if (/^[1-6]$/.test(e.key) && !$('#sheet').classList.contains('on')) { state.tab = TABS[+e.key - 1]; renderAll(); return; }
   if (e.key === 'Enter' && document.activeElement?.matches('tr.row')) document.activeElement.click();
 });
 $('#project').addEventListener('change', (e) => {

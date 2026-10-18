@@ -27,10 +27,33 @@ A story's whole history is `git log stories/S-001-*`, a review of S-001 touches 
 | `after` | you, optional | Stories this one is built after, comma-separated: the order the product grows in, not a change in behaviour. TRACE.md shows it, and the `after` rule checks the stories exist and the order never loops |
 | `trigger` | you, optional | What starts the story, as `kind:name`: `actor:<role>` (a person in a role), `event:<event>` (another story emitted it), `schedule:<name>` (time passed) or `external:<system>` (another system called in). One per story. TRACE.md shows it beside the story and lists every trigger in a Triggers table |
 | `emits` | you, optional | Events the story emits, comma-separated. A story whose trigger is `event:<name>` starts when one is emitted, so the Triggers table shows how stories hand on to each other |
+| `persona` | you, optional | The personas the story is for, comma-separated, as keys from `stories/PERSONAS.md` (`persona: player, developer`). Without it, the "As a…" line decides (see Personas) |
 
 ### Organising stories
 
 `epic` is the area of the product a story belongs to. `trigger` is what starts it. Persona alone doesn't organise stories well: in a workflow app, half the stories start when another story changes something (a vendor moving to Review notifies its reviewer), when time passes, or when another system calls in, and no person starts them. So the trigger says who or what *starts* the story, and the "As a… I want… so that…" text says who *benefits*. When no person starts a story, keep the "so that" (why it matters) and name whoever benefits, even if that is the organisation.
+
+Personas are a view across the folders, not a way to file them: `persona:` says who a story is *for*, which isn't always who starts it, and the trace doesn't ask `persona` and `trigger: actor:` to match.
+
+### Personas
+
+List the people the product serves in `stories/PERSONAS.md`, one `## Name` heading each, followed by a line or two about them:
+
+```markdown
+# Personas
+
+## Player
+
+Plays the game alone, a few evenings a week.
+
+## Developer
+
+Builds levels and ships the game.
+```
+
+A persona's key is its heading lower-cased, with hyphens for spaces (`## Game Master` is `game-master`). A story names the ones it serves with `persona:`; without the field, its "As a player, I want…" line names one, matched the same way after the article, so an existing project gets the view without editing a story. An open decision can say who answers it: `(open: player)` instead of `(open)`.
+
+With PERSONAS.md present, the trace warns on a story serving a persona it doesn't describe (`unknown-persona`), a persona no story serves (`persona-without-stories`), and a story whose `persona:` and "As a…" line disagree (`persona-prose-mismatch`). They are warnings because a persona is a lens, not a contract; raise them in `rules` to make them strict. TRACE.md ends with a grid of epics down and personas across, each cell counting that epic's stories for that persona as done / in progress / draft, and `storyspec trace --by persona` makes the stories table one table per persona, in PERSONAS.md order (a story for two personas appears under both). Without PERSONAS.md, none of this happens and the trace reads as before.
 
 ## Requirement and scenarios
 
@@ -84,13 +107,15 @@ The `model` rule errors on an event for a state the record doesn't have, and war
 
 ## A page for people who don't edit files
 
-`storyspec ui` serves a page on localhost (port 4400; `--port` to change it) over the same scan and trace the CLI uses. It has a tab each for decisions, stories, scenarios, the model and the trace's findings, and lets a person:
+`storyspec ui` serves a page on localhost (port 4400; `--port` to change it) over the same scan and trace the CLI uses. It has a tab each for decisions, stories, scenarios, the model, the trace's findings and personas, and lets a person:
 
 - **Answer an open decision**, as pinned (its scenarios prove it) or free. The line in spec.md becomes `<question>: <answer>; pinned by …` or `<question>: <answer> (free)`, and the scenarios it blocked can be built.
 - **Approve a draft**, which sets `status: ready`.
 - **Edit or add a scenario.** A new scenario takes the next ID. Steps must start with GIVEN, WHEN, THEN or AND, and include a THEN.
+- **Read one persona's journey.** The Personas tab shows a persona's prose, the open decisions waiting on them, and their stories in ID order with each scenario's proof. A persona with no story says so and offers to start one with `persona:` filled in; open decisions with no owner are listed under Unassigned.
+- **Add a persona**, which appends its `## Name` heading and line to PERSONAS.md (creating the file if there is none).
 
-Every change is an edit to one story's files, shown as a diff before it is saved. An edit to a story past draft bumps its `version` and adds a Revisions line, as the rules ask of anyone. Each write carries the hash of the file the page read, and is refused if the file has changed since, so the page never overwrites an edit made in an editor. There is no database or account: the files are the only copy, the page lists what git hasn't committed yet, and committing is up to you. The server listens on localhost only and refuses writes from other sites' pages.
+Every change is an edit to one story's files (or PERSONAS.md, or a new story's folder), shown as a diff before it is saved. An edit to a story past draft bumps its `version` and adds a Revisions line, as the rules ask of anyone. Each write carries the hash of the file the page read, and is refused if the file has changed since, so the page never overwrites an edit made in an editor. There is no database or account: the files are the only copy, the page lists what git hasn't committed yet, and committing is up to you. The server listens on localhost only and refuses writes from other sites' pages.
 
 ## Lifecycle
 

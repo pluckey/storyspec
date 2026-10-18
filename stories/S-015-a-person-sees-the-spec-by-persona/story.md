@@ -2,8 +2,9 @@
 id: S-015
 title: A person sees the spec by persona
 epic: E-7 Specs for people who don't edit files
-status: ready
+status: in-progress
 version: 1
+implementedBy: packages/storyspec/src/trace/personas.ts, packages/storyspec/src/trace/scan.ts, packages/storyspec/src/trace/rules.ts, packages/storyspec/src/trace/report.ts, packages/storyspec/src/index.ts, packages/storyspec/src/cli.ts, packages/storyspec/src/edit.ts, packages/storyspec/src/new-story.ts, packages/storyspec/src/ui/server.ts, packages/storyspec/ui/index.html, template/stories/PERSONAS.md
 after: S-014
 ---
 

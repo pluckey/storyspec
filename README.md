@@ -45,9 +45,9 @@ Underneath is clean architecture with ports and adapters (`src/domain`, `src/por
 | `npm create storyspec@latest <dir>` | New app with the example notes API (`-- --no-example` for a bare structure with one draft story) |
 | `storyspec story "<title>" [--epic "<epic>"]` | Next story folder from templates |
 | `storyspec gen [--check]` | Write `scenarios.gen.ts` per story (`--check` fails if stale) |
-| `storyspec trace [--tier <name>] [--require-proven] [--no-run] [--json]` | Run a tier's tests (local by default), write TRACE.md, enforce every rule; another tier's results are recorded in `stories/PROOF.json` |
+| `storyspec trace [--tier <name>] [--require-proven] [--by persona] [--no-run] [--json]` | Run a tier's tests (local by default), write TRACE.md, enforce every rule; another tier's results are recorded in `stories/PROOF.json`. `--by persona` writes one stories table per persona in `stories/PERSONAS.md` |
 | `storyspec prove <ID> [--tier manual] [--fail] [--note "…"]` | Record a person's proof of a scenario or a story's scenarios |
-| `storyspec ui [--port 4400]` | A page on localhost for the people who decide what the product does: answer open decisions, approve draft stories, edit and add scenarios, and see each record's lifecycle. Every change is an edit to a story's files, shown as a diff; commit them with git |
+| `storyspec ui [--port 4400]` | A page on localhost for the people who decide what the product does: answer open decisions, approve draft stories, edit and add scenarios, see each record's lifecycle, and read one persona's journey. Every change is an edit to a story's files, shown as a diff; commit them with git |
 | `storyspec migrate` | Update stories for the installed version (0.3: done is derived from proof) |
 | `storyspec sync [--check] [--force] [--claude]` | Bring the agent guidance (`AGENTS.md` block, and for Claude Code the `CLAUDE.md` block, `/story` command and hooks) up to the installed version. See [updating](docs/adopting.md#updating-storyspec) |
 
