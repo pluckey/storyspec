@@ -6,10 +6,10 @@
   "author": "Paul Luckey",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pluckey/storyspec.git",
+    "url": "git+https://github.com/pluckey/story-spec.git",
     "directory": "packages/create-storyspec"
   },
-  "homepage": "https://github.com/pluckey/storyspec#readme",
+  "homepage": "https://github.com/pluckey/story-spec#readme",
   "keywords": [
     "storyspec",
     "create",
