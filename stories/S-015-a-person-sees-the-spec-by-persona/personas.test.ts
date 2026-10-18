@@ -177,10 +177,16 @@ story(gen, {
     const html = await page(root)
     // The Personas tab is People, under Model in the navigation (S-016).
     expect(html).toContain('"people":"People"')
-    // The persona view reads prose, then the decisions waiting on the persona, then its stories.
-    const view = html.slice(html.indexOf('function personaView'))
-    expect(view.indexOf('p.prose')).toBeLessThan(view.indexOf('V.decisions.waitingOn'))
-    expect(view.indexOf('V.decisions.waitingOn')).toBeLessThan(view.indexOf('V.people.stories'))
+    // A persona's row opens (S-023.8) to its prose, then the decisions waiting on it, then its stories in ID order,
+    // each opening to its scenarios with their state and proof.
+    const people = state.page.definitions.find(d => d.id === 'people')!
+    expect(people.expand.map(p => p.part === 'grid' ? p.source : p.part)).toEqual(['text', 'waiting', 'can-do-today', 'being-built', 'planned'])
+    const row = state.page.grids.people.rows.find(r => r.key === 'player')!
+    expect(row.text).toBe(PLAYER[1])
+    expect(row.children!.waiting!.map(r => r.cells.decision)).toEqual(['Greeting punctuation'])
+    const stories = ['can-do-today', 'being-built', 'planned'].flatMap(k => row.children![k]!)
+    expect(stories.map(r => [r.key, r.cells.state])).toEqual([['S-001', 'can do today'], ['S-003', 'being built']])
+    expect(stories[1]!.children!.scenarios!.map(r => [r.key, r.cells.state])).toEqual([['S-003.1', 'needs a look'], ['S-003.2', 'needs a look']])
   },
 
   'S-015.13': async () => {

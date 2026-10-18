@@ -1,0 +1,5 @@
+---
+"storyspec": minor
+---
+
+`storyspec ui` draws every screen with one grid. Each of the thirteen screens is now a definition (its columns, its rows, its tabs and what a row opens to), and the same component draws them all, so a person learns the page once. Every screen gets a search box that keeps the rows with the word in any column and opens a row at the children that match, a count, tabs that filter by kind with their counts (Needs you: All, Decide, Approve, Check, Claim; a screen's findings under To fix), column headers that sort up and then down, a Columns menu whose choice the browser keeps per screen, and one-line rows that open in place to their why and their children as a nested grid. A story opens to its requirement and scenarios, and a persona to Waiting on them, Can do today, Being built and Planned. Needs you rows share the columns kind, what, who, since and action, and its Decide rows now offer Answer. A state says its why on hover. The sort, the tab, the search and the open rows are kept in the URL, so a refresh or a shared link lands in the same place. The only thing off the grid is the row of summary cards above Needs you.

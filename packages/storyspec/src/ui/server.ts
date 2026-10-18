@@ -16,7 +16,8 @@ import { gitUser, readProof, recordManual } from '../proof.js'
 import { PERSONAS_FILE, personaKey } from '../trace/personas.js'
 import { scan } from '../trace/scan.js'
 import { findProjects, projectsBase } from './projects.js'
-import { foldStories, formatRoute, parseRoute, say } from './route.js'
+import { gridComponent } from './grid.js'
+import { formatRoute, parseRoute, say } from './route.js'
 import { buildPage } from './view.js'
 import { VOCABULARY, type Vocabulary } from './vocabulary.js'
 import { followProject } from './watch.js'
@@ -25,14 +26,14 @@ export type UiOptions = { port?: number; host?: string; now?: () => Date; base?:
 
 const STATUSES = ['draft', 'ready', 'in-progress', 'superseded']
 
-/** The page, with the vocabulary and the route functions it shares with the server written into its script. */
+/** The page, with the vocabulary, the route functions and the grid it shares with the server written into its script. */
 export const pageHtml = (words: Vocabulary = VOCABULARY) => {
   for (const rel of ['../ui/index.html', '../../ui/index.html']) {
     const p = fileURLToPath(new URL(rel, import.meta.url))
     if (!existsSync(p)) continue
     const shared = [
       `const VOCABULARY = ${JSON.stringify(words).replace(/</g, '\\u003c')};`,
-      ...Object.entries({ say, parseRoute, formatRoute, foldStories }).map(([name, f]) => `const ${name} = ${f.toString()};`),
+      ...Object.entries({ say, parseRoute, formatRoute, gridComponent }).map(([name, f]) => `const ${name} = ${f.toString()};`),
     ].join('\n')
     return readFileSync(p, 'utf8').replace('/* storyspec:shared */', () => shared)
   }
