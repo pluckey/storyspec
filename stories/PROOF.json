@@ -22,6 +22,17 @@
         "outcome": "pass",
         "version": "1"
       }
+    },
+    "S-017.6": {
+      "manual": {
+        "at": "2026-10-18T20:57:36.251Z",
+        "by": "Paul Luckey",
+        "commit": "f542e39",
+        "hash": "625d93f93421",
+        "note": "Fable 2026-10-18: on cleanroom-horde every state badge carries a ? that opens the why in place; 'being built' on S-010 read '12 of 14 scenarios are checked. Still to go:' with Check on each",
+        "outcome": "pass",
+        "version": "1"
+      }
     }
   }
 }
