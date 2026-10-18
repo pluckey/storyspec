@@ -8,23 +8,33 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadConfig } from '../config.js'
-import { addPersona, addScenario, answerDecision, bumpVersion, decisionQuestion, editScenario, requirementText, scenarioSteps, setStatus, storyText, textHash, type Edit } from '../edit.js'
+import { addImplementedBy, addPersona, addScenario, answerDecision, bumpVersion, decisionQuestion, editScenario, requirementText, scenarioSteps, setStatus, storyText, textHash, type Edit } from '../edit.js'
 import { writeGen } from '../gen.js'
 import { trace } from '../index.js'
 import { newStory } from '../new-story.js'
+import { gitUser, readProof, recordManual } from '../proof.js'
 import { PERSONAS_FILE, personaKey } from '../trace/personas.js'
 import { scan } from '../trace/scan.js'
 import { findProjects, projectsBase } from './projects.js'
+import { foldStories, formatRoute, parseRoute, say } from './route.js'
+import { buildPage } from './view.js'
+import { VOCABULARY, type Vocabulary } from './vocabulary.js'
 import { followProject } from './watch.js'
 
 export type UiOptions = { port?: number; host?: string; now?: () => Date; base?: string }
 
 const STATUSES = ['draft', 'ready', 'in-progress', 'superseded']
 
-const page = () => {
+/** The page, with the vocabulary and the route functions it shares with the server written into its script. */
+export const pageHtml = (words: Vocabulary = VOCABULARY) => {
   for (const rel of ['../ui/index.html', '../../ui/index.html']) {
     const p = fileURLToPath(new URL(rel, import.meta.url))
-    if (existsSync(p)) return readFileSync(p, 'utf8')
+    if (!existsSync(p)) continue
+    const shared = [
+      `const VOCABULARY = ${JSON.stringify(words).replace(/</g, '\\u003c')};`,
+      ...Object.entries({ say, parseRoute, formatRoute, foldStories }).map(([name, f]) => `const ${name} = ${f.toString()};`),
+    ].join('\n')
+    return readFileSync(p, 'utf8').replace('/* storyspec:shared */', () => shared)
   }
   return '<p>storyspec ui: the page is missing from this install.</p>'
 }
@@ -44,8 +54,9 @@ const changes = (root: string, storiesDir: string) => {
   return out
 }
 
-/** Everything the page shows, read fresh from the repo. */
-export const uiState = async (root: string) => {
+/** Everything the page shows, read fresh from the repo: the stories as the edits need them, and `page`, the screens in
+ * the vocabulary's words (view.ts). */
+export const uiState = async (root: string, words: Vocabulary = VOCABULARY) => {
   const config = loadConfig(root)
   const result = await trace(root, { write: false })
   const repo = scan(root, config)
@@ -65,23 +76,24 @@ export const uiState = async (root: string) => {
     const row = rows.get(s.id)
     return {
       id: s.id, dir: s.dir, title: s.front.title ?? '', epic: s.front.epic ?? '', status: row?.status ?? s.front.status ?? '',
-      written: s.front.status ?? '', version: s.front.version ?? '', trigger: s.trigger[0] ?? '', emits: s.emits, after: s.after, personas: s.personas,
+      written: s.front.status ?? '', version: s.front.version ?? '', trigger: s.trigger[0] ?? '', emits: s.emits, after: s.after, personas: s.personas, implementedBy: s.implementedBy,
       text: storyText(storyMd), requirement: requirementText(s.spec, s.id),
       hashes: { story: textHash(storyMd), spec: textHash(s.spec) },
       decisions: s.decisions.map(d => ({ ...d, question: decisionQuestion(d.text) })),
-      scenarios: (row?.scenarios ?? []).map(sc => ({ ...sc, steps: steps[sc.id] ?? [] })),
+      scenarios: (row?.scenarios ?? []).map(sc => ({ ...sc, steps: steps[sc.id] ?? [], hash: s.scenarios.find(x => x.id === sc.id)?.hash ?? '' })),
     }
   })
+  const page = buildPage({ root, config, repo, rows: result.rows, findings: result.findings, ports: result.ports, proof: readProof(repo), ...(personas && { personas }) }, words)
   return {
     project: basename(root), storiesDir: config.storiesDir, ok: result.ok, findings: result.findings, stories,
     model: repo.model ?? null, personas, personasHash: textHash(existsSync(personasFile) ? readFileSync(personasFile, 'utf8') : ''),
-    changes: changes(root, config.storiesDir),
+    changes: changes(root, config.storiesDir), you: gitUser(root) ?? null, page,
   }
 }
 
 type Body = {
   op?: string; story?: string; hash?: string; index?: number; answer?: string; kind?: string; status?: string; id?: string; title?: string; steps?: string[]
-  name?: string; prose?: string; epic?: string; persona?: string
+  name?: string; prose?: string; epic?: string; persona?: string; outcome?: string; note?: string; file?: string
 }
 
 /** Applies one edit from the page. Returns the HTTP status and a message. */
@@ -104,6 +116,19 @@ export const applyEdit = (root: string, body: Body, now: Date = new Date()): { s
     const { id } = newStory(root, config, title, (body.epic ?? '').trim(), now, persona)
     writeGen(root, scan(root, config).stories)
     return { status: 200, message: `Started ${id}${persona ? ` for ${persona}` : ''}, a draft: write its scenarios next` }
+  }
+  if (body.op === 'prove') {
+    // A check by hand, recorded by the same function as `storyspec prove`, naming whom git names, as it does. The hash
+    // is the scenario's text as the page showed it: a check of other wording would prove the wrong thing.
+    const repo = scan(root, config)
+    const sc = repo.stories.flatMap(s => s.scenarios).find(x => x.id === body.id)
+    if (!sc) return { status: 404, message: `${body.id ?? 'that'} isn't a scenario` }
+    if (body.hash !== sc.hash) return { status: 409, message: `${sc.id} changed since the page read it; reload and read it again` }
+    const failed = body.outcome === 'fail', note = body.note?.trim(), by = gitUser(root)
+    try {
+      recordManual(repo, sc.id, 'manual', { outcome: failed ? 'fail' : 'pass', at: now.toISOString(), ...(by && { by }), ...(note && { note }) })
+    } catch (e) { return { status: 400, message: (e as Error).message } }
+    return { status: 200, message: `Recorded ${failed ? 'a failure' : 'proof'} in the manual tier for ${sc.id}${by ? ` (by ${by})` : ''}` }
   }
   const story = scan(root, config).stories.find(s => s.id === body.story)
   if (!story) return { status: 404, message: `${body.story ?? 'that story'} isn't a story` }
@@ -138,6 +163,16 @@ export const applyEdit = (root: string, body: Body, now: Date = new Date()): { s
     if (!edit.ok) return { status: 400, message: edit.reason }
     writeFileSync(storyFile, edit.text)
     return { status: 200, message: `${story.id} is ${body.status}` }
+  }
+  if (body.op === 'claim') {
+    // Claiming names the file in story.md's implementedBy:; the code itself isn't touched.
+    if (stale(storyMd)) return { status: 409, message: `${story.dir}/story.md changed since the page read it; reload and try again` }
+    const file = (body.file ?? '').trim()
+    if (!scan(root, config).codeFiles.includes(file)) return { status: 400, message: `${file || 'that'} isn't a code file in this project` }
+    const edit = addImplementedBy(storyMd, file)
+    if (!edit.ok) return { status: 400, message: edit.reason }
+    writeFileSync(storyFile, edit.text)
+    return { status: 200, message: `${story.id} now claims ${file}` }
   }
   if (body.op === 'scenario') {
     if (stale(spec)) return { status: 409, message: `${story.dir}/spec.md changed since the page read it; reload and try again` }
@@ -178,7 +213,7 @@ export const serveUi = (start: string, opts: UiOptions = {}) => new Promise<Serv
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost')
-      if (req.method === 'GET' && url.pathname === '/') return send(res, 200, page(), 'text/html')
+      if (req.method === 'GET' && url.pathname === '/') return send(res, 200, pageHtml(), 'text/html')
       if (req.method === 'GET' && url.pathname === '/api/projects') {
         const { all, first } = projects()
         return send(res, 200, { folder: base, first: first?.id ?? null, projects: all.map(({ root: _, ...p }) => p) })

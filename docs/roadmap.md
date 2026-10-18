@@ -10,7 +10,7 @@ Ideas, roughly in order. Open an issue to discuss any of them before building.
   - `extends:` (this story changes the behaviour of another): the trace shows "extended by", and a revision of the extended story makes its extenders' proofs stale.
   - `after:` (build order) is read and checked since 0.8; still to come is a generated "ready to build" list of the stories whose `after:` stories are done.
   - `trigger:` and `emits:` are read and checked since 0.8; still to come is a flow diagram of the events between stories in TRACE.md.
-  - `storyspec ui` (0.8) answers decisions, approves stories and edits scenarios; still to come are editing the requirement and the story text, `trigger:`/`emits:` and MODEL.md from the page, recording a manual proof, and a refresh when files change on disk.
+  - `storyspec ui` answers decisions, approves stories, edits scenarios, records manual proofs, claims code and follows the files as they change, organised as Needs you, Model, Implementation and Proof; still to come are editing the requirement and the story text, `trigger:`/`emits:` and MODEL.md from the page.
   - `stories/MODEL.md` (records and their states) is read and checked since 0.8; still to come are fields, and checking that a story's scenarios only move a record along a transition the model has.
 - **Organized views of a flat folder:**
   - The `stories/` folder stays flat and append-only.

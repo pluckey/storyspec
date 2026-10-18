@@ -2,8 +2,9 @@
 id: S-020
 title: Scenarios fold under their story
 epic: E-7 Specs for people who don't edit files
-status: ready
+status: in-progress
 version: 1
+implementedBy: packages/storyspec/src/ui/route.ts, packages/storyspec/src/ui/view.ts, packages/storyspec/src/ui/server.ts, packages/storyspec/ui/index.html
 after: S-016
 ---
 

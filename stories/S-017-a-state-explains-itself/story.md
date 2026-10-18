@@ -2,8 +2,9 @@
 id: S-017
 title: A state explains itself
 epic: E-7 Specs for people who don't edit files
-status: ready
+status: in-progress
 version: 1
+implementedBy: packages/storyspec/src/ui/view.ts, packages/storyspec/src/ui/vocabulary.ts, packages/storyspec/src/ui/server.ts, packages/storyspec/ui/index.html
 after: S-016
 ---
 

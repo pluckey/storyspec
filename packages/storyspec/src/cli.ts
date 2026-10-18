@@ -8,10 +8,9 @@ import { trace } from './index.js'
 import { findingsText, portTable, storiesTables } from './trace/report.js'
 import { scan } from './trace/scan.js'
 import { installedVersion, plan, sync } from './sync.js'
-import { recordManual } from './proof.js'
+import { gitUser, recordManual } from './proof.js'
 import { serveUi } from './ui/server.js'
 import { findProjects, projectsBase } from './ui/projects.js'
-import { execSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const HELP = `storyspec: story-first, spec-driven development
@@ -29,10 +28,13 @@ Usage:
   storyspec gen [--check]               Write scenarios.gen.ts for each story (--check: fail if stale)
   storyspec story "<title>" [--epic "<epic>"]   Create the next story folder from templates
   storyspec check                       gen --check, then trace
-  storyspec ui [--port 4400]            Open a page on localhost to manage the spec: answer open decisions, approve
-                                        stories, edit and add scenarios, see the model, read one persona's journey and
-                                        add personas. Each change is an edit to a
-                                        story's files; commit them with git. It lists every storyspec project in this
+  storyspec ui [--port 4400]            Open a page on localhost to manage the spec. It lands on Needs you, everything
+                                        waiting on a person, then reads in three groups: Model (what should be: people,
+                                        stories, decisions, records, words), Implementation (what is: code, ports,
+                                        layers) and Proof (how we know: by tests, by a run, by a person, stale). Answer
+                                        decisions, approve stories, edit scenarios, add personas, claim code and record
+                                        a check by hand (as storyspec prove does). Each change is an edit to the
+                                        project's files; commit them with git. It lists every storyspec project in this
                                         folder (or the folder above, when run inside a project) and switches between them.
   storyspec sync [--check] [--force] [--claude]
                                         Bring AGENTS.md (and CLAUDE.md, the /story command and its hooks,
@@ -57,10 +59,6 @@ const findRoot = (start: string) => {
     dir = up
   }
   return dir
-}
-
-const gitUser = (root: string) => {
-  try { return execSync('git config user.name', { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' }).trim() || undefined } catch { return undefined }
 }
 
 const main = async (): Promise<number> => {

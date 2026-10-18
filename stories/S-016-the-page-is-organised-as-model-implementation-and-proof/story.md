@@ -2,8 +2,9 @@
 id: S-016
 title: The page is organised as model, implementation and proof
 epic: E-7 Specs for people who don't edit files
-status: ready
+status: in-progress
 version: 1
+implementedBy: packages/storyspec/src/ui/view.ts, packages/storyspec/src/ui/vocabulary.ts, packages/storyspec/src/ui/route.ts, packages/storyspec/src/ui/server.ts, packages/storyspec/ui/index.html, packages/storyspec/src/cli.ts
 after: S-015
 ---
 
