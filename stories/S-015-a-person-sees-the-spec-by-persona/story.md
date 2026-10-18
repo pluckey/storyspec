@@ -2,7 +2,7 @@
 id: S-015
 title: A person sees the spec by persona
 epic: E-7 Specs for people who don't edit files
-status: draft
+status: ready
 version: 1
 after: S-014
 ---
