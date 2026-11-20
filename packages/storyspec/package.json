@@ -68,6 +68,6 @@
   "dependencies": {
     "@ast-grep/cli": "^0.45.3",
     "dependency-cruiser": "^18.5.0",
-    "fast-xml-parser": "^5.11.2"
+    "fast-xml-parser": "^5.12.1"
   }
 }
